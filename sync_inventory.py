@@ -2,29 +2,45 @@ import os
 import re
 import requests
 
-# ----------------- ENVIRONMENT VARIABLES -----------------
-SHOPIFY_TOKEN = os.environ.get("SHOPIFY_ADMIN_ACCESS_TOKEN")
-SHOPIFY_STORE = os.environ.get("SHOPIFY_STORE_DOMAIN")
-SHOPIFY_LOC_ID = os.environ.get("SHOPIFY_LOCATION_ID")
+# ----------------- CREDENTIALS & SECRETS -----------------
+SHOPIFY_STORE = os.environ.get("SHOPIFY_STORE_DOMAIN")      # 7e36ef-2
+SHOPIFY_LOC_ID = os.environ.get("SHOPIFY_LOCATION_ID")     # gid://shopify/Location/94874992939
+CLIENT_ID = os.environ.get("SHOPIFY_CLIENT_ID")            # 66b5f34ecc5b5db4dcc66759f817f892
+CLIENT_SECRET = os.environ.get("SHOPIFY_ADMIN_ACCESS_TOKEN") # Your Client Secret
 
 NRS_AUTH = os.environ.get("NRS_AUTH_PATH")
 NRS_STORE = os.environ.get("NRS_STORE_ID")
 NRS_GROUP = os.environ.get("NRS_GROUP_ID")
 
+def get_shopify_token() -> str:
+    """Exchanges Client ID and Secret for an Admin API Access Token."""
+    # If a static shpat_ token was provided directly, use it
+    if CLIENT_SECRET and CLIENT_SECRET.startswith("shpat_"):
+        return CLIENT_SECRET
+
+    url = f"https://{SHOPIFY_STORE}.myshopify.com/admin/oauth/access_token"
+    payload = {
+        "client_id": CLIENT_ID,
+        "client_secret": CLIENT_SECRET,
+        "grant_type": "client_credentials"
+    }
+    print("Authenticating with Shopify Admin API via Client Credentials...")
+    res = requests.post(url, json=payload, timeout=20)
+    res.raise_for_status()
+    data = res.json()
+    token = data.get("access_token")
+    if not token:
+        raise ValueError(f"No access_token returned by Shopify: {data}")
+    print("Shopify authentication successful.")
+    return token
+
 def clean_barcode(barcode: str) -> str:
-    """Normalizes barcodes by stripping non-digits and leading zeros for matching."""
     if not barcode:
         return ""
     digits = re.sub(r"\D", "", str(barcode))
     return digits.lstrip("0") if digits else ""
 
 def calculate_buffer(qty) -> int:
-    """
-    Reconciliation logic:
-    - Zero or negative in-store stock -> 0 online.
-    - 1 on shelf -> 0 online (reserved for walk-in shoppers).
-    - > 1 on shelf -> Stock minus 1 safety buffer.
-    """
     try:
         q = int(qty)
     except (ValueError, TypeError):
@@ -53,11 +69,11 @@ def fetch_nrs_inventory():
             nrs_map[b] = calculate_buffer(item.get("onhand", 0))
     return nrs_map
 
-def fetch_shopify_variants():
+def fetch_shopify_variants(token: str):
     url = f"https://{SHOPIFY_STORE}.myshopify.com/admin/api/2026-01/graphql.json"
     headers = {
         "Content-Type": "application/json",
-        "X-Shopify-Access-Token": SHOPIFY_TOKEN,
+        "X-Shopify-Access-Token": token,
     }
     query = """
     query getCatalog($cursor: String) {
@@ -81,7 +97,7 @@ def fetch_shopify_variants():
     has_next = True
     cursor = None
 
-    print("Fetching product variants and barcodes from Shopify...")
+    print("Fetching product catalog from Shopify...")
     while has_next:
         resp = requests.post(url, json={"query": query, "variables": {"cursor": cursor}}, headers=headers)
         resp.raise_for_status()
@@ -99,11 +115,11 @@ def fetch_shopify_variants():
     print(f"Mapped {len(shopify_map)} variants with barcodes from Shopify.")
     return shopify_map
 
-def push_shopify(updates):
+def push_shopify(token: str, updates: list):
     url = f"https://{SHOPIFY_STORE}.myshopify.com/admin/api/2026-01/graphql.json"
     headers = {
         "Content-Type": "application/json",
-        "X-Shopify-Access-Token": SHOPIFY_TOKEN,
+        "X-Shopify-Access-Token": token,
     }
     mutation = """
     mutation inventorySetOnHandQuantities($input: InventorySetOnHandQuantitiesInput!) {
@@ -118,7 +134,6 @@ def push_shopify(updates):
       }
     }
     """
-    # Batch updates in groups of 100 to stay within GraphQL limits
     for i in range(0, len(updates), 100):
         chunk = updates[i:i + 100]
         payload = {
@@ -135,8 +150,9 @@ def push_shopify(updates):
         print(f"Pushed batch {i // 100 + 1}: Status {resp.status_code}")
 
 def main():
+    token = get_shopify_token()
     nrs = fetch_nrs_inventory()
-    shopify = fetch_shopify_variants()
+    shopify = fetch_shopify_variants(token)
 
     updates = [
         {"inventoryItemId": shopify[b], "locationId": SHOPIFY_LOC_ID, "quantity": nrs[b]}
@@ -145,8 +161,8 @@ def main():
 
     if updates:
         print(f"Synchronizing {len(updates)} matched items to Shopify location {SHOPIFY_LOC_ID}...")
-        push_shopify(updates)
-        print("Inventory sync successfully completed.")
+        push_shopify(token, updates)
+        print("Inventory sync completed successfully.")
     else:
         print("No matching barcodes found between NRS POS and Shopify catalog.")
 
