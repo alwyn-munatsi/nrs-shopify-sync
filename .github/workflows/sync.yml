@@ -1,0 +1,33 @@
+name: NRS Inventory Sync
+
+on:
+  schedule:
+    # Runs automatically at minute 0 of every hour
+    - cron: '0 * * * *'
+  # Enables a manual "Run workflow" trigger in GitHub
+  workflow_dispatch:
+
+jobs:
+  run-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: pip install requests
+
+      - name: Execute Inventory Synchronization
+        env:
+          SHOPIFY_ADMIN_ACCESS_TOKEN: ${{ secrets.SHOPIFY_ADMIN_ACCESS_TOKEN }}
+          SHOPIFY_STORE_DOMAIN: ${{ secrets.SHOPIFY_STORE_DOMAIN }}
+          SHOPIFY_LOCATION_ID: ${{ secrets.SHOPIFY_LOCATION_ID }}
+          NRS_AUTH_PATH: ${{ secrets.NRS_AUTH_PATH }}
+          NRS_STORE_ID: ${{ secrets.NRS_STORE_ID }}
+          NRS_GROUP_ID: ${{ secrets.NRS_GROUP_ID }}
+        run: python sync_inventory.py
