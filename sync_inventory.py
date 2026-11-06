@@ -781,10 +781,12 @@ def main() -> int:
         downs = [p for p in plan.prices if p["to"] < p["from"]]
         pct = sorted(float((p["to"] - p["from"]) / p["from"] * 100) for p in plan.prices if p["from"])
         median = pct[len(pct) // 2] if pct else 0
-        md.append(
-            f"**Price changes:** {len(downs)} lower, {len(ups)} higher than Shopify today. "
-            f"Median change {median:+.1f}%.\n"
-        )
+        price_line = (f"{len(downs)} lower, {len(ups)} higher than Shopify today. Median change {median:+.1f}%; "
+                      f"middle half between {pct[len(pct) // 4]:+.1f}% and {pct[(3 * len(pct)) // 4]:+.1f}%.")
+        print("Price changes: " + price_line)
+        for p in plan.prices[:10]:
+            print(f"  {p['title'][:60]}: ${p['from']} -> ${p['to']}")
+        md.append(f"**Price changes:** {price_line}\n")
         md.append("### Price changes (first 25)")
         md.append("| Product | Shopify | NRS |")
         md.append("|---|---|---|")
