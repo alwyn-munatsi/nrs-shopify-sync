@@ -2,28 +2,55 @@ name: NRS Inventory Sync
 
 on:
   schedule:
-    # Runs hourly at minute 0
-    - cron: '0 * * * *'
-  # Enables the manual 'Run workflow' button in GitHub
+    # Hourly. Minute 17 instead of 0: GitHub often delays or drops runs scheduled on the hour.
+    - cron: '17 * * * *'
   workflow_dispatch:
+    inputs:
+      mode:
+        description: 'dry-run = report only, live = write to Shopify'
+        type: choice
+        options: [dry-run, live]
+        default: dry-run
+      max_new_products:
+        description: 'Most new draft products to create in this run'
+        default: '25'
+
+# Never run two syncs at the same time.
+concurrency:
+  group: nrs-sync
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write   # for the "new products" notification issue
 
 jobs:
   run-sync:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
       - name: Install Dependencies
-        run: pip install requests
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: python -m pytest -q
 
       - name: Execute Inventory Synchronization
         env:
+          # Manual runs use the mode picked in the form. Scheduled runs use the repository
+          # variable SYNC_MODE (Settings > Secrets and variables > Actions > Variables) and
+          # stay in dry-run until that variable is set to "live".
+          SYNC_MODE: ${{ github.event.inputs.mode || vars.SYNC_MODE || 'dry-run' }}
+          MAX_NEW_PRODUCTS_PER_RUN: ${{ github.event.inputs.max_new_products || vars.MAX_NEW_PRODUCTS_PER_RUN || '25' }}
+          SYNC_PRICES: ${{ vars.SYNC_PRICES || 'true' }}
           SHOPIFY_CLIENT_ID: ${{ secrets.SHOPIFY_CLIENT_ID }}
           SHOPIFY_ADMIN_ACCESS_TOKEN: ${{ secrets.SHOPIFY_ADMIN_ACCESS_TOKEN }}
           SHOPIFY_STORE_DOMAIN: ${{ secrets.SHOPIFY_STORE_DOMAIN }}
@@ -31,4 +58,16 @@ jobs:
           NRS_AUTH_PATH: ${{ secrets.NRS_AUTH_PATH }}
           NRS_STORE_ID: ${{ secrets.NRS_STORE_ID }}
           NRS_GROUP_ID: ${{ secrets.NRS_GROUP_ID }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NOTIFY_ASSIGNEE: ${{ vars.NOTIFY_ASSIGNEE || github.repository_owner }}
+          REPORT_DIR: report
         run: python sync_inventory.py
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: sync-report-${{ github.run_id }}
+          path: report/
+          retention-days: 14
+          if-no-files-found: ignore
