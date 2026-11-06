@@ -164,7 +164,7 @@ def describe_nrs(items):
         return
     keys = sorted({k for it in items[:200] for k in it.keys()})
     print(f"NRS fields: {', '.join(keys)}")
-    buckets = {"missing": 0, "<=0": 0, "1": 0, "2-5": 0, "6+": 0}
+    buckets = {"missing": 0, "<0": 0, "0": 0, "1": 0, "2-5": 0, "6+": 0}
     for it in items:
         v = it.get("onhand")
         try:
@@ -172,8 +172,29 @@ def describe_nrs(items):
         except (TypeError, ValueError):
             buckets["missing"] += 1
             continue
-        buckets["<=0" if q <= 0 else "1" if q == 1 else "2-5" if q <= 5 else "6+"] += 1
+        buckets["<0" if q < 0 else "0" if q == 0 else "1" if q == 1 else "2-5" if q <= 5 else "6+"] += 1
     print("NRS on-hand spread: " + ", ".join(f"{k}: {v}" for k, v in buckets.items()))
+
+    def num(v):
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return 0.0
+    last_sold = sorted(str(it["last_sold"]) for it in items if it.get("last_sold"))
+    print(
+        "NRS activity: "
+        f"sold>0: {sum(1 for it in items if num(it.get('sold')) > 0)}, "
+        f"added>0: {sum(1 for it in items if num(it.get('added')) > 0)}, "
+        f"base_count set: {sum(1 for it in items if it.get('base_count') not in (None, 0, '0'))}, "
+        f"tracked: {sum(1 for it in items if it.get('tracked'))}, "
+        f"in pricebook: {sum(1 for it in items if it.get('inpricebook'))}, "
+        f"with last_sold: {len(last_sold)}"
+        + (f" (latest {last_sold[-1]})" if last_sold else "")
+    )
+    for k in ("base_count", "thresholds", "alarms"):
+        ex = next((it[k] for it in items if it.get(k) not in (None, 0, "0", [], {})), None)
+        if ex is not None:
+            print(f"NRS example {k}: {json.dumps(ex)[:300]}")
     sample = {k: v for k, v in items[0].items() if not isinstance(v, (dict, list))}
     print(f"NRS sample item: {json.dumps(sample)[:600]}")
 
