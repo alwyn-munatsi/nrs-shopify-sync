@@ -263,3 +263,15 @@ def test_notification_opens_issue(monkeypatch):
     s.notify_github("md", "title", "abc")
     url, body = sent[0]
     assert url.endswith("/issues") and body["labels"] == ["new-products"] and body["assignees"] == ["owner"]
+
+
+def test_token_used_directly_when_it_works(monkeypatch):
+    monkeypatch.setattr(s, "token_works", lambda d, t: True)
+    monkeypatch.setattr(s.requests, "post", lambda *a, **k: (_ for _ in ()).throw(AssertionError("no exchange")))
+    assert s.get_shopify_token("x.myshopify.com", "atkn_abc", "client") == "atkn_abc"
+
+
+def test_client_credentials_when_token_rejected(monkeypatch):
+    monkeypatch.setattr(s, "token_works", lambda d, t: False)
+    monkeypatch.setattr(s.requests, "post", lambda url, **k: FakeResponse({"access_token": "fresh"}))
+    assert s.get_shopify_token("x.myshopify.com", "secret", "client") == "fresh"

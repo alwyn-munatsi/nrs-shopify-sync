@@ -205,9 +205,23 @@ class Shopify:
             time.sleep((200 - available) / restore)
 
 
+def token_works(domain: str, token: str) -> bool:
+    """True when the token is accepted by the Admin API as an access token."""
+    res = requests.post(
+        f"https://{domain}/admin/api/{API_VERSION}/graphql.json",
+        json={"query": "{ shop { id } }"},
+        headers={"Content-Type": "application/json", "X-Shopify-Access-Token": token},
+        timeout=30,
+    )
+    return res.status_code == 200 and not res.json().get("errors")
+
+
 def get_shopify_token(domain: str, token: str, client_id: str) -> str:
-    """Uses a static shpat_ token directly; otherwise exchanges client id + secret for a token."""
-    if token and (token.startswith("shpat_") or not client_id):
+    """
+    Uses the secret directly when it works as an access token. Otherwise, when a client id is set,
+    treats it as the app's client secret and exchanges it with the client credentials grant.
+    """
+    if not client_id or token_works(domain, token):
         return token
     print("Requesting a Shopify access token with the client credentials grant...")
     res = requests.post(
