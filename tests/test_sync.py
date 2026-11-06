@@ -36,13 +36,13 @@ def test_parse_nrs_items():
     items = [
         {"upc": "072890000002", "name": " Heineken 6pk ", "cents": 2249, "department": "BEER", "onhand": 5},
         {"upc": "", "name": "no barcode", "cents": 100, "onhand": 3},
-        {"upc": "123", "name": None, "cents": None, "department": None, "onhand": None},
+        {"upc": "123", "name": None, "cents": None, "dept": "Dog Food", "onhand": None},
     ]
     m = s.parse_nrs_items(items)
     assert set(m) == {"72890000002", "123"}
     h = m["72890000002"]
     assert h["price"] == Decimal("22.49") and h["name"] == "Heineken 6pk" and h["target_qty"] == 4
-    assert m["123"]["price"] is None and m["123"]["name"] == "New In-Store Product" and m["123"]["onhand"] == 0
+    assert m["123"]["department"] == "Dog Food" and m["123"]["price"] is None and m["123"]["name"] == "New In-Store Product" and m["123"]["onhand"] == 0
 
 
 def variant(b, price="5.00", on_hand=0, stocked=True, tracked=True, n=1):

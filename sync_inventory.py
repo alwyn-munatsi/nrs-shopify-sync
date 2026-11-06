@@ -134,7 +134,7 @@ def parse_nrs_items(items) -> dict:
             "raw_upc": re.sub(r"\D", "", str(raw_upc)),
             "name": (item.get("name") or "").strip() or "New In-Store Product",
             "price": price,
-            "department": (item.get("department") or "").strip() or "General",
+            "department": (item.get("department") or item.get("dept") or "").strip() or "General",
             "onhand": onhand,
             "target_qty": calculate_buffer(onhand),
         }
