@@ -275,3 +275,17 @@ def test_client_credentials_when_token_rejected(monkeypatch):
     monkeypatch.setattr(s, "token_works", lambda d, t: False)
     monkeypatch.setattr(s.requests, "post", lambda url, **k: FakeResponse({"access_token": "fresh"}))
     assert s.get_shopify_token("x.myshopify.com", "secret", "client") == "fresh"
+
+
+def test_parse_pricebook_items():
+    rows = [
+        {"upc": "072890000002", "name": "Heineken Can 6pk ", "dept": "Beer", "cents": 1599, "variableprice": False,
+         "inventory": {"onhand": -3}},
+        {"upc": "0005", "name": "Open price item", "dept": "Deli", "cents": 100, "variableprice": True, "inventory": {"onhand": 4}},
+        {"upc": "0006", "name": "No inventory record", "dept": "Candy", "cents": 249},
+    ]
+    m = s.parse_pricebook_items(rows)
+    h = m["72890000002"]
+    assert h["price"] == Decimal("15.99") and h["department"] == "Beer" and h["onhand"] == -3 and h["target_qty"] == 0
+    assert m["5"]["price"] is None and m["5"]["target_qty"] == 3
+    assert m["6"]["price"] == Decimal("2.49") and m["6"]["onhand"] == 0

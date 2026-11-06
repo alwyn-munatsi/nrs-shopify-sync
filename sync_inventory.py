@@ -41,6 +41,13 @@ import requests
 
 API_VERSION = "2026-10"
 NRS_URL = "https://pos-papi.nrsplus.com/{auth}/inventory/{store}/groups/{group}/upcs"
+NRS_PRICEBOOK_URL = "https://pos-papi.nrsplus.com/{auth}/pbitems/{store}/default"
+NRS_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    "Accept": "application/json, text/plain, */*",
+    "Origin": "https://mystore.nrsplus.com",
+    "Referer": "https://mystore.nrsplus.com/",
+}
 NOTIFY_LABEL = "new-products"
 
 
@@ -141,21 +148,65 @@ def parse_nrs_items(items) -> dict:
     return nrs_map
 
 
+def parse_pricebook_items(items) -> dict:
+    """
+    Turns NRS price book rows into the same shape as parse_nrs_items. The price book carries the
+    register price ('cents') and the item's inventory record (with 'onhand').
+    Items with a variable (open) price have no fixed price, so their price is left empty.
+    """
+    rows = []
+    for it in items or []:
+        inv = it.get("inventory") or {}
+        rows.append({
+            "upc": it.get("upc"),
+            "name": it.get("name"),
+            "dept": it.get("dept"),
+            "cents": None if it.get("variableprice") else it.get("cents"),
+            "onhand": inv.get("onhand", 0),
+        })
+    return parse_nrs_items(rows)
+
+
+def fetch_nrs_pricebook(auth: str, store: str, page_size: int = 2000) -> list:
+    url = NRS_PRICEBOOK_URL.format(auth=auth, store=store)
+    items, start = [], 0
+    while True:
+        res = requests.get(url, headers=NRS_HEADERS, params={"draw": 1, "start": start, "length": page_size}, timeout=90)
+        res.raise_for_status()
+        body = res.json()
+        rc = (body.get("res") or {}).get("rc", 0)
+        if rc != 0:
+            raise RuntimeError(f"NRS price book error: {body.get('res')}")
+        page = body.get("data") or []
+        items.extend(page)
+        if len(page) < page_size:
+            break
+        start += page_size
+    return items
+
+
 def fetch_nrs_catalog(auth: str, store: str, group: str) -> dict:
-    url = NRS_URL.format(auth=auth, store=store, group=group)
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Accept": "application/json, text/plain, */*",
-        "Origin": "https://mystore.nrsplus.com",
-        "Referer": "https://mystore.nrsplus.com/",
-    }
+    """
+    Reads the NRS price book (names, departments, register prices, on-hand) and, as a fallback for
+    stock, the inventory list. Price book rows win; inventory-only items are added without a price.
+    """
+    print("Fetching the NRS price book...")
+    pricebook = fetch_nrs_pricebook(auth, store)
+    print(f"Retrieved {len(pricebook)} price book items from NRS.")
+    catalog = parse_pricebook_items(pricebook)
+    priced = sum(1 for v in catalog.values() if v["price"] and v["price"] > 0)
+    print(f"Price book items with a fixed price: {priced}.")
+
     print("Fetching live inventory from NRS POS API...")
-    res = requests.get(url, headers=headers, timeout=60)
+    res = requests.get(NRS_URL.format(auth=auth, store=store, group=group), headers=NRS_HEADERS, timeout=60)
     res.raise_for_status()
     items = res.json().get("upcs", [])
-    print(f"Retrieved {len(items)} catalog items from NRS.")
+    print(f"Retrieved {len(items)} inventory items from NRS.")
     describe_nrs(items)
-    return parse_nrs_items(items)
+    for b, inv in parse_nrs_items(items).items():
+        if b not in catalog:
+            catalog[b] = inv
+    return catalog
 
 
 def describe_nrs(items):
@@ -726,6 +777,14 @@ def main() -> int:
     if plan.untracked:
         md.append(f"Note: {plan.untracked} matched variants do not track inventory in Shopify, so stock changes won't limit sales for them.\n")
     if plan.prices:
+        ups = [p for p in plan.prices if p["to"] > p["from"]]
+        downs = [p for p in plan.prices if p["to"] < p["from"]]
+        pct = sorted(float((p["to"] - p["from"]) / p["from"] * 100) for p in plan.prices if p["from"])
+        median = pct[len(pct) // 2] if pct else 0
+        md.append(
+            f"**Price changes:** {len(downs)} lower, {len(ups)} higher than Shopify today. "
+            f"Median change {median:+.1f}%.\n"
+        )
         md.append("### Price changes (first 25)")
         md.append("| Product | Shopify | NRS |")
         md.append("|---|---|---|")
