@@ -154,7 +154,28 @@ def fetch_nrs_catalog(auth: str, store: str, group: str) -> dict:
     res.raise_for_status()
     items = res.json().get("upcs", [])
     print(f"Retrieved {len(items)} catalog items from NRS.")
+    describe_nrs(items)
     return parse_nrs_items(items)
+
+
+def describe_nrs(items):
+    """Logs the NRS field names and how stock is spread, to spot feeds without stock counts."""
+    if not items:
+        return
+    keys = sorted({k for it in items[:200] for k in it.keys()})
+    print(f"NRS fields: {', '.join(keys)}")
+    buckets = {"missing": 0, "<=0": 0, "1": 0, "2-5": 0, "6+": 0}
+    for it in items:
+        v = it.get("onhand")
+        try:
+            q = int(v)
+        except (TypeError, ValueError):
+            buckets["missing"] += 1
+            continue
+        buckets["<=0" if q <= 0 else "1" if q == 1 else "2-5" if q <= 5 else "6+"] += 1
+    print("NRS on-hand spread: " + ", ".join(f"{k}: {v}" for k, v in buckets.items()))
+    sample = {k: v for k, v in items[0].items() if not isinstance(v, (dict, list))}
+    print(f"NRS sample item: {json.dumps(sample)[:600]}")
 
 
 # ==========================================
