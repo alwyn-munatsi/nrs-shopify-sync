@@ -169,6 +169,7 @@ def env(monkeypatch, tmp_path):
         "SHOPIFY_ADMIN_ACCESS_TOKEN": "shpat_test", "SHOPIFY_STORE_DOMAIN": "test-store",
         "SHOPIFY_LOCATION_ID": "1", "NRS_AUTH_PATH": "a", "NRS_STORE_ID": "b", "NRS_GROUP_ID": "c",
         "REPORT_DIR": str(tmp_path / "report"), "GITHUB_STEP_SUMMARY": str(tmp_path / "summary.md"),
+        "SYNC_STOCK": "true",
     }.items():
         monkeypatch.setenv(k, v)
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
@@ -289,3 +290,37 @@ def test_parse_pricebook_items():
     assert h["price"] == Decimal("15.99") and h["department"] == "Beer" and h["onhand"] == -3 and h["target_qty"] == 0
     assert m["5"]["price"] is None and m["5"]["target_qty"] == 3
     assert m["6"]["price"] == Decimal("2.49") and m["6"]["onhand"] == 0
+
+
+def test_online_price_markup():
+    assert s.online_price(Decimal("3.49"), Decimal("20")) == Decimal("4.19")   # 4.188
+    assert s.online_price(Decimal("15.99"), Decimal("20")) == Decimal("19.19")  # 19.188
+    assert s.online_price(Decimal("2.50"), Decimal("20")) == Decimal("3.00")
+    assert s.online_price(Decimal("4.00"), Decimal("0")) == Decimal("4.00")
+
+
+def test_plan_applies_markup_and_skips_stock():
+    nrs = s.parse_nrs_items([
+        {"upc": "0003", "name": "x", "cents": 349, "onhand": 9},
+        {"upc": "0004", "name": "y", "cents": 500, "onhand": 9},
+        {"upc": "0009", "name": "new", "cents": 1000, "onhand": 3},
+    ])
+    shop = shopify_map(variant("0003", "4.49", 0, n=3), variant("0004", "6.00", 0, n=4))
+    plan = s.build_plan(nrs, shop, markup_pct=Decimal("20"), sync_stock=False)
+    assert plan.stock == [] and plan.activate == []
+    assert [(r["barcode"], r["register"], r["from"], r["to"]) for r in plan.prices] == [("0003", Decimal("3.49"), Decimal("4.49"), Decimal("4.19"))]
+    assert plan.new_products[0]["online_price"] == Decimal("12.00")
+
+
+def test_live_run_with_markup_and_no_stock(env, monkeypatch):
+    monkeypatch.setenv("SYNC_MODE", "live")
+    monkeypatch.setenv("SYNC_STOCK", "false")
+    monkeypatch.setenv("PRICE_MARKUP_PERCENT", "20")
+    session = FakeSession([variant("0002", "5.00", 0, n=2), variant("0003", "5.00", 0, n=3)])
+    assert run_main(monkeypatch, session) == 0
+    muts = mutation_calls(session)
+    assert not any("inventorySetQuantities" in m["query"] or "inventoryActivate" in m["query"] for m in muts)
+    prices = next(m for m in muts if "productVariantsBulkUpdate" in m["query"])["variables"]
+    assert sorted(v[0]["price"] for k, v in prices.items() if k.startswith("v")) == ["6.00", "9.59"]
+    create = next(m for m in muts if "productSet" in m["query"])["variables"]["input"]
+    assert create["variants"][0]["price"] == "3.60"

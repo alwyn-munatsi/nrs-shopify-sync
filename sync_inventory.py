@@ -20,6 +20,8 @@ Environment:
   NRS_AUTH_PATH, NRS_STORE_ID, NRS_GROUP_ID
   SYNC_MODE                   "dry-run" (default) or "live"
   SYNC_PRICES                 "true" (default) / "false"
+  PRICE_MARKUP_PERCENT        online price = register price + this percent (default 0)
+  SYNC_STOCK                  "true" / "false" (default): write stock levels to Shopify
   MAX_NEW_PRODUCTS_PER_RUN    default 25
   REPORT_DIR                  default "report"
   GITHUB_TOKEN, GITHUB_REPOSITORY, NOTIFY_ASSIGNEE   for the issue notification (set by the workflow)
@@ -35,7 +37,7 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from decimal import Decimal, InvalidOperation
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 import requests
 
@@ -90,6 +92,11 @@ def to_price(value):
         return Decimal(str(value)).quantize(Decimal("0.01"))
     except (InvalidOperation, ValueError, TypeError):
         return None
+
+
+def online_price(register: Decimal, markup_pct: Decimal) -> Decimal:
+    """Register price plus the online markup, rounded to the cent."""
+    return (register * (1 + markup_pct / 100)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
 def normalize_store_domain(raw: str) -> str:
@@ -416,7 +423,8 @@ class Plan:
     untracked: int = 0
 
 
-def build_plan(nrs: dict, shopify: dict, sync_prices: bool = True, max_new: int = 25) -> Plan:
+def build_plan(nrs: dict, shopify: dict, sync_prices: bool = True, max_new: int = 25,
+               markup_pct: Decimal = Decimal("0"), sync_stock: bool = True) -> Plan:
     plan = Plan()
 
     for b, variants in shopify.items():
@@ -431,10 +439,11 @@ def build_plan(nrs: dict, shopify: dict, sync_prices: bool = True, max_new: int 
             row = {**v, "barcode": item["raw_upc"], "nrs_name": item["name"], "nrs_onhand": item["onhand"]}
 
             target = item["target_qty"]
-            if not v["stocked"]:
-                plan.activate.append({**row, "from": None, "to": target})
-            elif v["on_hand"] != target:
-                plan.stock.append({**row, "from": v["on_hand"], "to": target})
+            if sync_stock:
+                if not v["stocked"]:
+                    plan.activate.append({**row, "from": None, "to": target})
+                elif v["on_hand"] != target:
+                    plan.stock.append({**row, "from": v["on_hand"], "to": target})
 
             if sync_prices:
                 if item["price"] is None or item["price"] <= 0:
@@ -442,8 +451,10 @@ def build_plan(nrs: dict, shopify: dict, sync_prices: bool = True, max_new: int 
                         f"Price not changed for '{v['title']}' ({item['raw_upc']}): NRS price is "
                         f"{item['price'] if item['price'] is not None else 'missing'}."
                     )
-                elif v["price"] != item["price"]:
-                    plan.prices.append({**row, "from": v["price"], "to": item["price"]})
+                else:
+                    target_price = online_price(item["price"], markup_pct)
+                    if v["price"] != target_price:
+                        plan.prices.append({**row, "register": item["price"], "from": v["price"], "to": target_price})
 
     candidates = [
         {"barcode": item["raw_upc"], **item}
@@ -455,6 +466,7 @@ def build_plan(nrs: dict, shopify: dict, sync_prices: bool = True, max_new: int 
         if item["price"] is None or item["price"] <= 0:
             plan.warnings.append(f"New register item '{item['name']}' ({item['raw_upc']}) has no NRS price; not created.")
             continue
+        item = {**item, "online_price": online_price(item["price"], markup_pct)}
         (plan.new_products if len(plan.new_products) < max_new else plan.queued).append(item)
 
     return plan
@@ -570,7 +582,7 @@ def create_product(shop: Shopify, item: dict, location_id: str):
             "productOptions": [{"name": "Title", "values": [{"name": "Default Title"}]}],
             "variants": [{
                 "optionValues": [{"optionName": "Title", "name": "Default Title"}],
-                "price": str(item["price"]),
+                "price": str(item.get("online_price") or item["price"]),
                 "barcodes": [{"value": item["raw_upc"]}],
                 "inventoryItem": {"tracked": True},
                 "inventoryQuantities": [{"locationId": location_id, "name": "on_hand", "quantity": item["target_qty"]}],
@@ -609,7 +621,7 @@ def new_products_markdown(created: list, pending: list, failed: list, live: bool
         lines.append("|---|---|---|---|---|")
         for c in created:
             name = f"[{c['name']}]({admin_product_url(domain, c['product_id'])})" if c.get("product_id") else c["name"]
-            lines.append(f"| {name} | {c['raw_upc']} | {c['department']} | ${c['price']} | {c['target_qty']} |")
+            lines.append(f"| {name} | {c['raw_upc']} | {c['department']} | ${c.get('online_price') or c['price']} | {c['target_qty']} |")
         lines.append("")
     if pending:
         heading = "Would be created (dry run)" if not live else "Waiting to be created on the next runs (over this run's limit)"
@@ -617,7 +629,7 @@ def new_products_markdown(created: list, pending: list, failed: list, live: bool
         lines.append("| Product | Barcode | Department | Price | Register stock |")
         lines.append("|---|---|---|---|---|")
         for p in pending[:200]:
-            lines.append(f"| {p['name']} | {p['raw_upc']} | {p['department']} | ${p['price']} | {p['onhand']} |")
+            lines.append(f"| {p['name']} | {p['raw_upc']} | {p['department']} | ${p.get('online_price') or p['price']} | {p['onhand']} |")
         if len(pending) > 200:
             lines.append(f"| ...and {len(pending) - 200} more (see the CSV in the run's report) | | | | |")
         lines.append("")
@@ -702,13 +714,15 @@ def main() -> int:
     mode = (os.environ.get("SYNC_MODE") or "dry-run").strip().lower()
     live = mode == "live"
     sync_prices = env_flag("SYNC_PRICES", True)
+    sync_stock = env_flag("SYNC_STOCK", False)
+    markup_pct = to_price(os.environ.get("PRICE_MARKUP_PERCENT") or "0") or Decimal("0")
     max_new = int(os.environ.get("MAX_NEW_PRODUCTS_PER_RUN") or 25)
     report_dir = os.environ.get("REPORT_DIR") or "report"
     os.makedirs(report_dir, exist_ok=True)
 
     domain = normalize_store_domain(os.environ["SHOPIFY_STORE_DOMAIN"])
     location_id = normalize_location_id(os.environ["SHOPIFY_LOCATION_ID"])
-    print(f"Mode: {'LIVE (writes to Shopify)' if live else 'DRY RUN (no changes)'} | store {domain} | prices {'on' if sync_prices else 'off'}")
+    print(f"Mode: {'LIVE (writes to Shopify)' if live else 'DRY RUN (no changes)'} | store {domain} | prices {'on (+' + str(markup_pct) + '% online)' if sync_prices else 'off'} | stock {'on' if sync_stock else 'off'}")
 
     token = get_shopify_token(domain, os.environ["SHOPIFY_ADMIN_ACCESS_TOKEN"], os.environ.get("SHOPIFY_CLIENT_ID"))
     shop = Shopify(domain, token)
@@ -719,7 +733,7 @@ def main() -> int:
         print("Error: NRS returned no items; stopping so Shopify is not zeroed out.")
         return 1
 
-    plan = build_plan(nrs, shopify, sync_prices=sync_prices, max_new=max_new)
+    plan = build_plan(nrs, shopify, sync_prices=sync_prices, max_new=max_new, markup_pct=markup_pct, sync_stock=sync_stock)
     print(
         f"Matched {plan.matched} variants by barcode ({plan.shopify_only} Shopify variants not in NRS). "
         f"Planned: {len(plan.stock)} stock changes, {len(plan.activate)} first-time stockings, "
@@ -750,10 +764,10 @@ def main() -> int:
     write_csv(os.path.join(report_dir, "stock_changes.csv"), plan.stock + plan.activate,
               ["title", "barcode", "nrs_onhand", "from", "to", "product_id", "variant_id"])
     write_csv(os.path.join(report_dir, "price_changes.csv"), plan.prices,
-              ["title", "barcode", "from", "to", "product_id", "variant_id"])
+              ["title", "barcode", "register", "from", "to", "product_id", "variant_id"])
     write_csv(os.path.join(report_dir, "new_products.csv"),
               [{**c, "status": "created"} for c in created] + [{**p, "status": "pending"} for p in pending],
-              ["status", "name", "raw_upc", "department", "price", "onhand", "target_qty", "product_id"])
+              ["status", "name", "raw_upc", "department", "price", "online_price", "onhand", "target_qty", "product_id"])
     with open(os.path.join(report_dir, "warnings.txt"), "w", encoding="utf-8") as f:
         f.write("\n".join(plan.warnings + errors + failed))
 
@@ -785,12 +799,12 @@ def main() -> int:
                       f"middle half between {pct[len(pct) // 4]:+.1f}% and {pct[(3 * len(pct)) // 4]:+.1f}%.")
         print("Price changes: " + price_line)
         for p in plan.prices[:10]:
-            print(f"  {p['title'][:60]}: ${p['from']} -> ${p['to']}")
+            print(f"  {p['title'][:60]}: register ${p['register']}, Shopify ${p['from']} -> ${p['to']}")
         md.append(f"**Price changes:** {price_line}\n")
         md.append("### Price changes (first 25)")
-        md.append("| Product | Shopify | NRS |")
-        md.append("|---|---|---|")
-        md.extend(f"| {p['title']} | ${p['from']} | ${p['to']} |" for p in plan.prices[:25])
+        md.append("| Product | Register | Shopify now | New online price |")
+        md.append("|---|---|---|---|")
+        md.extend(f"| {p['title']} | ${p['register']} | ${p['from']} | ${p['to']} |" for p in plan.prices[:25])
         md.append("")
     new_md = new_products_markdown(created, pending, failed, live, domain)
     md.append(new_md)

@@ -4,12 +4,14 @@ Keeps the 705 BRBR Shopify store in step with the NRS register. Runs every hour 
 
 ## What a run does
 
-1. Reads the NRS catalog (barcode, name, price, department, on-hand) and every Shopify variant.
+1. Reads the NRS price book (barcode, name, register price, department, on-hand) and every Shopify variant.
 2. Matches them by barcode (digits only, leading zeros ignored).
-3. **Stock:** sets Shopify on-hand to the register count minus 1, held back for walk-in customers
-   (0 or 1 in the register means 0 online).
-4. **Prices:** NRS always wins. A Shopify price that differs from the register is changed to the
-   register price. A missing or $0 NRS price is never pushed; it's listed as a warning instead.
+3. **Prices:** the online price is the NRS price book (register) price plus `PRICE_MARKUP_PERCENT`
+   (20% by default), rounded to the cent. Any Shopify price that differs is changed to it.
+   A missing, $0 or open (variable) register price is never pushed; it's listed as a warning instead.
+4. **Stock (off for now):** with `SYNC_STOCK=true`, sets Shopify on-hand to the register count minus 1,
+   held back for walk-in customers (0 or 1 in the register means 0 online). It stays off until the
+   store's NRS counts are reliable (most are currently 0 or negative).
 5. **New products:** register items that are in stock but not on Shopify are created as **draft**
    products (title, department as the product type, price, barcode, stock), tagged
    `nrs-sync` and `needs-review`. At most 25 per run; the rest wait for the next runs.
@@ -28,7 +30,8 @@ Manual runs: Actions → NRS Inventory Sync → Run workflow → pick the mode.
 Scheduled runs use the repository variable `SYNC_MODE` (Settings → Secrets and variables → Actions →
 Variables). They stay in dry run until `SYNC_MODE` is set to `live`.
 
-Optional variables: `MAX_NEW_PRODUCTS_PER_RUN` (default 25), `SYNC_PRICES` (`true`/`false`),
+Optional variables: `PRICE_MARKUP_PERCENT` (default 20), `SYNC_STOCK` (default `false`),
+`MAX_NEW_PRODUCTS_PER_RUN` (default 25), `SYNC_PRICES` (`true`/`false`),
 `NOTIFY_ASSIGNEE` (GitHub username to notify; defaults to the repo owner).
 
 ## Secrets

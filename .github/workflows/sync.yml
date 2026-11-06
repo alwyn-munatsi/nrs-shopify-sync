@@ -51,6 +51,10 @@ jobs:
           SYNC_MODE: ${{ github.event.inputs.mode || vars.SYNC_MODE || 'dry-run' }}
           MAX_NEW_PRODUCTS_PER_RUN: ${{ github.event.inputs.max_new_products || vars.MAX_NEW_PRODUCTS_PER_RUN || '25' }}
           SYNC_PRICES: ${{ vars.SYNC_PRICES || 'true' }}
+          # Online price = register price + this percent.
+          PRICE_MARKUP_PERCENT: ${{ vars.PRICE_MARKUP_PERCENT || '20' }}
+          # Stock is off until the store's NRS counts are reliable.
+          SYNC_STOCK: ${{ vars.SYNC_STOCK || 'false' }}
           SHOPIFY_CLIENT_ID: ${{ secrets.SHOPIFY_CLIENT_ID }}
           SHOPIFY_ADMIN_ACCESS_TOKEN: ${{ secrets.SHOPIFY_ADMIN_ACCESS_TOKEN }}
           SHOPIFY_STORE_DOMAIN: ${{ secrets.SHOPIFY_STORE_DOMAIN }}
