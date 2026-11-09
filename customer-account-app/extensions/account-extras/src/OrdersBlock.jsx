@@ -140,7 +140,7 @@ function OrdersWelcome() {
               </s-link>
             </s-grid>
             <s-grid
-              gridTemplateColumns="@container (inline-size > 460px) 1fr 1fr 1fr, 1fr 1fr"
+              gridTemplateColumns="1fr 1fr 1fr"
               gap="base"
             >
               {popular.map((p) => (
@@ -151,7 +151,7 @@ function OrdersWelcome() {
                   accessibilityLabel={`${p.title}, ${formatPrice(p.priceRange.minVariantPrice)}`}
                 >
                   <s-stack direction="block" gap="small-200">
-                    <s-box border="base" borderRadius="large" padding="small" background="base" maxBlockSize="180px">
+                    <s-box border="base" borderRadius="large" padding="small" background="base">
                       <s-image
                         src={p.featuredImage.url}
                         alt={p.featuredImage.altText || p.title}
