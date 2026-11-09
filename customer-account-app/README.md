@@ -1,8 +1,9 @@
 # 705 BRBR Account Extras
 
-A private Shopify app that adds a "705 BRBR welcome" block to the customer account Orders page:
-store hours with an Open now badge, quick links (shop, beer, snacks, delivery, NY Lottery, directions),
-popular products (best sellers with photo and price) and the in-store services.
+A private Shopify app that adds a "705 BRBR welcome" block to the customer account Orders page
+(placed below the order list): popular products (best sellers with photo and price), store hours with an
+Open now badge, the address and the in-store services. Quick links (Shop, NY Lottery, Order delivery,
+Visit us) are in the account side menu: Online Store → Navigation → Customer account main menu.
 
 ## Deploy
 
@@ -27,4 +28,4 @@ Shopify admin → Settings → Checkout → Customize → page selector: **Order
 
 ## Change the content
 
-Edit `extensions/account-extras/src/OrdersBlock.jsx` (QUICK_LINKS, SERVICES, text), then push to `main` (GitHub deploys it).
+Edit `extensions/account-extras/src/OrdersBlock.jsx` (SERVICES, text), then push to `main` (GitHub deploys it).

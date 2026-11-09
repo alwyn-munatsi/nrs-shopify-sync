@@ -3,21 +3,14 @@ import {render} from 'preact';
 import {useEffect, useState} from 'preact/hooks';
 
 /*
-  705 BRBR welcome block for the customer account Orders page.
-  Shows: store hours with a live "Open now" badge, quick-link tiles, popular products
-  (best sellers from the store, with photo and price) and the in-store services.
+  705 BRBR block for the customer account Orders page (placed below Shopify's order list).
+  Shows: popular products (best sellers with photo and price), then a store strip with a live
+  "Open now" badge, the address and the in-store services.
+  Quick links (Shop, NY Lottery, Order delivery, Visit us) live in the account side menu
+  (Online Store > Navigation > Customer account main menu).
 */
 
 const STORE = 'https://705brbr.org';
-
-const QUICK_LINKS = [
-  {label: 'Shop all', note: '3,500+ products', icon: 'bag', href: `${STORE}/collections/all`},
-  {label: 'Cold beer', note: 'IPAs, lagers & more', icon: 'star', href: `${STORE}/collections/all-beer`},
-  {label: 'Snacks', note: 'Chips, candy & sweets', icon: 'cart', href: `${STORE}/collections/snacks`},
-  {label: 'Order delivery', note: 'Get it delivered', icon: 'delivery', href: 'https://www.doordash.com/convenience/store/26214688/'},
-  {label: 'NY Lottery', note: 'Results & scratch-offs', icon: 'gift-card', href: `${STORE}/pages/lottery`},
-  {label: 'Visit us', note: '705 2nd Ave, Murray Hill', icon: 'location', href: 'https://maps.app.goo.gl/Rn9GY1jnfXuEgcM48'},
-];
 
 const SERVICES = ['NY Lottery', 'ATM', 'LuggageHero', 'Vinted Go', 'Amazon Hub'];
 
@@ -65,10 +58,10 @@ export function pickPopular(nodes, limit = 6) {
 }
 
 export default async () => {
-  render(<OrdersWelcome />, document.body);
+  render(<StoreBlock />, document.body);
 };
 
-function OrdersWelcome() {
+function StoreBlock() {
   const [popular, setPopular] = useState(null);
   const open = isOpenNow();
 
@@ -80,69 +73,24 @@ function OrdersWelcome() {
   }, []);
 
   return (
-    <s-section accessibilityLabel="Welcome to 705 BRBR">
+    <s-section accessibilityLabel="Popular at 705 BRBR">
       <s-stack direction="block" gap="large-100">
-        {/* Welcome row */}
-        <s-grid gridTemplateColumns="@container (inline-size > 560px) 1fr auto, 1fr" alignItems="center" gap="base">
-          <s-stack direction="block" gap="small-200">
-            <s-heading>Your neighborhood market, ready when you are</s-heading>
-            <s-text color="subdued">
-              Cold beer, groceries, snacks and pet supplies on 2nd Ave. Order online for pickup, or get it delivered.
-            </s-text>
-            <s-stack direction="inline" gap="small-200">
-              <s-badge tone={open ? 'auto' : 'neutral'} icon="clock">
-                {open ? 'Open now' : 'Closed now'} · 6 AM – 12 AM daily
-              </s-badge>
-              <s-badge tone="neutral" icon="location">Murray Hill, NYC</s-badge>
-            </s-stack>
-          </s-stack>
-          <s-button variant="primary" href={`${STORE}/collections/all`} target="_blank">
-            Start shopping
-          </s-button>
-        </s-grid>
-
-        {/* Quick links */}
-        <s-grid
-          gridTemplateColumns="@container (inline-size > 640px) 1fr 1fr 1fr, 1fr 1fr"
-          gap="base"
-        >
-          {QUICK_LINKS.map((link) => (
-            <s-clickable
-              key={link.label}
-              href={link.href}
-              target="_blank"
-              border="base"
-              borderRadius="large"
-              padding="base"
-              background="subdued"
-              accessibilityLabel={`${link.label}: ${link.note}`}
-            >
-              <s-stack direction="inline" gap="small-100" alignItems="center">
-                <s-icon type={link.icon} />
-                <s-stack direction="block" gap="none">
-                  <s-text type="strong">{link.label}</s-text>
-                  <s-text color="subdued">{link.note}</s-text>
-                </s-stack>
-              </s-stack>
-            </s-clickable>
-          ))}
-        </s-grid>
-
         {/* Popular products */}
-        {popular === null ? (
-          <s-skeleton-paragraph />
-        ) : popular.length > 0 ? (
-          <s-stack direction="block" gap="base">
-            <s-grid gridTemplateColumns="1fr auto" alignItems="center">
-              <s-heading>Popular right now</s-heading>
-              <s-link href={`${STORE}/collections/all`} target="_blank">
-                See all
-              </s-link>
-            </s-grid>
-            <s-grid
-              gridTemplateColumns="1fr 1fr 1fr"
-              gap="base"
-            >
+        <s-stack direction="block" gap="base">
+          <s-grid gridTemplateColumns="1fr auto" alignItems="end" gap="base">
+            <s-stack direction="block" gap="small-300">
+              <s-heading>Popular at 705 BRBR</s-heading>
+              <s-text color="subdued">What the neighborhood is buying this week</s-text>
+            </s-stack>
+            <s-link href={`${STORE}/collections/all`} target="_blank">
+              Shop all
+            </s-link>
+          </s-grid>
+
+          {popular === null ? (
+            <s-skeleton-paragraph />
+          ) : popular.length > 0 ? (
+            <s-grid gridTemplateColumns="1fr 1fr 1fr" gap="base">
               {popular.map((p) => (
                 <s-clickable
                   key={p.id}
@@ -167,13 +115,25 @@ function OrdersWelcome() {
                 </s-clickable>
               ))}
             </s-grid>
-          </s-stack>
-        ) : null}
+          ) : (
+            <s-button href={`${STORE}/collections/all`} target="_blank">
+              Browse the store
+            </s-button>
+          )}
+        </s-stack>
 
-        {/* In-store services */}
+        <s-divider />
+
+        {/* Store strip */}
         <s-stack direction="block" gap="small-200">
-          <s-text type="strong">Also in store</s-text>
-          <s-stack direction="inline" gap="small-200">
+          <s-stack direction="inline" gap="small-200" alignItems="center">
+            <s-badge tone={open ? 'auto' : 'neutral'} icon="clock">
+              {open ? 'Open now' : 'Closed now'} · 6 AM – 12 AM daily
+            </s-badge>
+            <s-badge tone="neutral" icon="location">705 2nd Ave, Murray Hill</s-badge>
+          </s-stack>
+          <s-stack direction="inline" gap="small-200" alignItems="center">
+            <s-text color="subdued">Also in store:</s-text>
             {SERVICES.map((name) => (
               <s-badge key={name} tone="neutral">
                 {name}
