@@ -1,0 +1,15 @@
+api_version = "2026-10"
+
+[[extensions]]
+type = "ui_extension"
+name = "705 BRBR welcome"
+handle = "brbr-account-welcome"
+description = "Welcome card with store hours, quick links, popular products and in-store services."
+
+[[extensions.targeting]]
+target = "customer-account.order-index.block.render"
+module = "./src/OrdersBlock.jsx"
+
+[extensions.capabilities]
+api_access = true
+network_access = false

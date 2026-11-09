@@ -1,0 +1,49 @@
+name: Deploy customer account app
+
+# Deploys customer-account-app/ (the "705 BRBR welcome" block on the customer account Orders page)
+# to Shopify. Runs when that folder changes on main, or manually from the Actions tab.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'customer-account-app/**'
+      - '.github/workflows/deploy-account-app.yml'
+
+concurrency:
+  group: deploy-account-app
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: customer-account-app
+    env:
+      # Dev Dashboard > 705 BRBR Account Extras > Settings > App CLI automation token (service account)
+      SHOPIFY_SERVICE_ACCOUNT_TOKEN: ${{ secrets.SHOPIFY_SERVICE_ACCOUNT_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Check the deploy token is set
+        if: env.SHOPIFY_SERVICE_ACCOUNT_TOKEN == ''
+        run: |
+          echo "::error::Add the SHOPIFY_SERVICE_ACCOUNT_TOKEN repository secret first (see customer-account-app/README.md)."
+          exit 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Install
+        run: npm install --no-audit --no-fund
+
+      - name: Deploy to Shopify
+        run: npx shopify app deploy --allow-updates

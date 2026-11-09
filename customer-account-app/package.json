@@ -1,0 +1,14 @@
+{
+  "name": "brbr-account-extras",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": ["extensions/*"],
+  "scripts": {
+    "deploy": "shopify app deploy",
+    "dev": "shopify app dev",
+    "info": "shopify app info"
+  },
+  "devDependencies": {
+    "@shopify/cli": "^5.0.1"
+  }
+}
