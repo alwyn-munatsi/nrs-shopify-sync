@@ -208,6 +208,13 @@
       }
       String(text || '').split(/\n/).forEach(function (line) {
         var t = line.trim(), m;
+        if (/^([-*_]\s*){3,}$/.test(t)) return; // horizontal rule
+        if (/^\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?$/.test(t)) return; // table divider row
+        if (/^\|.*\|$/.test(t)) { // table row -> bullet
+          var cells = t.slice(1, -1).split('|').map(function (c) { return c.trim(); }).filter(Boolean);
+          if (!cells.length) return;
+          t = '- ' + cells.join(' · ');
+        }
         if ((m = t.match(/^[-*•]\s+(.*)/)) || (m = t.match(/^\d+[.)]\s+(.*)/))) {
           var tag = /^\d/.test(t) ? 'ol' : 'ul';
           if (!list || list.tag !== tag) { if (list) out.push('</' + list.tag + '>'); list = { tag: tag }; out.push('<' + tag + '>'); }
