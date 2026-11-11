@@ -92,7 +92,7 @@ ${depts}
   3. Fast local delivery through partner apps:
 ${delivery}
 - In-store services: NY Lottery (Powerball, Mega Millions, Millionaire for Life, NY LOTTO, Take 5, Numbers, Win 4, Pick 10, Quick Draw and scratch-offs; tickets sold in store only, 18+; results and next draws at ${site}/pages/lottery), on-site ATM, LuggageHero luggage storage (insured, hourly or daily, near Grand Central), Vinted Go parcel drop-off and collection, Amazon Hub package pickup point.
-- Welcome offer: new customers get 10% off their first order by signing up with their first name, last name, email and mobile number at ${site}/#welcome-offer. The code arrives by email and works once per customer.
+- Welcome offer: new customers get 10% off their order by signing up with their first name, last name, email and mobile number at ${site}/#welcome-offer. The 10% code is emailed to them after they sign up. It is for online orders (enter it at checkout on ${site}), works once per customer, and only for people who signed up with that form. Don't say it works in store, don't call it a unique or personal code, and don't share the code itself; tell them to sign up to get it.
 - Alcohol: you must be 21+ and show valid photo ID to buy or receive alcohol. Lottery is 18+.
 - Prices on the website are the online prices.
 
@@ -101,7 +101,7 @@ USING YOUR TOOLS
 - Use get_product when someone wants details about one item (size, pack, description, options).
 - When you recommend or list specific products, call show_products with their handles so they appear as cards with photos and links (up to 6).
 - Use get_lottery for winning numbers or jackpots.
-- Website stock can differ from the shelf. If someone needs to be sure an item is in stock right now, suggest calling ${STORE.phone}.
+- Website stock can differ from the shelf, so say an item is "available online" or "on our site" rather than "in stock". If someone needs to be sure it's on the shelf right now, suggest calling ${STORE.phone}.
 
 THINGS YOU DON'T KNOW
 - Returns, refunds and delivery fees/times through partner apps: say you don't have those details and give the phone number, email or contact form. Delivery app fees and times are shown in each app.
@@ -111,6 +111,7 @@ THINGS YOU DON'T KNOW
 STYLE
 - Warm, upbeat, neighborly, like a helpful clerk at the counter. Light emoji are fine (one or two).
 - Be thorough but easy to scan: short paragraphs, bullet points for lists, **bold** for key info, prices like $4.99. Include direct links (full URLs) to products, departments or pages when helpful.
+- The chat window is small: never use tables, headings (#) or horizontal rules (---). Use simple bullet or numbered lists instead. Aim for under 160 words unless the customer asks for more detail.
 - Answer the actual question first, then offer one useful next step.
 - If a request is unclear, ask one short question.`;
 }
@@ -321,17 +322,43 @@ export async function chatGroq(env, body, deps = {}) {
   return TOO_LONG;
 }
 
-async function defaultCallGroq(env, payload) {
-  const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', authorization: `Bearer ${env.GROQ_API_KEY}` },
-    body: JSON.stringify(payload),
-  });
-  if (!r.ok) {
-    const text = await r.text().catch(() => '');
-    throw new Error(`Groq API ${r.status}: ${text.slice(0, 200)}`);
+// Models to try in order. Each Groq model has its own rate limit, so when one is busy (429) or failing
+// we wait briefly once, then move on to the next.
+export function groqModels(env) {
+  const list = [env.GROQ_MODEL || 'openai/gpt-oss-120b']
+    .concat(String(env.GROQ_FALLBACK_MODELS || 'llama-3.3-70b-versatile,openai/gpt-oss-20b').split(','))
+    .map((m) => m.trim())
+    .filter(Boolean);
+  return [...new Set(list)];
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+export async function defaultCallGroq(env, payload, deps = {}) {
+  const doFetch = deps.fetch || fetch;
+  const wait = deps.sleep || sleep;
+  const models = payload.model ? [payload.model].concat(groqModels(env).filter((m) => m !== payload.model)) : groqModels(env);
+  let lastErr = null;
+  for (const model of models) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const r = await doFetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${env.GROQ_API_KEY}` },
+        body: JSON.stringify({ ...payload, model }),
+      });
+      if (r.ok) return r.json();
+      const text = await r.text().catch(() => '');
+      lastErr = new Error(`Groq API ${r.status} (${model}): ${text.slice(0, 200)}`);
+      if (r.status === 429) {
+        const after = Number(r.headers.get('retry-after')) || 0;
+        if (attempt === 0 && after > 0 && after <= 4) { await wait(after * 1000); continue; }
+        break; // try the next model
+      }
+      if (r.status >= 500 || r.status === 413 || r.status === 400) break; // next model
+      throw lastErr; // auth or other client errors: stop
+    }
   }
-  return r.json();
+  throw lastErr || new Error('Groq API unavailable');
 }
 
 // Anthropic Claude (Messages API with tools)

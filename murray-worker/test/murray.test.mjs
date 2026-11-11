@@ -129,3 +129,25 @@ test('health reports the provider in use', async () => {
   assert.equal(j.provider, 'groq');
   assert.equal(j.ready, true);
 });
+
+test('Groq calls retry once on a short 429 and then fall back to the next model', async () => {
+  const { defaultCallGroq, groqModels } = await import('../src/index.js');
+  const env = { GROQ_API_KEY: 'g', GROQ_MODEL: 'm1', GROQ_FALLBACK_MODELS: 'm2,m3' };
+  assert.deepEqual(groqModels(env), ['m1', 'm2', 'm3']);
+  const tried = [];
+  const fakeFetch = async (url, init) => {
+    const model = JSON.parse(init.body).model;
+    tried.push(model);
+    if (model === 'm1') return new Response('rate limited', { status: 429, headers: { 'retry-after': '1' } });
+    return new Response(JSON.stringify({ choices: [{ message: { content: 'ok from ' + model } }] }), { status: 200 });
+  };
+  const out = await defaultCallGroq(env, { model: 'm1', messages: [] }, { fetch: fakeFetch, sleep: async () => {} });
+  assert.equal(out.choices[0].message.content, 'ok from m2');
+  assert.deepEqual(tried, ['m1', 'm1', 'm2']);
+});
+
+test('Groq auth errors stop straight away', async () => {
+  const { defaultCallGroq } = await import('../src/index.js');
+  const fakeFetch = async () => new Response('bad key', { status: 401 });
+  await assert.rejects(defaultCallGroq({ GROQ_API_KEY: 'x' }, { model: 'a', messages: [] }, { fetch: fakeFetch, sleep: async () => {} }), /401/);
+});
