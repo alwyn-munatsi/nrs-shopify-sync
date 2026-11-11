@@ -28,19 +28,17 @@ export default async () => {
 
 function HeaderBar() {
   const open = isOpenNow();
+  const links = [...LINKS, ['(917) 265-8063', 'tel:9172658063']];
+  // Plain text inside s-clickable takes the header's own (light) text colour, so it stays readable on the
+  // dark header; s-link would use the purple accent, which is hard to read there.
   return (
-    <s-grid gridTemplateColumns="@container (inline-size > 560px) auto 1fr, 1fr" alignItems="center" gap="small">
-      <s-stack direction="inline" gap="small-200" alignItems="center">
-        <s-badge tone={open ? 'success' : 'neutral'}>{open ? 'Open now' : 'Closed now'} · 6 AM – 12 AM daily</s-badge>
-      </s-stack>
-      <s-stack direction="inline" gap="base" alignItems="center" justifyContent="end">
-        {LINKS.map(([label, href]) => (
-          <s-link key={label} href={href} target="_blank">
-            {label}
-          </s-link>
-        ))}
-        <s-link href="tel:9172658063">(917) 265-8063</s-link>
-      </s-stack>
-    </s-grid>
+    <s-stack direction="inline" gap="base" alignItems="center">
+      <s-badge tone={open ? 'success' : 'neutral'}>{open ? 'Open now' : 'Closed now'} · 6 AM – 12 AM daily</s-badge>
+      {links.map(([label, href]) => (
+        <s-clickable key={label} href={href} target={href.startsWith('tel:') ? undefined : '_blank'}>
+          <s-text type="strong">{label}</s-text>
+        </s-clickable>
+      ))}
+    </s-stack>
   );
 }
