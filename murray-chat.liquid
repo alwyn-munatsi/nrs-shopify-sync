@@ -1,0 +1,337 @@
+{%- comment -%}
+  Murray: the 705 BRBR chat assistant (chat bubble, bottom right, every page).
+  Answers come from the "brbr-murray" Cloudflare Worker (murray-worker/ in the nrs-shopify-sync repo), which uses
+  Claude plus the live store catalog. The conversation is kept for the browser tab (sessionStorage) only.
+  Turn it off by removing this section or clearing "Murray API URL". Sizes in px because this theme scales rem down.
+{%- endcomment -%}
+
+{%- assign murray_api = section.settings.api_url | strip -%}
+{%- assign murray_logo = '' -%}
+{%- if section.settings.logo != blank -%}{%- assign murray_logo = section.settings.logo | image_url: width: 160 -%}{%- endif -%}
+{%- capture murray_avatar -%}{%- if murray_logo != blank -%}<span class="murray-avatar murray-avatar--logo" aria-hidden="true"><img src="{{ murray_logo }}" alt="" width="80" height="80"></span>{%- else -%}<span class="murray-avatar" aria-hidden="true">M</span>{%- endif -%}{%- endcapture -%}
+{%- if murray_api != blank -%}
+<style>
+  .murray, .murray * { box-sizing: border-box; }
+  .murray { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0F172A; }
+  .murray-launch {
+    position: fixed; right: 20px; bottom: 20px; z-index: 1005;
+    display: inline-flex; align-items: center; gap: 10px;
+    height: 56px; padding: 0 20px 0 8px; border: 0; border-radius: 9999px;
+    background: linear-gradient(135deg, #6D28D9 0%, #7C3AED 60%, #A855F7 100%); color: #FFFFFF;
+    font-size: 15px; font-weight: 800; cursor: pointer;
+    box-shadow: 0 10px 28px rgba(109, 40, 217, 0.45); transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .murray-launch:hover { transform: translateY(-2px); box-shadow: 0 14px 34px rgba(109, 40, 217, 0.55); }
+  .murray-launch:focus-visible { outline: 3px solid #C4B5FD; outline-offset: 3px; }
+  .murray-avatar {
+    flex: none; display: inline-flex; align-items: center; justify-content: center;
+    width: 40px; height: 40px; border-radius: 50%; background: #FFFFFF; color: #6D28D9;
+    font-size: 20px; font-weight: 900; line-height: 1; box-shadow: inset 0 0 0 2px rgba(124, 58, 237, 0.25);
+  }
+  .murray-launch .murray-dot { position: absolute; left: 38px; top: 8px; width: 12px; height: 12px; border-radius: 50%; background: #22C55E; border: 2px solid #FFFFFF; }
+  .murray-avatar--logo { padding: 0; overflow: hidden; background: #2E1065; box-shadow: 0 0 0 2px #FFFFFF; }
+  .murray-avatar--logo img { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+  .murray-launch[aria-expanded="true"] { opacity: 0; pointer-events: none; transform: scale(0.9); }
+
+  .murray-panel {
+    position: fixed; right: 20px; bottom: 20px; z-index: 1006;
+    width: 390px; height: min(620px, calc(100vh - 120px)); max-height: 680px;
+    display: flex; flex-direction: column; overflow: hidden;
+    background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 20px;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+    opacity: 0; visibility: hidden; transform: translateY(16px) scale(0.98); transform-origin: bottom right;
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0s linear 0.2s;
+  }
+  .murray-panel.is-open { opacity: 1; visibility: visible; transform: none; transition: opacity 0.2s ease, transform 0.2s ease; }
+
+  .murray-head {
+    display: flex; align-items: center; gap: 12px; padding: 14px 14px 14px 16px;
+    background: radial-gradient(120% 140% at 0% 0%, #4C1D95 0%, #6D28D9 55%, #7C3AED 100%); color: #FFFFFF;
+  }
+  .murray-head .murray-avatar { width: 42px; height: 42px; }
+  .murray-head-text { flex: 1; min-width: 0; }
+  .murray-head-text strong { display: block; font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
+  .murray-head-text span { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #EDE9FE; }
+  .murray-head-text span::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #4ADE80; }
+  .murray-icon-btn {
+    flex: none; display: inline-flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px; border: 0; border-radius: 10px; background: rgba(255, 255, 255, 0.14); color: #FFFFFF; cursor: pointer;
+  }
+  .murray-icon-btn:hover { background: rgba(255, 255, 255, 0.24); }
+  .murray-icon-btn svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2.2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+  .murray-log { flex: 1; overflow-y: auto; padding: 16px 14px 8px; background: #F8FAFC; scroll-behavior: smooth; }
+  .murray-msg { display: flex; gap: 8px; margin-bottom: 12px; align-items: flex-end; }
+  .murray-msg .murray-avatar { width: 28px; height: 28px; font-size: 13px; }
+  .murray-bubble {
+    max-width: 84%; padding: 10px 13px; border-radius: 16px; font-size: 14.5px; line-height: 1.5;
+    background: #FFFFFF; border: 1px solid #E2E8F0; border-bottom-left-radius: 6px; overflow-wrap: anywhere;
+  }
+  .murray-bubble p { margin: 0 0 8px; } .murray-bubble p:last-child { margin-bottom: 0; }
+  .murray-bubble ul, .murray-bubble ol { margin: 4px 0 8px; padding-left: 20px; }
+  .murray-bubble li { margin: 2px 0; }
+  .murray-bubble a { color: #6D28D9; font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
+  .murray-bubble strong { font-weight: 800; }
+  .murray-msg--user { justify-content: flex-end; }
+  .murray-msg--user .murray-bubble { background: #7C3AED; border-color: #7C3AED; color: #FFFFFF; border-radius: 16px; border-bottom-right-radius: 6px; }
+  .murray-msg--error .murray-bubble { background: #FEF2F2; border-color: #FECACA; color: #991B1B; }
+
+  .murray-typing { display: inline-flex; gap: 4px; padding: 4px 2px; }
+  .murray-typing i { width: 7px; height: 7px; border-radius: 50%; background: #A78BFA; animation: murray-bounce 1.2s infinite ease-in-out; }
+  .murray-typing i:nth-child(2) { animation-delay: 0.15s; } .murray-typing i:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes murray-bounce { 0%, 80%, 100% { transform: translateY(0); opacity: 0.5; } 40% { transform: translateY(-5px); opacity: 1; } }
+
+  .murray-cards { display: flex; gap: 10px; overflow-x: auto; padding: 2px 2px 10px 36px; margin: -4px 0 8px; scroll-snap-type: x mandatory; }
+  .murray-card {
+    flex: none; width: 150px; scroll-snap-align: start; display: flex; flex-direction: column;
+    background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 14px; overflow: hidden; text-decoration: none; color: #0F172A;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+  .murray-card:hover { box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12); transform: translateY(-2px); }
+  .murray-card-img { height: 104px; display: flex; align-items: center; justify-content: center; background: #F8FAFC; padding: 8px; }
+  .murray-card-img img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .murray-card-body { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
+  .murray-card-title { font-size: 12.5px; font-weight: 700; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .murray-card-price { font-size: 14px; font-weight: 900; color: #6D28D9; }
+  .murray-card-cta { margin-top: auto; font-size: 12px; font-weight: 800; color: #7C3AED; }
+
+  .murray-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px 10px; background: #F8FAFC; }
+  .murray-chips[hidden] { display: none; }
+  .murray-chip {
+    border: 1px solid #DDD6FE; background: #FFFFFF; color: #5B21B6; border-radius: 9999px;
+    padding: 7px 12px; font-size: 13px; font-weight: 700; cursor: pointer; transition: background-color 0.15s ease;
+  }
+  .murray-chip:hover { background: #F5F3FF; }
+
+  .murray-form { display: flex; align-items: flex-end; gap: 8px; padding: 10px 12px; border-top: 1px solid #E2E8F0; background: #FFFFFF; }
+  .murray-input {
+    flex: 1; min-height: 44px; max-height: 120px; resize: none; padding: 11px 14px;
+    border: 1.5px solid #CBD5E1; border-radius: 14px; font: inherit; font-size: 15px; line-height: 1.4; color: #0F172A; outline: none;
+  }
+  .murray-input:focus { border-color: #7C3AED; box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15); }
+  .murray-send {
+    flex: none; width: 44px; height: 44px; border: 0; border-radius: 12px; background: #7C3AED; color: #FFFFFF; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .murray-send:hover { background: #6D28D9; } .murray-send:disabled { opacity: 0.5; cursor: default; }
+  .murray-send svg { width: 19px; height: 19px; stroke: currentColor; stroke-width: 2.2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .murray-fine { padding: 0 14px 10px; font-size: 11px; color: #94A3B8; text-align: center; background: #FFFFFF; }
+
+  @media (max-width: 600px) {
+    .murray-launch { right: 14px; bottom: 14px; height: 52px; padding: 0 6px; width: 52px; justify-content: center; }
+    .murray-launch .murray-label { display: none; }
+    .murray-launch .murray-dot { left: 36px; top: 4px; }
+    .murray-panel { right: 0; bottom: 0; left: 0; width: 100%; height: 100%; max-height: none; border-radius: 0; border: 0; }
+    .murray-input { font-size: 16px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .murray-panel, .murray-launch { transition: none; } .murray-typing i { animation: none; } }
+</style>
+
+<div class="murray" id="murrayChat" data-api="{{ murray_api | escape }}" data-name="{{ section.settings.bot_name | escape }}" data-logo="{{ murray_logo | escape }}">
+  <button type="button" class="murray-launch" id="murrayLaunch" aria-controls="murrayPanel" aria-expanded="false" aria-label="Chat with {{ section.settings.bot_name | escape }}, the 705 BRBR assistant">
+    {{ murray_avatar }}
+    <span class="murray-dot" aria-hidden="true"></span>
+    <span class="murray-label">{{ section.settings.launcher_text | escape }}</span>
+  </button>
+
+  <section class="murray-panel" id="murrayPanel" role="dialog" aria-modal="false" aria-labelledby="murrayTitle" aria-hidden="true">
+    <header class="murray-head">
+      {{ murray_avatar }}
+      <div class="murray-head-text">
+        <strong id="murrayTitle">{{ section.settings.bot_name | escape }}</strong>
+        <span>705 BRBR assistant · replies instantly</span>
+      </div>
+      <button type="button" class="murray-icon-btn" id="murrayReset" title="Start a new chat" aria-label="Start a new chat">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+      </button>
+      <button type="button" class="murray-icon-btn" id="murrayClose" title="Close" aria-label="Close chat">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </header>
+    <div class="murray-log" id="murrayLog" aria-live="polite"></div>
+    <div class="murray-chips" id="murrayChips">
+      <button type="button" class="murray-chip">Are you open now?</button>
+      <button type="button" class="murray-chip">Find me an IPA 6-pack</button>
+      <button type="button" class="murray-chip">Do you deliver?</button>
+      <button type="button" class="murray-chip">How do I get 10% off?</button>
+      <button type="button" class="murray-chip">Latest lottery numbers</button>
+    </div>
+    <form class="murray-form" id="murrayForm">
+      <label for="murrayInput" class="visually-hidden" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Message {{ section.settings.bot_name | escape }}</label>
+      <textarea id="murrayInput" class="murray-input" rows="1" maxlength="1200" placeholder="Ask about products, prices, hours…" autocomplete="off"></textarea>
+      <button type="submit" class="murray-send" id="murraySend" aria-label="Send">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg>
+      </button>
+    </form>
+    <p class="murray-fine">{{ section.settings.bot_name | escape }} is an AI assistant and can make mistakes. For anything urgent call (917) 265-8063.</p>
+  </section>
+</div>
+
+<script>
+  (function () {
+    var root = document.getElementById('murrayChat');
+    if (!root || root.dataset.ready) return;
+    root.dataset.ready = '1';
+    // Live directly under <body> so no header/section stacking context can put page content on top of the chat
+    if (root.parentNode !== document.body) document.body.appendChild(root);
+    var API = String(root.dataset.api || '').replace(/\/+$/, '');
+    var NAME = root.dataset.name || 'Murray';
+    var KEY = 'brbr-murray-chat';
+    var LOGO = root.dataset.logo || '';
+    var AVATAR = LOGO
+      ? '<span class="murray-avatar murray-avatar--logo" aria-hidden="true"><img src="' + LOGO.replace(/"/g, '&quot;') + '" alt=""></span>'
+      : '<span class="murray-avatar" aria-hidden="true">M</span>';
+    var launch = document.getElementById('murrayLaunch');
+    var panel = document.getElementById('murrayPanel');
+    var log = document.getElementById('murrayLog');
+    var form = document.getElementById('murrayForm');
+    var input = document.getElementById('murrayInput');
+    var send = document.getElementById('murraySend');
+    var chips = document.getElementById('murrayChips');
+    var GREETING = "Hi, I'm " + NAME + " 👋 your 705 BRBR helper. Ask me about products and prices, our hours, pickup and delivery, the 10% welcome offer, NY Lottery or anything else about the store.";
+
+    var state = { messages: [] }; // [{role, content, products?}]
+    try { var saved = JSON.parse(sessionStorage.getItem(KEY) || 'null'); if (saved && Array.isArray(saved.messages)) state = saved; } catch (e) {}
+    function save() { try { sessionStorage.setItem(KEY, JSON.stringify({ messages: state.messages.slice(-30), open: panel.classList.contains('is-open') })); } catch (e) {} }
+
+    function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (m) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]; }); }
+    function safeUrl(u) { return /^https?:\/\//i.test(u) ? u : (u.charAt(0) === '/' ? u : '#'); }
+    // Small, safe markdown: paragraphs, - / 1. lists, **bold**, [text](url) and bare links
+    function md(text) {
+      var out = [], list = null;
+      function inline(s) {
+        s = esc(s);
+        s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, function (_, t, u) { return '<a href="' + esc(safeUrl(u.replace(/&amp;/g, '&'))) + '" target="_blank" rel="noopener">' + t + '</a>'; });
+        s = s.replace(/(^|[\s(])(https?:\/\/[^\s<)]+[^\s<).,!?])/g, function (_, pre, u) { return pre + '<a href="' + u + '" target="_blank" rel="noopener">' + u.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '') + '</a>'; });
+        s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+        s = s.replace(/(^|[\s(])\*([^*\n]+)\*(?=[\s.,!?:;)]|$)/g, '$1<strong>$2</strong>');
+        return s;
+      }
+      String(text || '').split(/\n/).forEach(function (line) {
+        var t = line.trim(), m;
+        if (/^([-*_]\s*){3,}$/.test(t)) return; // horizontal rule
+        if (/^\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?$/.test(t)) return; // table divider row
+        if (/^\|.*\|$/.test(t)) { // table row -> bullet
+          var cells = t.slice(1, -1).split('|').map(function (c) { return c.trim(); }).filter(Boolean);
+          if (!cells.length) return;
+          t = '- ' + cells.join(' · ');
+        }
+        if ((m = t.match(/^[-*•]\s+(.*)/)) || (m = t.match(/^\d+[.)]\s+(.*)/))) {
+          var tag = /^\d/.test(t) ? 'ol' : 'ul';
+          if (!list || list.tag !== tag) { if (list) out.push('</' + list.tag + '>'); list = { tag: tag }; out.push('<' + tag + '>'); }
+          out.push('<li>' + inline(m[1]) + '</li>');
+          return;
+        }
+        if (list) { out.push('</' + list.tag + '>'); list = null; }
+        if (t) out.push('<p>' + inline(t.replace(/^#+\s*/, '')) + '</p>');
+      });
+      if (list) out.push('</' + list.tag + '>');
+      return out.join('');
+    }
+    function money(n) { return n == null ? '' : '$' + Number(n).toFixed(2); }
+
+    function addBubble(role, html, extraClass) {
+      var row = document.createElement('div');
+      row.className = 'murray-msg murray-msg--' + role + (extraClass ? ' ' + extraClass : '');
+      row.innerHTML = (role === 'user' ? '' : AVATAR) + '<div class="murray-bubble">' + html + '</div>';
+      log.appendChild(row);
+      return row;
+    }
+    function addCards(products) {
+      if (!products || !products.length) return;
+      var wrap = document.createElement('div');
+      wrap.className = 'murray-cards';
+      wrap.innerHTML = products.map(function (p) {
+        return '<a class="murray-card" href="' + esc(safeUrl(p.url || '#')) + '">' +
+          '<span class="murray-card-img">' + (p.image ? '<img src="' + esc(p.image) + '" alt="" loading="lazy">' : '') + '</span>' +
+          '<span class="murray-card-body"><span class="murray-card-title">' + esc(p.title) + '</span>' +
+          '<span class="murray-card-price">' + esc(money(p.price)) + '</span><span class="murray-card-cta">View product →</span></span></a>';
+      }).join('');
+      log.appendChild(wrap);
+    }
+    function scrollDown() { log.scrollTop = log.scrollHeight; }
+
+    function renderAll() {
+      log.innerHTML = '';
+      addBubble('bot', md(GREETING));
+      state.messages.forEach(function (m) {
+        if (m.role === 'user') addBubble('user', esc(m.content).replace(/\n/g, '<br>'));
+        else { addBubble('bot', md(m.content)); addCards(m.products); }
+      });
+      chips.hidden = state.messages.length > 0;
+      scrollDown();
+    }
+
+    function open() {
+      panel.classList.add('is-open');
+      panel.setAttribute('aria-hidden', 'false');
+      launch.setAttribute('aria-expanded', 'true');
+      if (!log.children.length) renderAll();
+      setTimeout(function () { input.focus(); scrollDown(); }, 60);
+      save();
+    }
+    function close() {
+      panel.classList.remove('is-open');
+      panel.setAttribute('aria-hidden', 'true');
+      launch.setAttribute('aria-expanded', 'false');
+      launch.focus();
+      save();
+    }
+
+    var busy = false;
+    function ask(text) {
+      text = String(text || '').trim();
+      if (!text || busy) return;
+      busy = true; send.disabled = true; chips.hidden = true;
+      state.messages.push({ role: 'user', content: text });
+      addBubble('user', esc(text).replace(/\n/g, '<br>'));
+      var typing = addBubble('bot', '<span class="murray-typing" aria-label="' + esc(NAME) + ' is typing"><i></i><i></i><i></i></span>');
+      scrollDown(); save();
+      var payload = { messages: state.messages.map(function (m) { return { role: m.role, content: m.content }; }), page: location.pathname };
+      var ctrl = window.AbortController ? new AbortController() : null;
+      var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 45000);
+      fetch(API + '/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: ctrl ? ctrl.signal : undefined })
+        .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { return { ok: r.ok, j: j }; }); })
+        .then(function (res) {
+          typing.remove();
+          if (!res.ok && !res.j.reply) throw new Error(res.j.error || 'error');
+          var reply = res.j.reply || '';
+          state.messages.push({ role: 'assistant', content: reply, products: res.j.products || [] });
+          addBubble('bot', md(reply)); addCards(res.j.products);
+        })
+        .catch(function (err) {
+          typing.remove();
+          state.messages.pop(); // let them resend
+          addBubble('bot', md("Sorry, I couldn't connect just now. Please try again in a moment, or call the store at (917) 265-8063." + (err && /fast/.test(err.message) ? ' (' + err.message + ')' : '')), 'murray-msg--error');
+        })
+        .then(function () { clearTimeout(timer); busy = false; send.disabled = false; scrollDown(); save(); input.focus(); });
+    }
+
+    launch.addEventListener('click', open);
+    document.getElementById('murrayClose').addEventListener('click', close);
+    document.getElementById('murrayReset').addEventListener('click', function () { state.messages = []; save(); renderAll(); input.focus(); });
+    panel.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+    chips.addEventListener('click', function (e) { var c = e.target.closest('.murray-chip'); if (c) ask(c.textContent); });
+    form.addEventListener('submit', function (e) { e.preventDefault(); var t = input.value; input.value = ''; input.style.height = ''; ask(t); });
+    input.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); form.requestSubmit ? form.requestSubmit() : form.dispatchEvent(new Event('submit')); } });
+    input.addEventListener('input', function () { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 120) + 'px'; });
+    // Other parts of the site can open Murray with a link to #ask-murray or window.BRBRMurray.open()
+    window.BRBRMurray = { open: open, ask: function (t) { open(); ask(t); } };
+    if (location.hash === '#ask-murray') open();
+    try { if (JSON.parse(sessionStorage.getItem(KEY) || '{}').open) open(); } catch (e) {}
+  })();
+</script>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Murray Chat Assistant",
+  "settings": [
+    { "type": "text", "id": "api_url", "label": "Murray API URL", "default": "https://brbr-murray.munatsialwyn26.workers.dev", "info": "The brbr-murray Cloudflare Worker. Clear this to hide the chat." },
+    { "type": "text", "id": "bot_name", "label": "Assistant name", "default": "Murray" },
+    { "type": "image_picker", "id": "logo", "label": "Avatar (store logo)", "info": "Shown on the chat button, in the chat header and next to Murray's replies." },
+    { "type": "text", "id": "launcher_text", "label": "Chat button text", "default": "Ask Murray" }
+  ],
+  "enabled_on": { "groups": ["header"] }
+}
+{% endschema %}
