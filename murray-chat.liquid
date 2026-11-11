@@ -10,121 +10,182 @@
 {%- if section.settings.logo != blank -%}{%- assign murray_logo = section.settings.logo | image_url: width: 160 -%}{%- endif -%}
 {%- capture murray_avatar -%}{%- if murray_logo != blank -%}<span class="murray-avatar murray-avatar--logo" aria-hidden="true"><img src="{{ murray_logo }}" alt="" width="80" height="80"></span>{%- else -%}<span class="murray-avatar" aria-hidden="true">M</span>{%- endif -%}{%- endcapture -%}
 {%- if murray_api != blank -%}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
 <style>
   .murray, .murray * { box-sizing: border-box; }
-  .murray { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0F172A; }
-  .murray-launch {
-    position: fixed; right: 20px; bottom: 20px; z-index: 1005;
-    display: inline-flex; align-items: center; gap: 10px;
-    height: 56px; padding: 0 20px 0 8px; border: 0; border-radius: 9999px;
-    background: linear-gradient(135deg, #6D28D9 0%, #7C3AED 60%, #A855F7 100%); color: #FFFFFF;
-    font-size: 15px; font-weight: 800; cursor: pointer;
-    box-shadow: 0 10px 28px rgba(109, 40, 217, 0.45); transition: transform 0.2s ease, box-shadow 0.2s ease;
+  .murray {
+    --m-brand: #7C3AED; --m-brand-2: #A855F7; --m-brand-dark: #4C1D95; --m-ink: #0F0A1F; --m-text: #1F1B2E;
+    --m-muted: #6B6880; --m-line: #ECEAF3; --m-surface: #F6F5FB;
+    font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    color: var(--m-text); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "ss01" on, "cv11" on; letter-spacing: -0.005em;
   }
-  .murray-launch:hover { transform: translateY(-2px); box-shadow: 0 14px 34px rgba(109, 40, 217, 0.55); }
-  .murray-launch:focus-visible { outline: 3px solid #C4B5FD; outline-offset: 3px; }
+
+  /* Launcher */
+  .murray-launch {
+    position: fixed; right: 22px; bottom: 22px; z-index: 1005;
+    display: inline-flex; align-items: center; gap: 10px;
+    height: 58px; padding: 0 22px 0 8px; border: 0; border-radius: 9999px;
+    background: linear-gradient(135deg, #5B21B6 0%, var(--m-brand) 55%, var(--m-brand-2) 100%); color: #FFFFFF;
+    font-family: inherit; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; cursor: pointer;
+    box-shadow: 0 12px 30px -6px rgba(91, 33, 182, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    transition: transform 0.25s cubic-bezier(.2,.8,.2,1), box-shadow 0.25s ease, opacity 0.2s ease;
+  }
+  .murray-launch::after {
+    content: ""; position: absolute; inset: -4px; border-radius: inherit; border: 2px solid rgba(168, 85, 247, 0.45);
+    animation: murray-ring 2.8s ease-out infinite; pointer-events: none;
+  }
+  @keyframes murray-ring { 0% { transform: scale(0.96); opacity: 0.9; } 70%, 100% { transform: scale(1.12); opacity: 0; } }
+  .murray-launch:hover { transform: translateY(-3px); box-shadow: 0 18px 36px -8px rgba(91, 33, 182, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.25); }
+  .murray-launch:focus-visible { outline: 3px solid #C4B5FD; outline-offset: 4px; }
+  .murray-launch[aria-expanded="true"] { opacity: 0; pointer-events: none; transform: scale(0.85); }
+  .murray-launch .murray-dot { position: absolute; left: 40px; top: 8px; width: 13px; height: 13px; border-radius: 50%; background: #22C55E; border: 2.5px solid #FFFFFF; }
+
   .murray-avatar {
     flex: none; display: inline-flex; align-items: center; justify-content: center;
-    width: 40px; height: 40px; border-radius: 50%; background: #FFFFFF; color: #6D28D9;
-    font-size: 20px; font-weight: 900; line-height: 1; box-shadow: inset 0 0 0 2px rgba(124, 58, 237, 0.25);
+    width: 42px; height: 42px; border-radius: 50%; background: #FFFFFF; color: var(--m-brand);
+    font-size: 18px; font-weight: 700; line-height: 1;
   }
-  .murray-launch .murray-dot { position: absolute; left: 38px; top: 8px; width: 12px; height: 12px; border-radius: 50%; background: #22C55E; border: 2px solid #FFFFFF; }
-  .murray-avatar--logo { padding: 0; overflow: hidden; background: #2E1065; box-shadow: 0 0 0 2px #FFFFFF; }
+  .murray-avatar--logo { padding: 0; overflow: hidden; background: #2E1065; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9); }
   .murray-avatar--logo img { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
-  .murray-launch[aria-expanded="true"] { opacity: 0; pointer-events: none; transform: scale(0.9); }
 
+  /* Panel */
   .murray-panel {
-    position: fixed; right: 20px; bottom: 20px; z-index: 1006;
-    width: 390px; height: min(620px, calc(100vh - 120px)); max-height: 680px;
+    position: fixed; right: 22px; bottom: 22px; z-index: 1006;
+    width: 400px; height: min(660px, calc(100vh - 110px)); max-height: 700px;
     display: flex; flex-direction: column; overflow: hidden;
-    background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 20px;
-    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
-    opacity: 0; visibility: hidden; transform: translateY(16px) scale(0.98); transform-origin: bottom right;
-    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0s linear 0.2s;
+    background: var(--m-surface); border-radius: 26px;
+    box-shadow: 0 30px 80px -20px rgba(15, 10, 31, 0.45), 0 0 0 1px rgba(15, 10, 31, 0.06);
+    opacity: 0; visibility: hidden; transform: translateY(20px) scale(0.97); transform-origin: bottom right;
+    transition: opacity 0.22s ease, transform 0.28s cubic-bezier(.2,.8,.2,1), visibility 0s linear 0.28s;
   }
-  .murray-panel.is-open { opacity: 1; visibility: visible; transform: none; transition: opacity 0.2s ease, transform 0.2s ease; }
+  .murray-panel.is-open { opacity: 1; visibility: visible; transform: none; transition: opacity 0.22s ease, transform 0.28s cubic-bezier(.2,.8,.2,1); }
 
   .murray-head {
-    display: flex; align-items: center; gap: 12px; padding: 14px 14px 14px 16px;
-    background: radial-gradient(120% 140% at 0% 0%, #4C1D95 0%, #6D28D9 55%, #7C3AED 100%); color: #FFFFFF;
+    position: relative; display: flex; align-items: center; gap: 12px; padding: 16px 14px 16px 18px; color: #FFFFFF;
+    background:
+      radial-gradient(90% 160% at 100% 0%, rgba(168, 85, 247, 0.55) 0%, rgba(168, 85, 247, 0) 60%),
+      linear-gradient(135deg, #1E0B3B 0%, #3B1A78 55%, #5B21B6 100%);
   }
-  .murray-head .murray-avatar { width: 42px; height: 42px; }
+  .murray-head-av { position: relative; flex: none; }
+  .murray-head-av::after { content: ""; position: absolute; right: 0; bottom: 1px; width: 11px; height: 11px; border-radius: 50%; background: #22C55E; border: 2px solid #2B1258; }
   .murray-head-text { flex: 1; min-width: 0; }
-  .murray-head-text strong { display: block; font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
-  .murray-head-text span { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #EDE9FE; }
-  .murray-head-text span::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #4ADE80; }
+  .murray-head-text strong { display: block; font-size: 16.5px; font-weight: 700; letter-spacing: -0.015em; line-height: 1.2; }
+  .murray-head-text span { display: block; margin-top: 2px; font-size: 12.5px; font-weight: 500; color: rgba(237, 233, 254, 0.8); }
   .murray-icon-btn {
     flex: none; display: inline-flex; align-items: center; justify-content: center;
-    width: 36px; height: 36px; border: 0; border-radius: 10px; background: rgba(255, 255, 255, 0.14); color: #FFFFFF; cursor: pointer;
+    width: 36px; height: 36px; border: 0; border-radius: 50%; background: rgba(255, 255, 255, 0.1); color: #FFFFFF; cursor: pointer;
+    transition: background-color 0.15s ease;
   }
-  .murray-icon-btn:hover { background: rgba(255, 255, 255, 0.24); }
-  .murray-icon-btn svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2.2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .murray-icon-btn:hover { background: rgba(255, 255, 255, 0.2); }
+  .murray-icon-btn:focus-visible { outline: 2px solid #FFFFFF; outline-offset: 2px; }
+  .murray-icon-btn svg { width: 17px; height: 17px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 
-  .murray-log { flex: 1; overflow-y: auto; padding: 16px 14px 8px; background: #F8FAFC; scroll-behavior: smooth; }
-  .murray-msg { display: flex; gap: 8px; margin-bottom: 12px; align-items: flex-end; }
-  .murray-msg .murray-avatar { width: 28px; height: 28px; font-size: 13px; }
+  /* Conversation */
+  .murray-log { flex: 1; overflow-y: auto; padding: 18px 16px 8px; scroll-behavior: smooth; scrollbar-width: thin; scrollbar-color: #D9D5E8 transparent; }
+  .murray-log::-webkit-scrollbar { width: 6px; } .murray-log::-webkit-scrollbar-thumb { background: #D9D5E8; border-radius: 6px; }
+
+  .murray-hero { text-align: center; padding: 10px 8px 18px; animation: murray-in 0.35s ease both; }
+  .murray-hero .murray-avatar { width: 64px; height: 64px; font-size: 26px; box-shadow: 0 10px 24px -8px rgba(91, 33, 182, 0.5), 0 0 0 4px #FFFFFF; }
+  .murray-hero h3 { margin: 14px 0 6px; font-family: inherit; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; color: var(--m-ink); line-height: 1.25; }
+  .murray-hero p { margin: 0 auto; max-width: 300px; font-size: 14px; line-height: 1.6; color: var(--m-muted); }
+
+  .murray-msg { display: flex; gap: 8px; margin-bottom: 12px; align-items: flex-end; animation: murray-in 0.28s ease both; }
+  @keyframes murray-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .murray-msg .murray-avatar { width: 28px; height: 28px; font-size: 12px; box-shadow: none; }
   .murray-bubble {
-    max-width: 84%; padding: 10px 13px; border-radius: 16px; font-size: 14.5px; line-height: 1.5;
-    background: #FFFFFF; border: 1px solid #E2E8F0; border-bottom-left-radius: 6px; overflow-wrap: anywhere;
+    max-width: 84%; padding: 11px 14px; border-radius: 20px; font-size: 14.5px; font-weight: 400; line-height: 1.6;
+    background: #FFFFFF; color: var(--m-text); border-bottom-left-radius: 6px; overflow-wrap: anywhere;
+    box-shadow: 0 1px 2px rgba(15, 10, 31, 0.06), 0 0 0 1px rgba(15, 10, 31, 0.04);
   }
   .murray-bubble p { margin: 0 0 8px; } .murray-bubble p:last-child { margin-bottom: 0; }
-  .murray-bubble ul, .murray-bubble ol { margin: 4px 0 8px; padding-left: 20px; }
-  .murray-bubble li { margin: 2px 0; }
-  .murray-bubble a { color: #6D28D9; font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
-  .murray-bubble strong { font-weight: 800; }
+  .murray-bubble ul, .murray-bubble ol { margin: 4px 0 8px; padding-left: 18px; }
+  .murray-bubble li { margin: 3px 0; padding-left: 2px; }
+  .murray-bubble li::marker { color: var(--m-brand); }
+  .murray-bubble a { color: var(--m-brand); font-weight: 600; text-decoration: none; border-bottom: 1px solid rgba(124, 58, 237, 0.3); }
+  .murray-bubble a:hover { border-bottom-color: var(--m-brand); }
+  .murray-bubble strong { font-weight: 650; color: var(--m-ink); }
   .murray-msg--user { justify-content: flex-end; }
-  .murray-msg--user .murray-bubble { background: #7C3AED; border-color: #7C3AED; color: #FFFFFF; border-radius: 16px; border-bottom-right-radius: 6px; }
-  .murray-msg--error .murray-bubble { background: #FEF2F2; border-color: #FECACA; color: #991B1B; }
+  .murray-msg--user .murray-bubble {
+    background: linear-gradient(135deg, #6D28D9 0%, var(--m-brand) 60%, #9333EA 100%); color: #FFFFFF; font-weight: 500;
+    border-radius: 20px; border-bottom-right-radius: 6px; box-shadow: 0 6px 16px -8px rgba(109, 40, 217, 0.6);
+  }
+  .murray-msg--error .murray-bubble { background: #FFF5F5; color: #9B1C1C; box-shadow: 0 0 0 1px #FED7D7; }
 
-  .murray-typing { display: inline-flex; gap: 4px; padding: 4px 2px; }
-  .murray-typing i { width: 7px; height: 7px; border-radius: 50%; background: #A78BFA; animation: murray-bounce 1.2s infinite ease-in-out; }
+  .murray-typing { display: inline-flex; gap: 5px; padding: 5px 2px; }
+  .murray-typing i { width: 7px; height: 7px; border-radius: 50%; background: #B9A6F5; animation: murray-bounce 1.2s infinite ease-in-out; }
   .murray-typing i:nth-child(2) { animation-delay: 0.15s; } .murray-typing i:nth-child(3) { animation-delay: 0.3s; }
-  @keyframes murray-bounce { 0%, 80%, 100% { transform: translateY(0); opacity: 0.5; } 40% { transform: translateY(-5px); opacity: 1; } }
+  @keyframes murray-bounce { 0%, 80%, 100% { transform: translateY(0); opacity: 0.45; } 40% { transform: translateY(-5px); opacity: 1; } }
 
-  .murray-cards { display: flex; gap: 10px; overflow-x: auto; padding: 2px 2px 10px 36px; margin: -4px 0 8px; scroll-snap-type: x mandatory; }
+  /* Product cards */
+  .murray-cards { display: flex; gap: 10px; overflow-x: auto; padding: 2px 2px 12px 36px; margin: -4px 0 8px; scroll-snap-type: x mandatory; scrollbar-width: none; animation: murray-in 0.3s ease both; }
+  .murray-cards::-webkit-scrollbar { display: none; }
   .murray-card {
-    flex: none; width: 150px; scroll-snap-align: start; display: flex; flex-direction: column;
-    background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 14px; overflow: hidden; text-decoration: none; color: #0F172A;
+    position: relative; flex: none; width: 158px; scroll-snap-align: start; display: flex; flex-direction: column;
+    padding: 6px; background: #FFFFFF; border-radius: 18px; text-decoration: none; color: var(--m-text);
+    box-shadow: 0 1px 2px rgba(15, 10, 31, 0.06), 0 0 0 1px rgba(15, 10, 31, 0.05);
     transition: box-shadow 0.2s ease, transform 0.2s ease;
   }
-  .murray-card:hover { box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12); transform: translateY(-2px); }
-  .murray-card-img { height: 104px; display: flex; align-items: center; justify-content: center; background: #F8FAFC; padding: 8px; }
-  .murray-card-img img { max-width: 100%; max-height: 100%; object-fit: contain; }
-  .murray-card-body { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
-  .murray-card-title { font-size: 12.5px; font-weight: 700; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .murray-card-price { font-size: 14px; font-weight: 900; color: #6D28D9; }
-  .murray-card-cta { margin-top: auto; font-size: 12px; font-weight: 800; color: #7C3AED; }
+  .murray-card:hover { box-shadow: 0 14px 28px -12px rgba(15, 10, 31, 0.28), 0 0 0 1px rgba(124, 58, 237, 0.25); transform: translateY(-3px); }
+  .murray-card-img { height: 112px; display: flex; align-items: center; justify-content: center; background: var(--m-surface); border-radius: 13px; padding: 10px; }
+  .murray-card-img img { max-width: 100%; max-height: 100%; object-fit: contain; mix-blend-mode: multiply; }
+  .murray-card-body { padding: 9px 6px 4px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .murray-card-title { font-size: 12.5px; font-weight: 500; line-height: 1.35; color: var(--m-text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .murray-card-foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  .murray-card-price { font-size: 15px; font-weight: 700; letter-spacing: -0.02em; color: var(--m-ink); }
+  .murray-card-cta { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: #F1ECFE; color: var(--m-brand); font-size: 14px; font-weight: 700; transition: background-color 0.15s ease, color 0.15s ease; }
+  .murray-card:hover .murray-card-cta { background: var(--m-brand); color: #FFFFFF; }
 
-  .murray-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px 10px; background: #F8FAFC; }
+  /* Quick questions */
+  .murray-chips { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 16px 12px; }
   .murray-chips[hidden] { display: none; }
   .murray-chip {
-    border: 1px solid #DDD6FE; background: #FFFFFF; color: #5B21B6; border-radius: 9999px;
-    padding: 7px 12px; font-size: 13px; font-weight: 700; cursor: pointer; transition: background-color 0.15s ease;
+    display: flex; align-items: center; gap: 8px; text-align: left;
+    border: 0; background: #FFFFFF; color: var(--m-text); border-radius: 14px;
+    padding: 10px 12px; font-family: inherit; font-size: 13px; font-weight: 500; line-height: 1.3; cursor: pointer;
+    box-shadow: 0 1px 2px rgba(15, 10, 31, 0.05), 0 0 0 1px rgba(15, 10, 31, 0.05);
+    transition: box-shadow 0.15s ease, transform 0.15s ease, color 0.15s ease;
   }
-  .murray-chip:hover { background: #F5F3FF; }
+  .murray-chip:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .murray-chip span { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 8px; background: #F1ECFE; font-size: 14px; }
+  .murray-chip:hover { color: var(--m-brand); transform: translateY(-1px); box-shadow: 0 6px 14px -8px rgba(91, 33, 182, 0.35), 0 0 0 1px rgba(124, 58, 237, 0.3); }
 
-  .murray-form { display: flex; align-items: flex-end; gap: 8px; padding: 10px 12px; border-top: 1px solid #E2E8F0; background: #FFFFFF; }
+  /* Composer */
+  .murray-form { padding: 10px 14px 6px; background: var(--m-surface); }
+  .murray-compose {
+    display: flex; align-items: flex-end; gap: 6px; padding: 6px 6px 6px 16px;
+    background: #FFFFFF; border-radius: 9999px; box-shadow: 0 1px 2px rgba(15, 10, 31, 0.06), 0 0 0 1px rgba(15, 10, 31, 0.08);
+    transition: box-shadow 0.15s ease;
+  }
+  .murray-compose:focus-within { box-shadow: 0 0 0 1.5px var(--m-brand), 0 0 0 5px rgba(124, 58, 237, 0.14); }
   .murray-input {
-    flex: 1; min-height: 44px; max-height: 120px; resize: none; padding: 11px 14px;
-    border: 1.5px solid #CBD5E1; border-radius: 14px; font: inherit; font-size: 15px; line-height: 1.4; color: #0F172A; outline: none;
+    flex: 1; min-height: 40px; max-height: 120px; resize: none; padding: 10px 0; border: 0; background: transparent;
+    font: inherit; font-size: 15px; font-weight: 400; line-height: 1.35; color: var(--m-ink); outline: none; box-shadow: none;
   }
-  .murray-input:focus { border-color: #7C3AED; box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15); }
+  .murray-input::placeholder { color: #9A97AD; }
   .murray-send {
-    flex: none; width: 44px; height: 44px; border: 0; border-radius: 12px; background: #7C3AED; color: #FFFFFF; cursor: pointer;
-    display: inline-flex; align-items: center; justify-content: center;
+    flex: none; width: 40px; height: 40px; border: 0; border-radius: 50%;
+    background: linear-gradient(135deg, #6D28D9 0%, var(--m-brand-2) 100%); color: #FFFFFF; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 6px 14px -6px rgba(109, 40, 217, 0.7);
+    transition: transform 0.15s ease, opacity 0.15s ease;
   }
-  .murray-send:hover { background: #6D28D9; } .murray-send:disabled { opacity: 0.5; cursor: default; }
-  .murray-send svg { width: 19px; height: 19px; stroke: currentColor; stroke-width: 2.2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
-  .murray-fine { padding: 0 14px 10px; font-size: 11px; color: #94A3B8; text-align: center; background: #FFFFFF; }
+  .murray-send:hover { transform: scale(1.06); } .murray-send:disabled { opacity: 0.45; cursor: default; transform: none; }
+  .murray-send svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2.2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .murray-fine { margin: 0; padding: 4px 16px 12px; font-size: 11px; line-height: 1.4; color: #9A97AD; text-align: center; background: var(--m-surface); }
 
   @media (max-width: 600px) {
-    .murray-launch { right: 14px; bottom: 14px; height: 52px; padding: 0 6px; width: 52px; justify-content: center; }
+    .murray-launch { right: 14px; bottom: 14px; height: 54px; width: 54px; padding: 0; justify-content: center; }
     .murray-launch .murray-label { display: none; }
-    .murray-launch .murray-dot { left: 36px; top: 4px; }
-    .murray-panel { right: 0; bottom: 0; left: 0; width: 100%; height: 100%; max-height: none; border-radius: 0; border: 0; }
+    .murray-launch .murray-dot { left: 38px; top: 3px; }
+    .murray-panel { right: 0; bottom: 0; left: 0; width: 100%; height: 100%; max-height: none; border-radius: 0; }
     .murray-input { font-size: 16px; }
   }
-  @media (prefers-reduced-motion: reduce) { .murray-panel, .murray-launch { transition: none; } .murray-typing i { animation: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    .murray-panel, .murray-launch, .murray-msg, .murray-hero, .murray-cards { transition: none; animation: none; }
+    .murray-launch::after, .murray-typing i { animation: none; }
+  }
 </style>
 
 <div class="murray" id="murrayChat" data-api="{{ murray_api | escape }}" data-name="{{ section.settings.bot_name | escape }}" data-logo="{{ murray_logo | escape }}">
@@ -136,10 +197,10 @@
 
   <section class="murray-panel" id="murrayPanel" role="dialog" aria-modal="false" aria-labelledby="murrayTitle" aria-hidden="true">
     <header class="murray-head">
-      {{ murray_avatar }}
+      <span class="murray-head-av">{{ murray_avatar }}</span>
       <div class="murray-head-text">
         <strong id="murrayTitle">{{ section.settings.bot_name | escape }}</strong>
-        <span>705 BRBR assistant · replies instantly</span>
+        <span>705 BRBR assistant · Online now</span>
       </div>
       <button type="button" class="murray-icon-btn" id="murrayReset" title="Start a new chat" aria-label="Start a new chat">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
@@ -150,20 +211,22 @@
     </header>
     <div class="murray-log" id="murrayLog" aria-live="polite"></div>
     <div class="murray-chips" id="murrayChips">
-      <button type="button" class="murray-chip">Are you open now?</button>
-      <button type="button" class="murray-chip">Find me an IPA 6-pack</button>
-      <button type="button" class="murray-chip">Do you deliver?</button>
-      <button type="button" class="murray-chip">How do I get 10% off?</button>
-      <button type="button" class="murray-chip">Latest lottery numbers</button>
+      <button type="button" class="murray-chip" data-q="Are you open now?"><span aria-hidden="true">🕒</span>Are you open now?</button>
+      <button type="button" class="murray-chip" data-q="Find me an IPA 6-pack"><span aria-hidden="true">🍺</span>Find an IPA 6-pack</button>
+      <button type="button" class="murray-chip" data-q="Do you deliver?"><span aria-hidden="true">🛵</span>Do you deliver?</button>
+      <button type="button" class="murray-chip" data-q="How do I get 10% off?"><span aria-hidden="true">🎁</span>How do I get 10% off?</button>
+      <button type="button" class="murray-chip" data-q="What are the latest lottery numbers?"><span aria-hidden="true">🎟️</span>Latest lottery numbers</button>
     </div>
     <form class="murray-form" id="murrayForm">
       <label for="murrayInput" class="visually-hidden" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Message {{ section.settings.bot_name | escape }}</label>
-      <textarea id="murrayInput" class="murray-input" rows="1" maxlength="1200" placeholder="Ask about products, prices, hours…" autocomplete="off"></textarea>
-      <button type="submit" class="murray-send" id="murraySend" aria-label="Send">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg>
-      </button>
+      <div class="murray-compose">
+        <textarea id="murrayInput" class="murray-input" rows="1" maxlength="1200" placeholder="Ask about products, prices, hours…" autocomplete="off"></textarea>
+        <button type="submit" class="murray-send" id="murraySend" aria-label="Send">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>
+        </button>
+      </div>
     </form>
-    <p class="murray-fine">{{ section.settings.bot_name | escape }} is an AI assistant and can make mistakes. For anything urgent call (917) 265-8063.</p>
+    <p class="murray-fine">{{ section.settings.bot_name | escape }} is an AI assistant and can make mistakes. Urgent? Call (917) 265-8063.</p>
   </section>
 </div>
 
@@ -188,7 +251,11 @@
     var input = document.getElementById('murrayInput');
     var send = document.getElementById('murraySend');
     var chips = document.getElementById('murrayChips');
-    var GREETING = "Hi, I'm " + NAME + " 👋 your 705 BRBR helper. Ask me about products and prices, our hours, pickup and delivery, the 10% welcome offer, NY Lottery or anything else about the store.";
+    var HERO_AVATAR = LOGO
+      ? '<span class="murray-avatar murray-avatar--logo" aria-hidden="true"><img src="' + LOGO.replace(/"/g, '&quot;') + '" alt=""></span>'
+      : '<span class="murray-avatar" aria-hidden="true">M</span>';
+    var HERO = '<div class="murray-hero">' + HERO_AVATAR + '<h3>Hi, I\'m ' + NAME.replace(/[<>&"]/g, '') + ' 👋</h3>' +
+      '<p>Your 705 BRBR helper. Ask me about products and prices, hours, pickup and delivery, the 10% welcome offer or NY Lottery.</p></div>';
 
     var state = { messages: [] }; // [{role, content, products?}]
     try { var saved = JSON.parse(sessionStorage.getItem(KEY) || 'null'); if (saved && Array.isArray(saved.messages)) state = saved; } catch (e) {}
@@ -245,7 +312,7 @@
         return '<a class="murray-card" href="' + esc(safeUrl(p.url || '#')) + '">' +
           '<span class="murray-card-img">' + (p.image ? '<img src="' + esc(p.image) + '" alt="" loading="lazy">' : '') + '</span>' +
           '<span class="murray-card-body"><span class="murray-card-title">' + esc(p.title) + '</span>' +
-          '<span class="murray-card-price">' + esc(money(p.price)) + '</span><span class="murray-card-cta">View product →</span></span></a>';
+          '<span class="murray-card-foot"><span class="murray-card-price">' + esc(money(p.price)) + '</span><span class="murray-card-cta" aria-hidden="true">→</span></span></span></a>';
       }).join('');
       log.appendChild(wrap);
     }
@@ -253,7 +320,7 @@
 
     function renderAll() {
       log.innerHTML = '';
-      addBubble('bot', md(GREETING));
+      log.insertAdjacentHTML('beforeend', HERO);
       state.messages.forEach(function (m) {
         if (m.role === 'user') addBubble('user', esc(m.content).replace(/\n/g, '<br>'));
         else { addBubble('bot', md(m.content)); addCards(m.products); }
@@ -311,7 +378,7 @@
     document.getElementById('murrayClose').addEventListener('click', close);
     document.getElementById('murrayReset').addEventListener('click', function () { state.messages = []; save(); renderAll(); input.focus(); });
     panel.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
-    chips.addEventListener('click', function (e) { var c = e.target.closest('.murray-chip'); if (c) ask(c.textContent); });
+    chips.addEventListener('click', function (e) { var c = e.target.closest('.murray-chip'); if (c) ask(c.dataset.q || c.textContent); });
     form.addEventListener('submit', function (e) { e.preventDefault(); var t = input.value; input.value = ''; input.style.height = ''; ask(t); });
     input.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); form.requestSubmit ? form.requestSubmit() : form.dispatchEvent(new Event('submit')); } });
     input.addEventListener('input', function () { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 120) + 'px'; });
