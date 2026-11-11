@@ -11,3 +11,9 @@ LOTTERY_API = "https://brbr-lottery.munatsialwyn26.workers.dev"
 ALLOWED_ORIGINS = "https://705brbr.org,https://www.705brbr.org,https://7e36ef-2.myshopify.com"
 MODEL = "claude-haiku-5-5"
 GROQ_MODEL = "openai/gpt-oss-120b"
+
+# Direct link to the 705 BRBR lottery Worker (live NY Lottery results). Workers on the same account can't
+# always call each other over workers.dev, so this uses a service binding.
+[[services]]
+binding = "LOTTERY"
+service = "brbr-lottery"
