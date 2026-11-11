@@ -29,3 +29,10 @@ Shopify admin → Settings → Checkout → Customize → page selector: **Order
 ## Change the content
 
 Edit `extensions/account-extras/src/OrdersBlock.jsx` (SERVICES, text), then push to `main` (GitHub deploys it).
+
+## Order celebration (Thank you page)
+
+`extensions/order-celebration` shows an animated confetti "HOORAY!" banner, the "order processed / on the way"
+message and a 3-step tracker right below the Thank you page header. The banner is `assets/brbr-hooray.svg`,
+served from this public repo through jsDelivr. Turn it on in Settings → Checkout → Customize → page selector:
+**Thank you** → app block **705 BRBR order celebration** (header area) → Save.

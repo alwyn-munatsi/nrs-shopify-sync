@@ -1,0 +1,15 @@
+api_version = "2026-10"
+
+[[extensions]]
+type = "ui_extension"
+name = "705 BRBR order celebration"
+handle = "brbr-order-celebration"
+description = "Hooray! banner with confetti and an order-on-the-way message on the Thank you page."
+
+[[extensions.targeting]]
+target = "purchase.thank-you.header.render-after"
+module = "./src/Celebration.jsx"
+
+[extensions.capabilities]
+api_access = false
+network_access = false
