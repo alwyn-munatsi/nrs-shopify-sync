@@ -1,0 +1,12 @@
+# Murray: the 705 BRBR shopping assistant (chat API for the website's chat bubble).
+# Deployed by .github/workflows/deploy-murray.yml. The Anthropic key is a Worker secret (ANTHROPIC_API_KEY).
+name = "brbr-murray"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+[vars]
+STORE_URL = "https://705brbr.org"
+LOTTERY_API = "https://brbr-lottery.munatsialwyn26.workers.dev"
+ALLOWED_ORIGINS = "https://705brbr.org,https://www.705brbr.org,https://7e36ef-2.myshopify.com"
+MODEL = "claude-haiku-5-5"
