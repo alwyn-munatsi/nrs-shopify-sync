@@ -3,18 +3,51 @@ import {render} from 'preact';
 
 /*
   705 BRBR order celebration (Thank you page block, placed at the top of the Main area).
-  An animated confetti "HOORAY!" banner, then the order-on-the-way message and a 3-step tracker.
+  An animated confetti "HOORAY!" banner, then a message and a 3-step tracker that match how the order is
+  fulfilled: picked up at the store, or shipped / delivered ("on the way").
   The banner is customer-account-app/assets/brbr-hooray.svg, served from the public repo through jsDelivr.
 */
 
 export const BANNER_URL =
   'https://cdn.jsdelivr.net/gh/alwyn-munatsi/nrs-shopify-sync@main/customer-account-app/assets/brbr-hooray.svg';
 
-export const STEPS = [
-  {emoji: '✅', title: 'Order confirmed', text: 'Payment received. You are all set!'},
-  {emoji: '📦', title: 'Packing it up', text: 'Our team is getting your goodies ready.'},
-  {emoji: '🚚', title: 'On the way', text: 'Heading to you. Tracking comes by email.'},
-];
+export const STORE_ADDRESS = '705 2nd Ave (between E 38th & E 39th St)';
+
+export const COPY = {
+  delivery: {
+    message:
+      "Woohoo! Your order is on the way 🚚💨 The 705 BRBR crew is packing it up right now, and we'll email you the moment it heads out the door.",
+    steps: [
+      {emoji: '✅', title: 'Order confirmed', text: 'Payment received. You are all set!'},
+      {emoji: '📦', title: 'Packing it up', text: 'Our team is getting your goodies ready.'},
+      {emoji: '🚚', title: 'On the way', text: 'Heading to you. Tracking comes by email.'},
+    ],
+  },
+  pickup: {
+    message: `Woohoo! Your order is being packed for pickup 🛍️✨ We'll email you as soon as it's ready to grab at ${STORE_ADDRESS}. We're open 6 AM – 12 AM every day.`,
+    steps: [
+      {emoji: '✅', title: 'Order confirmed', text: 'Payment received. You are all set!'},
+      {emoji: '📦', title: 'Packing it up', text: 'Our team is getting your goodies ready.'},
+      {emoji: '🏪', title: 'Ready for pickup', text: 'Watch for our email, then come on by. Bring a photo ID for beer 🍺'},
+    ],
+  },
+};
+
+/**
+ * 'pickup' when every delivery group the buyer chose is a store pickup, otherwise 'delivery'.
+ * Falls back to 'delivery' when delivery details aren't available.
+ */
+export function fulfillmentMode(groups) {
+  const selected = (groups || [])
+    .map((group) => {
+      const ref = group && group.selectedDeliveryOption;
+      if (!ref) return null;
+      return (group.deliveryOptions || []).find((option) => option.handle === ref.handle) || null;
+    })
+    .filter(Boolean);
+  if (selected.length > 0 && selected.every((option) => option.type === 'pickup')) return 'pickup';
+  return 'delivery';
+}
 
 export default async () => {
   render(<Celebration />, document.body);
@@ -24,6 +57,8 @@ function Celebration() {
   const confirmation = shopify.orderConfirmation && shopify.orderConfirmation.value;
   const number = confirmation && confirmation.number;
   const firstOrder = confirmation && confirmation.isFirstOrder;
+  const groups = shopify.deliveryGroups && shopify.deliveryGroups.value;
+  const copy = COPY[fulfillmentMode(groups)];
 
   return (
     <s-stack direction="block" gap="base">
@@ -38,14 +73,11 @@ function Celebration() {
 
       <s-stack direction="block" gap="small-200">
         <s-heading>🎉 Hooray! Your order has been processed 🥳</s-heading>
-        <s-text>
-          Woohoo! Your order is on the way 🚚💨 The 705 BRBR crew is packing it up right now, and we'll email you
-          the moment it heads out the door.
-        </s-text>
+        <s-text>{copy.message}</s-text>
       </s-stack>
 
       <s-grid gridTemplateColumns="@container (inline-size > 420px) 1fr 1fr 1fr, 1fr" gap="small">
-        {STEPS.map((step, i) => (
+        {copy.steps.map((step, i) => (
           <s-box
             key={step.title}
             padding="base"
