@@ -117,6 +117,17 @@ STYLE
 - If a request is unclear, ask one short question.`;
 }
 
+// New York State open data feeds (fallback for lottery results). Numbers and Win 4 share one feed.
+export const LOTTERY_FEEDS = {
+  powerball: 'd6yy-54nr',
+  mega_millions: '5xaw-6ayf',
+  lotto: '6nbc-h7bj',
+  take5: 'dg63-4siq',
+  numbers_and_win4: 'hsys-3def',
+  pick10: 'bycu-cw7c',
+  millionaire_for_life: 'a4w9-a3tp',
+};
+
 export const TOOLS = [
   {
     name: 'search_products',
@@ -227,16 +238,33 @@ export async function runTool(name, input, ctx) {
       return { shown: ctx.cards.map((c) => c.title) };
     }
     if (name === 'get_lottery') {
+      // 1) the 705 BRBR lottery Worker (official NY Lottery feed, includes jackpots)
       const base = (ctx.env.LOTTERY_API || '').replace(/\/+$/, '');
-      if (!base) return { error: 'Lottery data is not available.' };
-      const d = await fetchJSON(`${base}/draws`);
-      const games = d.games || {};
-      const out = {};
-      for (const [k, g] of Object.entries(games)) {
-        const rows = (g.rows || []).slice(0, 2);
-        out[k] = { latest: rows, next_jackpot: g.next && g.next.jackpot ? `$${Math.round(g.next.jackpot).toLocaleString('en-US')}` : null, next_draw_date: g.next ? g.next.date : null };
+      if (base) {
+        try {
+          const d = ctx.env.LOTTERY && ctx.env.LOTTERY.fetch
+            ? await (await ctx.env.LOTTERY.fetch('https://lottery/draws')).json()
+            : await fetchJSON(`${base}/draws`);
+          const games = d.games || {};
+          if (Object.keys(games).length) {
+            const out = {};
+            for (const [k, g] of Object.entries(games)) {
+              const rows = (g.rows || []).slice(0, 2);
+              out[k] = { latest: rows, next_jackpot: g.next && g.next.jackpot ? `$${Math.round(g.next.jackpot).toLocaleString('en-US')}` : null, next_draw_date: g.next ? g.next.date : null };
+            }
+            return { source: 'NY Lottery', games: out, more: `${site}/pages/lottery` };
+          }
+        } catch { /* fall through to open data */ }
       }
-      return { games: out, more: `${site}/pages/lottery` };
+      // 2) New York State open data (official results, published after each draw)
+      const out = {};
+      await Promise.all(Object.entries(LOTTERY_FEEDS).map(async ([k, id]) => {
+        try {
+          out[k] = { latest: await fetchJSON(`https://data.ny.gov/resource/${id}.json?$order=draw_date%20DESC&$limit=2`, 5000) };
+        } catch { /* skip this game */ }
+      }));
+      if (!Object.keys(out).length) return { error: `Lottery results are unavailable right now. See ${site}/pages/lottery or call ${STORE.phone}.` };
+      return { source: 'data.ny.gov', games: out, note: 'Jackpot amounts not included; see the lottery page.', more: `${site}/pages/lottery` };
     }
     return { error: `Unknown tool ${name}` };
   } catch (e) {

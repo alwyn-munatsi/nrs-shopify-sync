@@ -151,3 +151,16 @@ test('Groq auth errors stop straight away', async () => {
   const fakeFetch = async () => new Response('bad key', { status: 401 });
   await assert.rejects(defaultCallGroq({ GROQ_API_KEY: 'x' }, { model: 'a', messages: [] }, { fetch: fakeFetch, sleep: async () => {} }), /401/);
 });
+
+test('get_lottery falls back to data.ny.gov when the lottery Worker cannot be reached', async () => {
+  globalThis.fetch = async (url) => {
+    const u = String(url);
+    if (u.includes('lottery.example')) return new Response('blocked', { status: 403 });
+    if (u.includes('data.ny.gov/resource/hsys-3def')) return new Response(JSON.stringify([{ draw_date: '2026-11-11T00:00:00.000', midday_win_4: '9539' }]), { status: 200 });
+    if (u.includes('data.ny.gov')) return new Response('[]', { status: 200 });
+    return new Response('{}', { status: 404 });
+  };
+  const out = await runTool('get_lottery', {}, { site: 'https://705brbr.org', env: ENV, seen: {}, cards: [] });
+  assert.equal(out.source, 'data.ny.gov');
+  assert.equal(out.games.numbers_and_win4.latest[0].midday_win_4, '9539');
+});
