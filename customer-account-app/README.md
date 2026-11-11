@@ -33,6 +33,6 @@ Edit `extensions/account-extras/src/OrdersBlock.jsx` (SERVICES, text), then push
 ## Order celebration (Thank you page)
 
 `extensions/order-celebration` shows an animated confetti "HOORAY!" banner, the "order processed / on the way"
-message and a 3-step tracker right below the Thank you page header. The banner is `assets/brbr-hooray.svg`,
+message and a 3-step tracker at the top of the Thank you page. The banner is `assets/brbr-hooray.svg`,
 served from this public repo through jsDelivr. Turn it on in Settings → Checkout → Customize → page selector:
-**Thank you** → app block **705 BRBR order celebration** (header area) → Save.
+**Thank you** → Main → Add block → **705 BRBR order celebration** (drag it to the top) → Save.

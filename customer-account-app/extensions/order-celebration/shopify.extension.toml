@@ -7,7 +7,7 @@ handle = "brbr-order-celebration"
 description = "Hooray! banner with confetti and an order-on-the-way message on the Thank you page."
 
 [[extensions.targeting]]
-target = "purchase.thank-you.header.render-after"
+target = "purchase.thank-you.block.render"
 module = "./src/Celebration.jsx"
 
 [extensions.capabilities]

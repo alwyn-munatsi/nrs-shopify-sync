@@ -2,7 +2,7 @@ import '@shopify/ui-extensions/preact';
 import {render} from 'preact';
 
 /*
-  705 BRBR order celebration (Thank you page, right below the header).
+  705 BRBR order celebration (Thank you page block, placed at the top of the Main area).
   An animated confetti "HOORAY!" banner, then the order-on-the-way message and a 3-step tracker.
   The banner is customer-account-app/assets/brbr-hooray.svg, served from the public repo through jsDelivr.
 */
@@ -44,7 +44,7 @@ function Celebration() {
         </s-text>
       </s-stack>
 
-      <s-grid gridTemplateColumns="@container (inline-size > 480px) 1fr 1fr 1fr, 1fr" gap="small">
+      <s-grid gridTemplateColumns="@container (inline-size > 420px) 1fr 1fr 1fr, 1fr" gap="small">
         {STEPS.map((step, i) => (
           <s-box
             key={step.title}
