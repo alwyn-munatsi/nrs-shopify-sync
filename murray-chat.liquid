@@ -73,7 +73,7 @@
   .murray-head-av::after { content: ""; position: absolute; right: 0; bottom: 1px; width: 11px; height: 11px; border-radius: 50%; background: #22C55E; border: 2px solid #2B1258; }
   .murray-head-text { flex: 1; min-width: 0; }
   .murray-head-text strong { display: block; font-size: 16.5px; font-weight: 700; letter-spacing: -0.015em; line-height: 1.2; }
-  .murray-head-text span { display: block; margin-top: 2px; font-size: 12.5px; font-weight: 500; color: rgba(237, 233, 254, 0.8); }
+  .murray-head-text span { display: block; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12.5px; font-weight: 500; color: rgba(237, 233, 254, 0.8); }
   .murray-icon-btn {
     flex: none; display: inline-flex; align-items: center; justify-content: center;
     width: 36px; height: 36px; border: 0; border-radius: 50%; background: rgba(255, 255, 255, 0.1); color: #FFFFFF; cursor: pointer;
@@ -200,7 +200,7 @@
       <span class="murray-head-av">{{ murray_avatar }}</span>
       <div class="murray-head-text">
         <strong id="murrayTitle">{{ section.settings.bot_name | escape }}</strong>
-        <span>705 BRBR assistant · Online now</span>
+        <span>Online now · 705 BRBR assistant</span>
       </div>
       <button type="button" class="murray-icon-btn" id="murrayReset" title="Start a new chat" aria-label="Start a new chat">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
@@ -212,7 +212,7 @@
     <div class="murray-log" id="murrayLog" aria-live="polite"></div>
     <div class="murray-chips" id="murrayChips">
       <button type="button" class="murray-chip" data-q="Are you open now?"><span aria-hidden="true">🕒</span>Are you open now?</button>
-      <button type="button" class="murray-chip" data-q="Find me an IPA 6-pack"><span aria-hidden="true">🍺</span>Find an IPA 6-pack</button>
+      <button type="button" class="murray-chip" data-q="Find me an IPA 6-pack"><span aria-hidden="true">🍺</span>Find an IPA 6&#8209;pack</button>
       <button type="button" class="murray-chip" data-q="Do you deliver?"><span aria-hidden="true">🛵</span>Do you deliver?</button>
       <button type="button" class="murray-chip" data-q="How do I get 10% off?"><span aria-hidden="true">🎁</span>How do I get 10% off?</button>
       <button type="button" class="murray-chip" data-q="What are the latest lottery numbers?"><span aria-hidden="true">🎟️</span>Latest lottery numbers</button>
