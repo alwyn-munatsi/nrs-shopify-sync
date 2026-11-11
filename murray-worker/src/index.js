@@ -368,6 +368,7 @@ export async function defaultCallGroq(env, payload, deps = {}) {
   const wait = deps.sleep || sleep;
   const models = payload.model ? [payload.model].concat(groqModels(env).filter((m) => m !== payload.model)) : groqModels(env);
   let lastErr = null;
+  const errs = [];
   for (const model of models) {
     for (let attempt = 0; attempt < 2; attempt++) {
       const r = await doFetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -377,17 +378,18 @@ export async function defaultCallGroq(env, payload, deps = {}) {
       });
       if (r.ok) return r.json();
       const text = await r.text().catch(() => '');
-      lastErr = new Error(`Groq API ${r.status} (${model}): ${text.slice(0, 200)}`);
+      lastErr = new Error(`Groq API ${r.status} (${model}): ${text.slice(0, 160)}`);
+      errs.push(lastErr.message);
       if (r.status === 429) {
         const after = Number(r.headers.get('retry-after')) || 0;
         if (attempt === 0 && after > 0 && after <= 4) { await wait(after * 1000); continue; }
         break; // try the next model
       }
-      if (r.status >= 500 || r.status === 413 || r.status === 400) break; // next model
+      if (r.status >= 500 || r.status === 413 || r.status === 400 || r.status === 404) break; // next model
       throw lastErr; // auth or other client errors: stop
     }
   }
-  throw lastErr || new Error('Groq API unavailable');
+  throw new Error(errs.join(' | ') || 'Groq API unavailable');
 }
 
 // Anthropic Claude (Messages API with tools)
@@ -487,6 +489,12 @@ export default {
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
     if (url.pathname === '/' || url.pathname === '/health') {
       return json({ ok: true, name: 'Murray (705 BRBR assistant)', ready: Boolean(provider(env)), provider: provider(env) }, 200, cors);
+    }
+    if (url.pathname === '/models' && env.GROQ_API_KEY) {
+      // Lists the Groq model ids this key can use (ids only, no key or account details).
+      const r = await fetch('https://api.groq.com/openai/v1/models', { headers: { authorization: `Bearer ${env.GROQ_API_KEY}` } });
+      const j = await r.json().catch(() => ({}));
+      return json({ status: r.status, configured: groqModels(env), available: ((j && j.data) || []).map((m) => m.id).sort() }, 200, cors);
     }
     if (url.pathname !== '/chat' || request.method !== 'POST') return json({ error: 'Not found' }, 404, cors);
     if (!provider(env)) return json({ error: 'Murray is not set up yet.' }, 503, cors);
