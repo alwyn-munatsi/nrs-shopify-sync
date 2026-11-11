@@ -97,3 +97,35 @@ test('HTTP: health, CORS preflight, missing key and bad route', async () => {
   r = await worker.fetch(new Request('https://w/nope'), ENV);
   assert.equal(r.status, 404);
 });
+
+test('Groq is used when GROQ_API_KEY is set, with OpenAI-style tool calls', async () => {
+  mockFetch({
+    '/search/suggest.json': { resources: { results: { products: [
+      { title: 'Modelo Especial (12 oz x 12 ct)', handle: 'modelo-12', price: '21.99', url: '/products/modelo-12?_pos=1', image: 'https://img/m.jpg', available: true },
+    ] } } },
+  });
+  const env = { ...ENV, ANTHROPIC_API_KEY: '', GROQ_API_KEY: 'g', GROQ_MODEL: 'groq-test' };
+  const calls = [];
+  const fake = async (e, payload) => {
+    calls.push(JSON.parse(JSON.stringify(payload)));
+    if (calls.length === 1) return { choices: [{ message: { content: null, tool_calls: [{ id: 'c1', type: 'function', function: { name: 'search_products', arguments: '{"query":"Modelo"}' } }] } }] };
+    if (calls.length === 2) return { choices: [{ message: { content: '', tool_calls: [{ id: 'c2', type: 'function', function: { name: 'show_products', arguments: '{"handles":["modelo-12"]}' } }] } }] };
+    return { choices: [{ message: { content: 'Yes, **Modelo Especial** 12-pack is $21.99.' } }] };
+  };
+  const out = await chat(env, { messages: [{ role: 'user', content: 'Do you have Modelo?' }] }, { callGroq: fake });
+  assert.equal(out.status, 200);
+  assert.match(out.json.reply, /Modelo/);
+  assert.equal(out.json.products[0].title, 'Modelo Especial (12 oz x 12 ct)');
+  assert.equal(calls[0].model, 'groq-test');
+  assert.equal(calls[0].messages[0].role, 'system');
+  assert.equal(calls[0].tools[0].type, 'function');
+  assert.equal(calls[1].messages.at(-1).role, 'tool');
+  assert.equal(calls[1].messages.at(-1).tool_call_id, 'c1');
+});
+
+test('health reports the provider in use', async () => {
+  const r = await worker.fetch(new Request('https://w/health'), { ...ENV, ANTHROPIC_API_KEY: '', GROQ_API_KEY: 'g' });
+  const j = await r.json();
+  assert.equal(j.provider, 'groq');
+  assert.equal(j.ready, true);
+});

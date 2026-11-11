@@ -11,6 +11,9 @@
     - show_products: picks which products appear as cards under the reply
     - get_lottery: latest NY Lottery results and next jackpots (705 BRBR lottery Worker)
   Anything unrelated to the shop is politely steered back.
+
+  Model provider: Groq (GROQ_API_KEY, OpenAI-compatible API, model GROQ_MODEL) when that key is set,
+  otherwise Anthropic Claude (ANTHROPIC_API_KEY, model MODEL).
 */
 
 const MAX_TURNS = 16; // conversation messages kept per request
@@ -256,7 +259,83 @@ export function sanitizeMessages(messages) {
   return merged;
 }
 
+export function provider(env) {
+  if (env.GROQ_API_KEY) return 'groq';
+  if (env.ANTHROPIC_API_KEY) return 'anthropic';
+  return null;
+}
+
+function prepare(env, body) {
+  const site = (env.STORE_URL || 'https://705brbr.org').replace(/\/+$/, '');
+  const messages = sanitizeMessages(body && body.messages);
+  if (!messages.length || messages[messages.length - 1].role !== 'user') return null;
+  const page = typeof body.page === 'string' && body.page.startsWith('/') ? body.page.slice(0, 200) : '';
+  return { site, messages, page, ctx: { site, env, seen: {}, cards: [] }, system: systemPrompt(env, page) };
+}
+
+function finish(reply, ctx) {
+  return {
+    status: 200,
+    json: {
+      reply: String(reply || '').trim() || `Sorry, I couldn't come up with an answer just now. You can reach the store at ${STORE.phone}.`,
+      products: ctx.cards.map(({ title, price, url, image, available }) => ({ title, price, url, image, available })),
+    },
+  };
+}
+
+const TOO_LONG = { status: 200, json: { reply: `Sorry, that took too long. Please try again, or call the store at ${STORE.phone}.`, products: [] } };
+
 export async function chat(env, body, deps = {}) {
+  if (provider(env) === 'groq') return chatGroq(env, body, deps);
+  return chatClaude(env, body, deps);
+}
+
+// Groq (OpenAI-compatible chat completions with function tools)
+export async function chatGroq(env, body, deps = {}) {
+  const callGroq = deps.callGroq || defaultCallGroq;
+  const prep = prepare(env, body);
+  if (!prep) return { status: 400, json: { error: 'Send at least one user message.' } };
+  const { ctx } = prep;
+  const tools = TOOLS.map((t) => ({ type: 'function', function: { name: t.name, description: t.description, parameters: t.input_schema } }));
+  const convo = [{ role: 'system', content: prep.system }].concat(prep.messages.map((m) => ({ role: m.role, content: m.content })));
+  for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
+    const last = round === MAX_TOOL_ROUNDS;
+    const res = await callGroq(env, {
+      model: env.GROQ_MODEL || 'openai/gpt-oss-120b',
+      max_tokens: 1200,
+      temperature: 0.3,
+      messages: convo,
+      ...(last ? {} : { tools, tool_choice: 'auto' }),
+    });
+    const msg = (res.choices && res.choices[0] && res.choices[0].message) || {};
+    const calls = msg.tool_calls || [];
+    if (!calls.length) return finish(msg.content, ctx);
+    convo.push({ role: 'assistant', content: msg.content || '', tool_calls: calls });
+    for (const c of calls) {
+      let args = {};
+      try { args = JSON.parse((c.function && c.function.arguments) || '{}') || {}; } catch { args = {}; }
+      const out = await runTool(c.function && c.function.name, args, ctx);
+      convo.push({ role: 'tool', tool_call_id: c.id, name: c.function && c.function.name, content: JSON.stringify(out).slice(0, 12000) });
+    }
+  }
+  return TOO_LONG;
+}
+
+async function defaultCallGroq(env, payload) {
+  const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${env.GROQ_API_KEY}` },
+    body: JSON.stringify(payload),
+  });
+  if (!r.ok) {
+    const text = await r.text().catch(() => '');
+    throw new Error(`Groq API ${r.status}: ${text.slice(0, 200)}`);
+  }
+  return r.json();
+}
+
+// Anthropic Claude (Messages API with tools)
+export async function chatClaude(env, body, deps = {}) {
   const callClaude = deps.callClaude || defaultCallClaude;
   const site = (env.STORE_URL || 'https://705brbr.org').replace(/\/+$/, '');
   const messages = sanitizeMessages(body && body.messages);
@@ -351,10 +430,10 @@ export default {
     const cors = corsHeaders(env, origin);
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
     if (url.pathname === '/' || url.pathname === '/health') {
-      return json({ ok: true, name: 'Murray (705 BRBR assistant)', ready: Boolean(env.ANTHROPIC_API_KEY) }, 200, cors);
+      return json({ ok: true, name: 'Murray (705 BRBR assistant)', ready: Boolean(provider(env)), provider: provider(env) }, 200, cors);
     }
     if (url.pathname !== '/chat' || request.method !== 'POST') return json({ error: 'Not found' }, 404, cors);
-    if (!env.ANTHROPIC_API_KEY) return json({ error: 'Murray is not set up yet.' }, 503, cors);
+    if (!provider(env)) return json({ error: 'Murray is not set up yet.' }, 503, cors);
     const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
     if (rateLimited(ip)) return json({ error: 'You are sending messages very fast. Please wait a minute and try again.' }, 429, cors);
     let body;
