@@ -46,3 +46,11 @@ served from this public repo through jsDelivr. Turn it on in Settings → Checko
   customer account page (Footer → Add block) → **705 BRBR store footer**.
 - The checkout steps themselves (information, shipping, payment) only allow app blocks on Shopify Plus; they keep
   Shopify's logo header and the policy links footer.
+
+## Google review + 10% welcome offer (Thank you page)
+
+`extensions/after-order` adds two cards below the Hooray celebration: "Review us on Google" (opens the write-a-review
+box; no reward, since Google bans incentivised reviews) and "Get 10% off your next order" (links to the homepage
+sign-up form, hidden when Shopify says the buyer is signed in). The 10% code is WELCOME10: 10% off, once per
+customer, only for customers tagged `welcome-offer` (segment "Welcome offer sign-ups"), and it's emailed by the
+Shopify Messaging automation set up for that tag.

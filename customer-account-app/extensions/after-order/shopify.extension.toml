@@ -1,0 +1,15 @@
+api_version = "2026-10"
+
+[[extensions]]
+type = "ui_extension"
+name = "705 BRBR review + 10% offer"
+handle = "brbr-after-order"
+description = "Thank you page: ask for a Google review, and invite shoppers who haven't signed up to get the 10% welcome code."
+
+[[extensions.targeting]]
+target = "purchase.thank-you.block.render"
+module = "./src/AfterOrder.jsx"
+
+[extensions.capabilities]
+api_access = false
+network_access = false
