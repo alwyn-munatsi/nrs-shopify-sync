@@ -503,7 +503,9 @@ export default {
       return json(out.json, out.status, cors);
     } catch (e) {
       console.error('chat failed', e && e.message);
-      return json({ reply: `Sorry, I'm having trouble right now. Please try again in a moment, or call the store at ${STORE.phone}.`, products: [] }, 200, cors);
+      const out = { reply: `Sorry, I'm having trouble right now. Please try again in a moment, or call the store at ${STORE.phone}.`, products: [] };
+      if (body && body.debug === true) out.error_detail = String((e && e.message) || e).slice(0, 400); // troubleshooting only
+      return json(out, 200, cors);
     }
   },
 };
