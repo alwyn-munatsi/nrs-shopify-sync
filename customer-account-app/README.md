@@ -36,3 +36,13 @@ Edit `extensions/account-extras/src/OrdersBlock.jsx` (SERVICES, text), then push
 message and a 3-step tracker at the top of the Thank you page. The banner is `assets/brbr-hooray.svg`,
 served from this public repo through jsDelivr. Turn it on in Settings → Checkout → Customize → page selector:
 **Thank you** → Main → Add block → **705 BRBR order celebration** (drag it to the top) → Save.
+
+## Store header bar and footer
+
+- `extensions/store-header`: Open now badge and quick links under the Thank you page logo
+  (Settings → Checkout → Customize → **Thank you** → Header → Add block → **705 BRBR store header bar**).
+- `extensions/store-footer`: the website footer (address, hours, contact, shop links, socials) at the bottom of every
+  customer account page and the Thank you page. Add it on the **Thank you** page (Footer → Add block) and on any
+  customer account page (Footer → Add block) → **705 BRBR store footer**.
+- The checkout steps themselves (information, shipping, payment) only allow app blocks on Shopify Plus; they keep
+  Shopify's logo header and the policy links footer.

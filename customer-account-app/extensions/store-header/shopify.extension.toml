@@ -1,0 +1,15 @@
+api_version = "2026-10"
+
+[[extensions]]
+type = "ui_extension"
+name = "705 BRBR store header bar"
+handle = "brbr-store-header"
+description = "Open now badge and quick links (Shop, NY Lottery, Contact, phone) under the Thank you page header."
+
+[[extensions.targeting]]
+target = "purchase.thank-you.header.render-after"
+module = "./src/HeaderBar.jsx"
+
+[extensions.capabilities]
+api_access = false
+network_access = false

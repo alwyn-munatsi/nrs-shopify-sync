@@ -1,0 +1,19 @@
+api_version = "2026-10"
+
+[[extensions]]
+type = "ui_extension"
+name = "705 BRBR store footer"
+handle = "brbr-store-footer"
+description = "The 705 BRBR footer (address, hours, contact, links, socials) on customer account pages and the Thank you page."
+
+[[extensions.targeting]]
+target = "customer-account.footer.render-after"
+module = "./src/Footer.jsx"
+
+[[extensions.targeting]]
+target = "purchase.thank-you.footer.render-after"
+module = "./src/Footer.jsx"
+
+[extensions.capabilities]
+api_access = false
+network_access = false
