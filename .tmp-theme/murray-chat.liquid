@@ -6,6 +6,9 @@
 {%- endcomment -%}
 
 {%- assign murray_api = section.settings.api_url | strip -%}
+{%- assign murray_logo = '' -%}
+{%- if section.settings.logo != blank -%}{%- assign murray_logo = section.settings.logo | image_url: width: 160 -%}{%- endif -%}
+{%- capture murray_avatar -%}{%- if murray_logo != blank -%}<span class="murray-avatar murray-avatar--logo" aria-hidden="true"><img src="{{ murray_logo }}" alt="" width="80" height="80"></span>{%- else -%}<span class="murray-avatar" aria-hidden="true">M</span>{%- endif -%}{%- endcapture -%}
 {%- if murray_api != blank -%}
 <style>
   .murray, .murray * { box-sizing: border-box; }
@@ -26,6 +29,8 @@
     font-size: 20px; font-weight: 900; line-height: 1; box-shadow: inset 0 0 0 2px rgba(124, 58, 237, 0.25);
   }
   .murray-launch .murray-dot { position: absolute; left: 38px; top: 8px; width: 12px; height: 12px; border-radius: 50%; background: #22C55E; border: 2px solid #FFFFFF; }
+  .murray-avatar--logo { padding: 0; overflow: hidden; background: #2E1065; box-shadow: 0 0 0 2px #FFFFFF; }
+  .murray-avatar--logo img { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
   .murray-launch[aria-expanded="true"] { opacity: 0; pointer-events: none; transform: scale(0.9); }
 
   .murray-panel {
@@ -122,16 +127,16 @@
   @media (prefers-reduced-motion: reduce) { .murray-panel, .murray-launch { transition: none; } .murray-typing i { animation: none; } }
 </style>
 
-<div class="murray" id="murrayChat" data-api="{{ murray_api | escape }}" data-name="{{ section.settings.bot_name | escape }}">
+<div class="murray" id="murrayChat" data-api="{{ murray_api | escape }}" data-name="{{ section.settings.bot_name | escape }}" data-logo="{{ murray_logo | escape }}">
   <button type="button" class="murray-launch" id="murrayLaunch" aria-controls="murrayPanel" aria-expanded="false" aria-label="Chat with {{ section.settings.bot_name | escape }}, the 705 BRBR assistant">
-    <span class="murray-avatar" aria-hidden="true">M</span>
+    {{ murray_avatar }}
     <span class="murray-dot" aria-hidden="true"></span>
     <span class="murray-label">{{ section.settings.launcher_text | escape }}</span>
   </button>
 
   <section class="murray-panel" id="murrayPanel" role="dialog" aria-modal="false" aria-labelledby="murrayTitle" aria-hidden="true">
     <header class="murray-head">
-      <span class="murray-avatar" aria-hidden="true">M</span>
+      {{ murray_avatar }}
       <div class="murray-head-text">
         <strong id="murrayTitle">{{ section.settings.bot_name | escape }}</strong>
         <span>705 BRBR assistant · replies instantly</span>
@@ -172,6 +177,10 @@
     var API = String(root.dataset.api || '').replace(/\/+$/, '');
     var NAME = root.dataset.name || 'Murray';
     var KEY = 'brbr-murray-chat';
+    var LOGO = root.dataset.logo || '';
+    var AVATAR = LOGO
+      ? '<span class="murray-avatar murray-avatar--logo" aria-hidden="true"><img src="' + LOGO.replace(/"/g, '&quot;') + '" alt=""></span>'
+      : '<span class="murray-avatar" aria-hidden="true">M</span>';
     var launch = document.getElementById('murrayLaunch');
     var panel = document.getElementById('murrayPanel');
     var log = document.getElementById('murrayLog');
@@ -216,7 +225,7 @@
     function addBubble(role, html, extraClass) {
       var row = document.createElement('div');
       row.className = 'murray-msg murray-msg--' + role + (extraClass ? ' ' + extraClass : '');
-      row.innerHTML = (role === 'user' ? '' : '<span class="murray-avatar" aria-hidden="true">M</span>') + '<div class="murray-bubble">' + html + '</div>';
+      row.innerHTML = (role === 'user' ? '' : AVATAR) + '<div class="murray-bubble">' + html + '</div>';
       log.appendChild(row);
       return row;
     }
@@ -312,6 +321,7 @@
   "settings": [
     { "type": "text", "id": "api_url", "label": "Murray API URL", "default": "https://brbr-murray.munatsialwyn26.workers.dev", "info": "The brbr-murray Cloudflare Worker. Clear this to hide the chat." },
     { "type": "text", "id": "bot_name", "label": "Assistant name", "default": "Murray" },
+    { "type": "image_picker", "id": "logo", "label": "Avatar (store logo)", "info": "Shown on the chat button, in the chat header and next to Murray's replies." },
     { "type": "text", "id": "launcher_text", "label": "Chat button text", "default": "Ask Murray" }
   ],
   "enabled_on": { "groups": ["header"] }
