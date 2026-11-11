@@ -355,7 +355,7 @@ export async function chatGroq(env, body, deps = {}) {
 // we wait briefly once, then move on to the next.
 export function groqModels(env) {
   const list = [env.GROQ_MODEL || 'openai/gpt-oss-120b']
-    .concat(String(env.GROQ_FALLBACK_MODELS || 'llama-3.3-70b-versatile,openai/gpt-oss-20b').split(','))
+    .concat(String(env.GROQ_FALLBACK_MODELS || 'openai/gpt-oss-20b,qwen/qwen3.8-27b').split(','))
     .map((m) => m.trim())
     .filter(Boolean);
   return [...new Set(list)];
