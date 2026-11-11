@@ -274,7 +274,7 @@
         s = s.replace(/(^|[\s(])\*([^*\n]+)\*(?=[\s.,!?:;)]|$)/g, '$1<strong>$2</strong>');
         return s;
       }
-      String(text || '').split(/\n/).forEach(function (line) {
+      String(text || '').replace(/[\u00A0\u2007\u2009\u200A\u202F]/g, ' ').replace(/\u2011/g, '-').split(/\n/).forEach(function (line) {
         var t = line.trim(), m;
         if (/^([-*_]\s*){3,}$/.test(t)) return; // horizontal rule
         if (/^\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?$/.test(t)) return; // table divider row
