@@ -167,6 +167,8 @@
     var root = document.getElementById('murrayChat');
     if (!root || root.dataset.ready) return;
     root.dataset.ready = '1';
+    // Live directly under <body> so no header/section stacking context can put page content on top of the chat
+    if (root.parentNode !== document.body) document.body.appendChild(root);
     var API = String(root.dataset.api || '').replace(/\/+$/, '');
     var NAME = root.dataset.name || 'Murray';
     var KEY = 'brbr-murray-chat';
