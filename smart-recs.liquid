@@ -43,7 +43,7 @@
   .brbr-recs__chip:hover { border-color: #C4B5FD; color: #6D28D9; background: #F5F3FF; }
   .brbr-recs__chip svg { width: 13px; height: 13px; stroke: currentColor; stroke-width: 2.2; fill: none; stroke-linecap: round; stroke-linejoin: round; opacity: 0.7; }
 
-  .brbr-recs__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .brbr-recs__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
   .brbr-recs--wide .brbr-recs__grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
   @media (max-width: 560px) { .brbr-recs__grid, .brbr-recs--wide .brbr-recs__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   .brbr-rec {
@@ -404,6 +404,13 @@
       function showIfEmpty() {
         if (input.value.trim().length >= 2) return;
         render(dd, {});
+        // Wider than the search box so the cards have room; kept inside the window
+        var box = dd.parentElement.getBoundingClientRect();
+        var w = Math.min(640, window.innerWidth - 24);
+        dd.style.width = w + 'px';
+        dd.style.right = 'auto';
+        var overflow = box.left + w - (window.innerWidth - 12);
+        dd.style.left = (overflow > 0 ? -overflow : 0) + 'px';
         dd.style.maxHeight = 'min(660px, calc(100vh - 130px))';
         dd.style.display = 'block';
       }
