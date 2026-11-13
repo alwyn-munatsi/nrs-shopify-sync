@@ -1,0 +1,904 @@
+{% comment %}
+  705 BRBR Category Drawer
+  - Slide-out drawer on all screen sizes, opened by the menu (hamburger) button in the header.
+  - Department icons use the same illustrations as the homepage department strip.
+  - Departments come from the "Store Departments" menu (Online Store > Navigation).
+    Nested items under a department become its subcategories; empty collections are hidden.
+{% endcomment %}
+
+<style>
+  :root {
+    --dd-border: #E8E8E8;
+    --dd-text-color: #1F2937;
+    --dd-hover-bg: #F4F5F7;
+    --dd-purple: #7C3AED;
+    --dd-purple-soft: #F5F3FF;
+  }
+
+  /* ======================================================== */
+  /* SHARED STYLES                                            */
+  /* ======================================================== */
+  .dd-sidebar-rail {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+
+  .dd-rail-btn {
+    position: relative;
+    width: 100%;
+    min-height: 44px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    border-radius: 10px;
+    color: var(--dd-text-color);
+    text-decoration: none;
+    padding: 8px 10px;
+    box-sizing: border-box;
+    background: none;
+    border: none;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+
+  .dd-rail-btn:hover {
+    background-color: var(--dd-hover-bg);
+    color: var(--dd-purple);
+  }
+
+  .dd-rail-btn.active,
+  .dd-dept.is-open > .dd-rail-btn {
+    color: var(--dd-purple);
+    background-color: var(--dd-purple-soft);
+  }
+
+  .dd-rail-btn.active .dd-rail-label,
+  .dd-dept.is-open > .dd-rail-btn .dd-rail-label {
+    font-weight: 700;
+  }
+
+  .dd-rail-icon {
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .dd-rail-icon:not(.dd-rail-icon--art) svg {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+  }
+
+  .dd-rail-icon--art {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    border-radius: 50%;
+    background: #F8FAFC;
+    border: 1px solid #EEF2F7;
+    transition: transform 0.2s ease, background-color 0.2s ease;
+  }
+
+  .dd-rail-icon--art svg {
+    width: 30px;
+    height: 30px;
+    display: block;
+  }
+
+  .dd-rail-btn:hover .dd-rail-icon--art,
+  .dd-dept.is-open .dd-rail-icon--art,
+  .dd-rail-btn.active .dd-rail-icon--art {
+    background: #FFFFFF;
+    transform: scale(1.06);
+  }
+
+  .dd-chevron {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    margin-left: 8px;
+    color: #94A3B8;
+    transition: transform 0.2s ease, color 0.2s ease;
+  }
+
+  .dd-chevron svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    stroke-width: 2.2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    display: block;
+  }
+
+  .dd-dept.is-open .dd-chevron {
+    transform: rotate(180deg);
+    color: var(--dd-purple);
+  }
+
+  .dd-section-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #94A3B8;
+    padding: 14px 10px 6px;
+  }
+
+  /* Subcategory panel */
+  .dd-subpanel {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.25s ease;
+  }
+
+  .dd-dept.is-open .dd-subpanel {
+    grid-template-rows: 1fr;
+  }
+
+  .dd-subpanel-inner {
+    overflow: hidden;
+  }
+
+  .dd-subpanel-content {
+    padding: 8px 4px 12px 60px;
+  }
+
+  .dd-shop-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--dd-purple);
+    text-decoration: none;
+    margin-bottom: 10px;
+  }
+
+  .dd-shop-all:hover {
+    text-decoration: underline;
+  }
+
+  .dd-sub-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .dd-sub-link {
+    display: block;
+    padding: 8px 10px;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.25;
+    color: #334155;
+    text-decoration: none;
+    background: #FFFFFF;
+    transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+  }
+
+  .dd-sub-link:hover,
+  .dd-sub-link.active {
+    border-color: var(--dd-purple);
+    color: var(--dd-purple);
+    background: var(--dd-purple-soft);
+  }
+
+  .dd-rail-divider {
+    width: calc(100% - 10px);
+    height: 1px;
+    background-color: var(--dd-border);
+    margin: 8px 5px;
+    flex-shrink: 0;
+  }
+
+  /* Drawer header + quick actions */
+  .dd-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 4px 6px 14px;
+    border-bottom: 1px solid var(--dd-border);
+    margin-bottom: 10px;
+    box-sizing: border-box;
+  }
+
+  .dd-drawer-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .dd-drawer-logo {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--dd-purple);
+    flex-shrink: 0;
+  }
+
+  .dd-drawer-title {
+    display: block;
+    font-size: 18px;
+    font-weight: 800;
+    color: #0F172A;
+    letter-spacing: -0.01em;
+  }
+
+  .dd-drawer-subtitle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #059669;
+    margin-top: 3px;
+  }
+
+  .dd-drawer-subtitle::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #10B981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+  }
+
+  .dd-close-btn {
+    background: #F1F5F9;
+    border: none;
+    width: 36px;
+    height: 36px;
+    cursor: pointer;
+    color: #475569;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+  }
+
+  .dd-close-btn svg {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+    stroke-width: 2.2;
+  }
+
+  .dd-quick-actions {
+    display: flex;
+    gap: 8px;
+    padding: 0 4px 8px;
+  }
+
+  .dd-quick-btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 8px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .dd-quick-btn svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .dd-quick-btn--primary {
+    background: var(--dd-purple);
+    color: #FFFFFF;
+  }
+
+  .dd-quick-btn--ghost {
+    background: #F1F5F9;
+    color: #0F172A;
+    border: none;
+    font-family: inherit;
+    cursor: pointer;
+  }
+
+  .dd-quick-btn--ghost[aria-expanded="true"] {
+    background: var(--dd-purple-soft);
+    color: var(--dd-purple);
+  }
+
+  .dd-quick-btn--ghost .dd-qb-chevron {
+    width: 14px;
+    height: 14px;
+    transition: transform 0.2s ease;
+  }
+
+  .dd-quick-btn--ghost[aria-expanded="true"] .dd-qb-chevron {
+    transform: rotate(180deg);
+  }
+
+  /* Order direct: pick up in store / shipping */
+  .dd-direct-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 0 4px 8px;
+  }
+
+  .dd-direct-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 10px;
+    border-radius: 10px;
+    background: var(--dd-purple-soft);
+    color: var(--dd-purple);
+    text-decoration: none;
+    line-height: 1.15;
+    border: 1px solid transparent;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+  }
+
+  .dd-direct-btn:hover {
+    border-color: var(--dd-purple);
+    transform: translateY(-1px);
+  }
+
+  .dd-direct-btn svg {
+    width: 20px;
+    height: 20px;
+    flex: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .dd-direct-btn strong {
+    display: block;
+    font-size: 13px;
+    font-weight: 800;
+  }
+
+  .dd-direct-btn small {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748B;
+  }
+
+  /* Delivery partner list */
+  .dd-delivery-panel {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.25s ease;
+  }
+
+  .dd-delivery-panel.is-open {
+    grid-template-rows: 1fr;
+  }
+
+  .dd-delivery-panel > div {
+    overflow: hidden;
+  }
+
+  .dd-delivery-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    padding: 2px 4px 10px;
+  }
+
+  .dd-partner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 800;
+    text-decoration: none;
+    color: #FFFFFF;
+    transition: transform 0.15s ease, filter 0.15s ease;
+  }
+
+  .dd-partner:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.08);
+  }
+
+  .dd-partner--doordash { background: #FF3008; }
+  .dd-partner--ubereats { background: #000000; }
+  .dd-partner--ubereats span { color: #06C167; margin-left: 4px; }
+  .dd-partner--grubhub { background: #FF5B00; text-transform: lowercase; }
+  .dd-partner--deliverycom { background: #1A73E8; text-transform: lowercase; }
+
+  /* About Us / Contact Us buttons at the bottom of the drawer */
+  .dd-drawer-footer-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 12px 4px 0;
+  }
+
+  .dd-footer-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 46px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.2;
+    text-decoration: none;
+    white-space: nowrap;
+    background: #FFFFFF;
+    color: var(--dd-purple);
+    border: 1.5px solid var(--dd-purple);
+    transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .dd-footer-btn:hover {
+    background: var(--dd-purple-soft);
+    transform: translateY(-1px);
+  }
+
+  .dd-footer-btn--primary {
+    background: var(--dd-purple);
+    color: #FFFFFF;
+    box-shadow: 0 6px 14px -6px rgba(124, 58, 237, 0.6);
+  }
+
+  .dd-footer-btn--primary:hover {
+    background: #6D28D9;
+    color: #FFFFFF;
+  }
+
+  .dd-footer-btn svg {
+    width: 18px;
+    height: 18px;
+    flex: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* ======================================================== */
+  /* SLIDE-OUT DRAWER (all screen sizes, opened by the menu button) */
+  /* ======================================================== */
+  #shopify-section-{{ section.id }} {
+    position: static !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  .dd-sidebar-rail {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 360px;
+    max-width: 88vw;
+    height: 100vh;
+    height: 100dvh;
+    background: #FFFFFF;
+    border-radius: 0 18px 18px 0;
+    box-shadow: 6px 0 25px rgba(0, 0, 0, 0.25);
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 16px 12px 40px;
+    gap: 2px;
+    box-sizing: border-box;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    z-index: 10005;
+    transform: translateX(-105%);
+    visibility: hidden;
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s linear 0.28s;
+  }
+
+  .dd-sidebar-rail {
+    scrollbar-width: thin;
+    scrollbar-color: #CBD5E1 transparent;
+  }
+
+  .dd-sidebar-rail::-webkit-scrollbar { width: 6px; }
+  .dd-sidebar-rail::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 6px; }
+
+  .dd-sidebar-rail.is-expanded {
+    transform: translateX(0);
+    visibility: visible;
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s;
+  }
+
+  .dd-sidebar-rail .dd-rail-label {
+    display: block;
+    margin-left: 12px;
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1.3;
+    color: inherit;
+    flex: 1;
+    min-width: 0;
+  }
+
+  @media screen and (max-width: 768px) {
+    .dd-sub-link {
+      padding: 10px;
+      font-size: 13.5px;
+    }
+  }
+
+  /* Fullscreen Backdrop */
+  .dd-rail-backdrop {
+    display: block !important; /* Dawn hides empty divs (div:empty) by default */
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 10000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+  }
+
+  .dd-rail-backdrop.is-visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dd-sidebar-rail, .dd-subpanel, .dd-chevron { transition: none !important; }
+  }
+</style>
+
+<div id="ddRailBackdrop" class="dd-rail-backdrop" onclick="toggleDoorDashRail(false)"></div>
+
+<aside id="ddSidebarRail" class="dd-sidebar-rail" aria-label="Shop by category">
+  <div class="dd-drawer-header">
+    <a href="{{ routes.root_url }}" class="dd-drawer-brand" style="text-decoration:none;">
+      {%- if settings.logo != blank -%}
+        <img src="{{ settings.logo | image_url: width: 120 }}" alt="{{ shop.name | escape }}" class="dd-drawer-logo" width="46" height="46" loading="lazy">
+      {%- endif -%}
+      <span>
+        <span class="dd-drawer-title">{{ shop.name }}</span>
+        <span class="dd-drawer-subtitle">Open daily · 6:00 AM – 12:00 AM (Next Day)</span>
+      </span>
+    </a>
+    <button type="button" class="dd-close-btn" onclick="toggleDoorDashRail(false)" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+  </div>
+
+  <div class="dd-quick-actions">
+    <a href="/collections/all" class="dd-quick-btn dd-quick-btn--primary">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect></svg>
+      Shop All
+    </a>
+    <button type="button" class="dd-quick-btn dd-quick-btn--ghost" data-dd-delivery-toggle aria-expanded="false" aria-controls="ddDeliveryPanel">
+      <svg viewBox="0 0 24 24"><path d="M3 7h11v9H3z"></path><path d="M14 10h4l3 3v3h-7z"></path><circle cx="7" cy="18" r="1.8"></circle><circle cx="17" cy="18" r="1.8"></circle></svg>
+      Delivery
+      <svg class="dd-qb-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+  </div>
+
+  <div class="dd-delivery-panel" id="ddDeliveryPanel">
+    <div>
+      <div class="dd-delivery-list">
+        <a href="{{ section.settings.doordash_url | default: 'https://www.doordash.com/store/705-brbr-new-york-26214688/' }}" target="_blank" rel="noopener" class="dd-partner dd-partner--doordash">DoorDash</a>
+        <a href="{{ section.settings.ubereats_url | default: 'https://www.ubereats.com/search?q=705%20BRBR' }}" target="_blank" rel="noopener" class="dd-partner dd-partner--ubereats">Uber<span>Eats</span></a>
+        <a href="{{ section.settings.grubhub_url | default: 'https://www.grubhub.com/restaurant/705-brbr-inc-705-2nd-ave-new-york/26214688' }}" target="_blank" rel="noopener" class="dd-partner dd-partner--grubhub">grubhub</a>
+        <a href="{{ section.settings.deliverycom_url | default: 'https://www.delivery.com/' }}" target="_blank" rel="noopener" class="dd-partner dd-partner--deliverycom">delivery.com</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="dd-direct-actions">
+    <a href="{{ section.settings.pickup_url | default: '/collections/all' }}" class="dd-direct-btn" aria-label="Order online and pick up in store">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9.5 4.5 4h15L21 9.5"/><path d="M4 9.5V20h16V9.5"/><path d="M3 9.5c0 1.4 1.1 2.5 2.5 2.5S8 10.9 8 9.5c0 1.4 1.1 2.5 2.5 2.5h3c1.4 0 2.5-1.1 2.5-2.5 0 1.4 1.1 2.5 2.5 2.5S21 10.9 21 9.5"/><path d="M10 20v-5h4v5"/></svg>
+      <span><strong>Pick up</strong><small>in store</small></span>
+    </a>
+    <a href="{{ section.settings.shipping_url | default: '/collections/all' }}" class="dd-direct-btn" aria-label="Order online for shipping">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5"/><path d="M12 13v8"/><path d="m7.5 5.5 9 5"/></svg>
+      <span><strong>Order online</strong><small>we ship it</small></span>
+    </a>
+  </div>
+
+  <a href="/" class="dd-rail-btn {% if request.page_type == 'index' %}active{% endif %}" aria-label="Home">
+    <div class="dd-rail-icon">
+      <svg viewBox="0 0 24 24">
+        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+    </div>
+    <span class="dd-rail-label">Home</span>
+  </a>
+
+  <a href="/pages/lottery" class="dd-rail-btn {% if request.path contains '/pages/lottery' %}active{% endif %}" aria-label="NY Lottery">
+    <div class="dd-rail-icon">
+      <svg viewBox="0 0 24 24">
+        <path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z"/>
+        <path d="M9 6v12" stroke-dasharray="2 2"/>
+        <circle cx="15" cy="12" r="2.5"/>
+      </svg>
+    </div>
+    <span class="dd-rail-label">NY Lottery <small style="font-weight:600;color:#64748B">· draws &amp; results</small></span>
+  </a>
+
+  <div class="dd-section-label">Departments</div>
+
+  {%- assign departments_menu = linklists['store-departments'].links -%}
+  {%- if departments_menu == blank or departments_menu.size == 0 -%}
+    {%- assign departments_menu = linklists[section.settings.menu].links -%}
+  {%- endif -%}
+
+  {%- for link in departments_menu -%}
+    {%- assign title_clean = link.title | downcase -%}
+    {%- liquid
+      assign visible_children = 0
+      for child in link.links
+        if child.type == 'collection_link' and child.object.all_products_count == 0
+          continue
+        endif
+        assign visible_children = visible_children | plus: 1
+      endfor
+      assign dept_open = false
+      if link.child_active or link.active
+        assign dept_open = true
+      endif
+    -%}
+    <div class="dd-dept{% if dept_open and visible_children > 0 %} is-open{% endif %}"{% if visible_children > 0 %} data-has-children{% endif %}>
+      <a
+        href="{{ link.url }}"
+        class="dd-rail-btn {% if link.active %}active{% endif %}"
+        aria-label="{{ link.title | escape }}"
+        {% if visible_children > 0 %}
+          aria-expanded="{% if dept_open %}true{% else %}false{% endif %}"
+          aria-controls="dd-sub-{{ forloop.index }}"
+        {% endif %}
+      >
+        {%- capture art_key -%}{% render 'dept-key', title: link.title %}{%- endcapture -%}
+        {%- assign art_key = art_key | strip -%}
+        <div class="dd-rail-icon dd-rail-icon--art">{% render 'dept-illustration', key: art_key %}</div>
+        <span class="dd-rail-label">{{ link.title }}</span>
+        {%- if visible_children > 0 -%}
+          <span class="dd-chevron" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+          </span>
+        {%- endif -%}
+      </a>
+
+      {%- if visible_children > 0 -%}
+        <div class="dd-subpanel" id="dd-sub-{{ forloop.index }}">
+          <div class="dd-subpanel-inner">
+            <div class="dd-subpanel-content">
+              <a href="{{ link.url }}" class="dd-shop-all">Shop all {{ link.title }} &rarr;</a>
+              <div class="dd-sub-grid">
+                {%- for child in link.links -%}
+                  {%- if child.type == 'collection_link' and child.object.all_products_count == 0 -%}
+                    {%- continue -%}
+                  {%- endif -%}
+                  <a href="{{ child.url }}" class="dd-sub-link{% if child.active %} active{% endif %}">{{ child.title }}</a>
+                {%- endfor -%}
+              </div>
+            </div>
+          </div>
+        </div>
+      {%- endif -%}
+    </div>
+  {%- endfor -%}
+
+  <div class="dd-rail-divider"></div>
+
+  <a href="{{ routes.search_url }}" class="dd-rail-btn" aria-label="Search">
+    <div class="dd-rail-icon">
+      <svg viewBox="0 0 24 24">
+        <circle cx="11.5" cy="11.5" r="6.5"/>
+        <line x1="16.5" y1="16.5" x2="21" y2="21"/>
+      </svg>
+    </div>
+    <span class="dd-rail-label">Search Products</span>
+  </a>
+
+  <a href="https://shopify.com/85105541419/account" class="dd-rail-btn" aria-label="Sign up or Login">
+    <div class="dd-rail-icon">
+      <svg viewBox="0 0 24 24">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>
+    </div>
+    <span class="dd-rail-label">Sign up or Login</span>
+  </a>
+
+  <div class="dd-drawer-footer-actions">
+    <a href="{{ routes.root_url }}#about" class="dd-footer-btn" data-dd-scroll="about">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.5h.01"/></svg>
+      About Us
+    </a>
+    <a href="{{ routes.root_url }}#contact" class="dd-footer-btn dd-footer-btn--primary" data-dd-scroll="contact">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"/></svg>
+      Contact Us
+    </a>
+  </div>
+</aside>
+
+<script>
+  function toggleDoorDashRail(forceState) {
+    const rail = document.getElementById('ddSidebarRail');
+    const backdrop = document.getElementById('ddRailBackdrop');
+    if (!rail) return;
+
+    const shouldExpand = (forceState !== undefined) ? forceState : !rail.classList.contains('is-expanded');
+
+    if (shouldExpand) {
+      rail.classList.add('is-expanded');
+      if (backdrop) backdrop.classList.add('is-visible');
+      document.body.classList.add('overflow-hidden');
+    } else {
+      rail.classList.remove('is-expanded');
+      if (backdrop) backdrop.classList.remove('is-visible');
+      document.body.classList.remove('overflow-hidden');
+    }
+  }
+
+  function setDeptOpen(dept, open) {
+    dept.classList.toggle('is-open', open);
+    const btn = dept.querySelector(':scope > .dd-rail-btn');
+    if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  function attachRailBehaviour() {
+    const rail = document.getElementById('ddSidebarRail');
+    if (!rail || rail.dataset.ready === 'true') return;
+    rail.dataset.ready = 'true';
+
+    // Department rows with subcategories open/close their panel instead of navigating.
+    rail.querySelectorAll('.dd-dept[data-has-children] > .dd-rail-btn').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const dept = btn.parentElement;
+        const willOpen = !dept.classList.contains('is-open');
+        rail.querySelectorAll('.dd-dept.is-open').forEach(function(d) { if (d !== dept) setDeptOpen(d, false); });
+        setDeptOpen(dept, willOpen);
+      });
+    });
+
+    // Delivery button shows the delivery partner list
+    const deliveryToggle = rail.querySelector('[data-dd-delivery-toggle]');
+    const deliveryPanel = rail.querySelector('#ddDeliveryPanel');
+    if (deliveryToggle && deliveryPanel) {
+      deliveryToggle.addEventListener('click', function() {
+        const open = !deliveryPanel.classList.contains('is-open');
+        deliveryPanel.classList.toggle('is-open', open);
+        deliveryToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+    }
+
+    // About Us / Contact Us: on the homepage, close the drawer and scroll to that section;
+    // on other pages the link opens the homepage at that section.
+    rail.querySelectorAll('[data-dd-scroll]').forEach(function(link) {
+      link.addEventListener('click', function(e) {
+        const target = document.getElementById(link.dataset.ddScroll);
+        if (!target) return;
+        e.preventDefault();
+        toggleDoorDashRail(false);
+        setTimeout(function() {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          if (history.replaceState) history.replaceState(null, '', '#' + link.dataset.ddScroll);
+        }, 150);
+      });
+    });
+
+    // Close the drawer after choosing a destination
+    rail.querySelectorAll('.dd-sub-link, .dd-shop-all, a.dd-quick-btn, .dd-direct-btn, .dd-partner, .dd-footer-btn, .dd-dept:not([data-has-children]) > .dd-rail-btn, .dd-sidebar-rail > a.dd-rail-btn').forEach(function(link) {
+      link.addEventListener('click', function() {
+        toggleDoorDashRail(false);
+      });
+    });
+
+    const hamburgerSelectors = [
+      '.header__icon--menu',
+      'summary.header__icon--menu',
+      'header summary.header__icon',
+      '.mobile-menu-btn',
+      '.mobile-nav-toggle',
+      '#menu-toggle'
+    ];
+
+    document.querySelectorAll(hamburgerSelectors.join(', ')).forEach(function(btn) {
+      if (btn.dataset.railHooked === 'true') return;
+      btn.dataset.railHooked = 'true';
+
+      function handleMenuOpen(e) {
+        if (window.innerWidth <= 989) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          toggleDoorDashRail(true);
+        }
+      }
+
+      btn.addEventListener('click', handleMenuOpen, true);
+      btn.addEventListener('touchend', handleMenuOpen, true);
+    });
+  }
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') toggleDoorDashRail(false);
+  });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', attachRailBehaviour);
+  } else {
+    attachRailBehaviour();
+  }
+</script>
+
+{% schema %}
+{
+  "name": "Sidebar Rail",
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Departments come from the \"Store Departments\" menu in Online Store > Navigation. Add items underneath a department to show them as subcategories."
+    },
+    {
+      "type": "link_list",
+      "id": "menu",
+      "label": "Fallback menu",
+      "info": "Used only if the Store Departments menu is missing.",
+      "default": "main-menu"
+    },
+    {
+      "type": "header",
+      "content": "Order direct"
+    },
+    { "type": "url", "id": "pickup_url", "label": "Pick up in store button link", "info": "Defaults to the full catalog. Customers choose Pickup at checkout." },
+    { "type": "url", "id": "shipping_url", "label": "Order online (shipping) button link", "info": "Defaults to the full catalog." },
+    {
+      "type": "header",
+      "content": "Delivery partner links"
+    },
+    { "type": "text", "id": "doordash_url", "label": "DoorDash store link", "default": "https://www.doordash.com/store/705-brbr-new-york-26214688/" },
+    { "type": "text", "id": "ubereats_url", "label": "Uber Eats store link", "info": "Until set, the button searches Uber Eats for 705 BRBR." },
+    { "type": "text", "id": "grubhub_url", "label": "Grubhub store link", "default": "https://www.grubhub.com/restaurant/705-brbr-inc-705-2nd-ave-new-york/26214688" },
+    { "type": "text", "id": "deliverycom_url", "label": "delivery.com store link", "info": "Until set, the button opens delivery.com." }
+  ]
+  ,
+  "presets": [
+    {
+      "name": "Sidebar Rail"
+    }
+  ]
+}
+{% endschema %}
