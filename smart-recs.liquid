@@ -1,0 +1,445 @@
+{%- comment -%}
+  705 BRBR smart search recommendations ("Picked for you").
+  - Opens when someone clicks into the header search box (desktop) and on the search page when nothing is typed yet (phones use the search page).
+  - Learns from this browser only: products viewed and clicked, searches, what's in the cart and items taken out of the cart.
+    Nothing is sent anywhere; it is kept in localStorage ("brbr-recs-v1") and can be cleared from the panel.
+  - Suggestions come from Shopify's related-products recommendations, simple "goes with" pairings (beer -> chips etc.),
+    search suggestions for past searches, and the store's best sellers (templates/collection.brbr-feed.liquid) for new visitors.
+  - "Shuffle" draws a fresh mix. Sizes in px because this theme scales rem down.
+{%- endcomment -%}
+
+{%- if section.settings.enabled -%}
+{%- liquid
+  assign rec_product = nil
+  if template.name == 'product' and product
+    assign rec_img = ''
+    if product.featured_image
+      assign rec_img = product.featured_image | image_url: width: 300
+    endif
+  endif
+-%}
+<style>
+  .brbr-recs { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0F172A; text-align: left; }
+  .brbr-recs *, .brbr-recs *::before { box-sizing: border-box; }
+  .brbr-recs__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 2px 2px 12px; }
+  .brbr-recs__title { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 800; letter-spacing: -0.01em; color: #0F172A; }
+  .brbr-recs__title i { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 9px; background: linear-gradient(135deg, #6D28D9, #A855F7); color: #FFFFFF; font-style: normal; font-size: 14px; }
+  .brbr-recs__title small { display: block; margin-top: 1px; font-size: 12px; font-weight: 600; color: #64748B; letter-spacing: 0; }
+  .brbr-recs__shuffle {
+    display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 1.5px solid #DDD6FE; border-radius: 9999px;
+    background: #FFFFFF; color: #6D28D9; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; transition: background-color 0.15s ease, transform 0.15s ease;
+  }
+  .brbr-recs__shuffle:hover { background: #F5F3FF; }
+  .brbr-recs__shuffle svg { width: 15px; height: 15px; stroke: currentColor; stroke-width: 2.2; fill: none; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.4s ease; }
+  .brbr-recs__shuffle.is-spin svg { transform: rotate(360deg); }
+
+  .brbr-recs__label { display: flex; align-items: center; justify-content: space-between; margin: 0 2px 8px; font-size: 11.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #94A3B8; }
+  .brbr-recs__clear { border: 0; background: none; padding: 0; font: inherit; font-size: 12px; font-weight: 700; letter-spacing: 0; text-transform: none; color: #7C3AED; cursor: pointer; }
+  .brbr-recs__chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; }
+  .brbr-recs__chip {
+    display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 9999px; border: 1px solid #E2E8F0;
+    background: #F8FAFC; color: #334155; font-size: 13px; font-weight: 600; text-decoration: none; white-space: nowrap; transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+  }
+  .brbr-recs__chip:hover { border-color: #C4B5FD; color: #6D28D9; background: #F5F3FF; }
+  .brbr-recs__chip svg { width: 13px; height: 13px; stroke: currentColor; stroke-width: 2.2; fill: none; stroke-linecap: round; stroke-linejoin: round; opacity: 0.7; }
+
+  .brbr-recs__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .brbr-recs--wide .brbr-recs__grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+  @media (max-width: 560px) { .brbr-recs__grid, .brbr-recs--wide .brbr-recs__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .brbr-rec {
+    position: relative; display: flex; flex-direction: column; min-width: 0; padding: 6px; border-radius: 16px; background: #FFFFFF; text-decoration: none; color: #0F172A;
+    box-shadow: 0 0 0 1px #EEF0F5, 0 1px 2px rgba(15, 23, 42, 0.04); transition: box-shadow 0.2s ease, transform 0.2s ease;
+    animation: brbr-rec-in 0.35s ease both;
+  }
+  .brbr-rec:hover { transform: translateY(-2px); box-shadow: 0 0 0 1px #DDD6FE, 0 12px 24px -12px rgba(76, 29, 149, 0.35); }
+  @keyframes brbr-rec-in { from { opacity: 0; transform: translateY(6px) scale(0.98); } to { opacity: 1; transform: none; } }
+  .brbr-rec__img { position: relative; display: flex; align-items: center; justify-content: center; height: 112px; padding: 10px; border-radius: 12px; background: #F6F5FB; overflow: hidden; }
+  .brbr-rec__img img { max-width: 100%; max-height: 100%; object-fit: contain; mix-blend-mode: multiply; }
+  .brbr-rec__why {
+    position: absolute; left: 6px; top: 6px; max-width: calc(100% - 12px); padding: 3px 8px; border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.94); color: #5B21B6; font-size: 10.5px; font-weight: 800; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+  }
+  .brbr-rec__body { display: flex; flex-direction: column; gap: 6px; flex: 1; padding: 8px 4px 2px; }
+  .brbr-rec__t { font-size: 12.5px; font-weight: 600; line-height: 1.35; color: #1E293B; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 34px; }
+  .brbr-rec__foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  .brbr-rec__p { font-size: 15px; font-weight: 800; letter-spacing: -0.02em; color: #0F172A; }
+  .brbr-rec__add {
+    flex: none; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 0; border-radius: 50%;
+    background: #7C3AED; color: #FFFFFF; cursor: pointer; box-shadow: 0 6px 12px -6px rgba(124, 58, 237, 0.8); transition: transform 0.15s ease, background-color 0.15s ease;
+  }
+  .brbr-rec__add:hover { transform: scale(1.08); background: #6D28D9; }
+  .brbr-rec__add svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2.6; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .brbr-rec__add.is-done { background: #10B981; box-shadow: none; }
+  .brbr-rec__add.is-busy { opacity: 0.6; pointer-events: none; }
+
+  .brbr-recs__recent { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 6px; margin: 14px 0 0; scrollbar-width: none; }
+  .brbr-recs__recent::-webkit-scrollbar { display: none; }
+  .brbr-recs__thumb { flex: none; width: 56px; height: 56px; padding: 5px; border-radius: 14px; background: #F6F5FB; box-shadow: 0 0 0 1px #EEF0F5; display: flex; align-items: center; justify-content: center; transition: box-shadow 0.15s ease, transform 0.15s ease; }
+  .brbr-recs__thumb:hover { box-shadow: 0 0 0 2px #A78BFA; transform: translateY(-1px); }
+  .brbr-recs__thumb img { max-width: 100%; max-height: 100%; object-fit: contain; mix-blend-mode: multiply; }
+
+  .brbr-recs__skel { height: 196px; border-radius: 16px; background: linear-gradient(90deg, #F1F5F9 25%, #F8FAFC 37%, #F1F5F9 63%); background-size: 400% 100%; animation: brbr-skel 1.3s ease infinite; }
+  @keyframes brbr-skel { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+  .brbr-recs__foot { margin: 12px 2px 0; font-size: 11.5px; color: #94A3B8; }
+
+  /* Search page */
+  .brbr-recs-page { max-width: 1100px; margin: 18px auto 40px; padding: 18px; border-radius: 22px; background: #FFFFFF; box-shadow: 0 0 0 1px #EEF0F5, 0 20px 40px -28px rgba(15, 23, 42, 0.35); }
+  @media (max-width: 749px) { .brbr-recs-page { margin: 12px 12px 32px; padding: 14px; } }
+  @media (prefers-reduced-motion: reduce) { .brbr-rec, .brbr-recs__skel { animation: none; } }
+</style>
+
+<script>
+  (function () {
+    if (window.BRBRRecs) return;
+    var KEY = 'brbr-recs-v1';
+    var SHOW = {{ section.settings.count | default: 6 }};
+    var FEED = '/collections/all?view=brbr-feed&sort_by=best-selling';
+    var CURRENT = {%- if template.name == 'product' and product -%}{{ '{' }}"id":{{ product.id }},"h":{{ product.handle | json }},"t":{{ product.title | json }},"url":{{ product.url | json }},"img":{{ rec_img | json }},"p":{{ product.price }},"type":{{ product.type | json }},"v":{{ product.selected_or_first_available_variant.id }},"avail":{{ product.available | json }}{{ '}' }}{%- else -%}null{%- endif -%};
+    var SEARCHED = {%- if search.performed and search.terms != blank -%}{{ search.terms | json }}{%- else -%}null{%- endif -%};
+    var POPULAR_TERMS = {{ section.settings.popular_terms | split: ',' | json }};
+    // "Goes with" pairings: words in a product type -> collections to suggest from
+    var PAIRS = [
+      { match: /ale|ipa|lager|pilsner|stout|porter|beer|seltzer|cider|kombucha|lemonade|malt|cocktail|wine|merlot|chardonnay|cabernet|pinot|zinfandel|sangria|spritzer|whisky|variety pack/i, from: ['chips', 'snacks', 'snack-mixes'], why: 'Goes with your drinks' },
+      { match: /chips|cheese puffs|popcorn|pretzels|snack|crackers|jerky|nuts/i, from: ['soda', 'sparkling-water', 'energy-drinks'], why: 'Grab a drink with it' },
+      { match: /chocolate|candy|cookies|sweets|gum/i, from: ['soda', 'ice-cream-pints', 'iced-coffee'], why: 'Sweet pairing' },
+      { match: /ice cream/i, from: ['cookies', 'chocolate'], why: 'Treat yourself' },
+      { match: /pet care/i, from: ['pet-cat-treats', 'pet-dog-treats'], why: 'For your pet' },
+      { match: /soda|water|juice|tea|coffee|energy|sports/i, from: ['chips', 'candy-sweets'], why: 'Snack with your drink' }
+    ];
+
+    // ---------- storage ----------
+    function load() { try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { return {}; } }
+    var db = load();
+    db.viewed = db.viewed || []; db.clicked = db.clicked || []; db.searches = db.searches || []; db.removed = db.removed || []; db.cart = db.cart || {};
+    function save() { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) {} }
+    var now = Date.now(), DAY = 864e5;
+    function prune() {
+      db.viewed = db.viewed.filter(function (x) { return now - x.at < 60 * DAY; }).slice(0, 24);
+      db.clicked = db.clicked.filter(function (x) { return now - x.at < 30 * DAY; }).slice(0, 20);
+      db.searches = db.searches.filter(function (x) { return now - x.at < 60 * DAY; }).slice(0, 10);
+      db.removed = db.removed.filter(function (x) { return now - x.at < 21 * DAY; }).slice(0, 12);
+    }
+    prune();
+
+    function trackView(p) {
+      var old = db.viewed.filter(function (x) { return x.h === p.h; })[0];
+      db.viewed = db.viewed.filter(function (x) { return x.h !== p.h; });
+      db.viewed.unshift(Object.assign({}, p, { n: ((old && old.n) || 0) + 1, at: Date.now() }));
+      prune(); save(); dirty();
+    }
+    function trackClick(handle) {
+      if (!handle) return;
+      db.clicked = db.clicked.filter(function (x) { return x.h !== handle; });
+      db.clicked.unshift({ h: handle, at: Date.now() });
+      prune(); save(); dirty();
+    }
+    function trackSearch(q) {
+      q = String(q || '').trim().replace(/\s+/g, ' ');
+      if (q.length < 2 || q.length > 60) return;
+      db.searches = db.searches.filter(function (x) { return x.q.toLowerCase() !== q.toLowerCase(); });
+      db.searches.unshift({ q: q, at: Date.now() });
+      prune(); save(); dirty();
+    }
+    // Cart memory: anything that was in the cart and is gone now becomes "Still thinking it over?"
+    function trackCart(cart, silent) {
+      if (!cart || !cart.items) return;
+      var current = {};
+      cart.items.forEach(function (it) {
+        current[it.product_id] = { id: it.product_id, h: it.handle, t: it.product_title, url: it.url && it.url.split('?')[0], img: it.image, p: it.price, type: it.product_type, v: it.variant_id, avail: true };
+      });
+      Object.keys(db.cart).forEach(function (id) {
+        if (!current[id]) {
+          db.removed = db.removed.filter(function (x) { return String(x.id) !== String(id); });
+          db.removed.unshift(Object.assign({}, db.cart[id], { at: Date.now() }));
+        }
+      });
+      Object.keys(current).forEach(function (id) { db.removed = db.removed.filter(function (x) { return String(x.id) !== String(id); }); });
+      db.cart = current;
+      prune(); save(); if (!silent) dirty();
+    }
+
+    if (CURRENT && CURRENT.avail) trackView(CURRENT);
+    if (SEARCHED) trackSearch(SEARCHED);
+    document.addEventListener('click', function (e) {
+      var a = e.target.closest && e.target.closest('a[href*="/products/"]');
+      if (!a) return;
+      var m = a.getAttribute('href').match(/\/products\/([^\/?#]+)/);
+      if (m) trackClick(decodeURIComponent(m[1]));
+      var input = document.getElementById('centerSearchInput');
+      if (input && a.closest('#searchResultsDropdown') && input.value.trim().length >= 2) trackSearch(input.value);
+    }, true);
+    document.addEventListener('submit', function (e) {
+      var f = e.target;
+      if (f && f.action && /\/search/.test(f.action)) { var q = f.querySelector('input[name="q"]'); if (q) trackSearch(q.value); }
+    }, true);
+    document.addEventListener('brbr:cart-synced', function (e) { trackCart(e.detail); });
+    document.addEventListener('brbr:cart-updated', function (e) { trackCart(e.detail); });
+
+    // ---------- data ----------
+    var nf = window.fetch.bind(window);
+    function getJSON(url) { return nf(url, { headers: { Accept: 'application/json' }, credentials: 'same-origin' }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }); }
+    function img(u, w) { if (!u) return ''; u = String(u); if (u.indexOf('//') === 0) u = 'https:' + u; return u + (u.indexOf('?') === -1 ? '?' : '&') + 'width=' + (w || 300); }
+    function fromAjax(p) { // /products/x.js and /recommendations
+      var v = (p.variants || []).filter(function (x) { return x.available; })[0] || (p.variants || [])[0] || {};
+      return { id: p.id, h: p.handle, t: p.title, url: p.url ? p.url.split('?')[0] : '/products/' + p.handle, img: p.featured_image || (p.images && p.images[0]) || '', p: p.price, type: p.type, v: v.id, avail: p.available };
+    }
+    function fromCollection(p) { // /collections/x/products.json
+      var v = (p.variants || []).filter(function (x) { return x.available; })[0];
+      return { id: p.id, h: p.handle, t: p.title, url: '/products/' + p.handle, img: p.images && p.images[0] ? p.images[0].src : '', p: Math.round(parseFloat((v || p.variants[0] || {}).price || 0) * 100), type: p.product_type, v: v && v.id, avail: !!v };
+    }
+    function fromSuggest(p) {
+      return { id: p.id, h: p.handle, t: p.title, url: (p.url || '').split('?')[0], img: p.image || p.featured_image && p.featured_image.url || '', p: Math.round(parseFloat(p.price || 0) * 100), type: p.type, v: null, avail: p.available !== false };
+    }
+    var cache = {};
+    function cached(url, map) {
+      if (!cache[url]) cache[url] = getJSON(url).then(map).catch(function () { return []; });
+      return cache[url];
+    }
+    function related(id) { return cached('/recommendations/products.json?product_id=' + id + '&limit=8&intent=related', function (j) { return (j.products || []).map(fromAjax); }); }
+    function collection(h) { return cached('/collections/' + h + '/products.json?limit=40', function (j) { return (j.products || []).map(fromCollection); }); }
+    function suggest(q) { return cached('/search/suggest.json?q=' + encodeURIComponent(q) + '&resources[type]=product&resources[limit]=6&resources[options][unavailable_products]=hide', function (j) { return ((j.resources && j.resources.results && j.resources.results.products) || []).map(fromSuggest); }); }
+    function productByHandle(h) { return cached('/products/' + encodeURIComponent(h) + '.js', function (p) { return [fromAjax(p)]; }); }
+    function popular() { return cached(FEED, function (j) { return (j.products || []).map(function (p) { p.img = img(p.img, 300); return p; }); }); }
+    function short(t) { t = String(t || '').replace(/\s*\(.*?\)\s*/g, ' ').trim(); var w = t.split(' '); return w.slice(0, 3).join(' ') + (w.length > 3 ? '…' : ''); }
+
+    var pool = null, poolAt = 0;
+    function dirty() { pool = null; }
+    function buildPool() {
+      if (pool && Date.now() - poolAt < 5 * 60e3) return pool;
+      poolAt = Date.now();
+      pool = getJSON('/cart.js').then(function (c) { trackCart(c, true); }).catch(function () {}).then(buildPoolNow);
+      return pool;
+    }
+    function buildPoolNow() {
+      var jobs = [];
+      var cartList = Object.keys(db.cart).map(function (k) { return db.cart[k]; });
+      function add(list, why, weight, group) { return { items: list, why: why, w: weight, g: group }; }
+      // 1. What's in the cart: similar items + things that go with it
+      cartList.slice(0, 3).forEach(function (c) {
+        jobs.push(related(c.id).then(function (l) { return add(l, 'Pairs with your cart', 6, 'cart'); }));
+      });
+      var pairSeen = {};
+      cartList.concat(db.viewed.slice(0, 2)).forEach(function (c) {
+        PAIRS.forEach(function (pr) {
+          if (!pr.match.test(c.type || '') || pairSeen[pr.why]) return;
+          pairSeen[pr.why] = 1;
+          pr.from.forEach(function (h) { jobs.push(collection(h).then(function (l) { return add(l, pr.why, 4.5, 'pair'); })); });
+        });
+      });
+      // 2. Taken out of the cart ("saved for later")
+      if (db.removed.length) jobs.push(Promise.resolve(add(db.removed.slice(0, 6), 'Still thinking it over?', 5.5, 'removed')));
+      // 3. Viewed: the products themselves + similar ones (more visits = stronger)
+      db.viewed.slice(0, 3).forEach(function (v, i) {
+        jobs.push(related(v.id).then(function (l) { return add(l, 'Because you viewed ' + short(v.t), 4.2 - i * 0.4 + Math.min(v.n || 1, 4) * 0.3, 'viewed:' + v.h); }));
+      });
+      if (db.viewed.length) jobs.push(Promise.resolve(add(db.viewed.slice(0, 8), 'Viewed recently', 3, 'recent')));
+      // 4. Clicked
+      db.clicked.slice(0, 2).forEach(function (c) {
+        jobs.push(productByHandle(c.h).then(function (l) { return l[0] ? related(l[0].id) : []; }).then(function (l) { return add(l, 'Similar to what you clicked', 3.4, 'clicked'); }));
+      });
+      // 5. Past searches
+      db.searches.slice(0, 2).forEach(function (s, i) {
+        jobs.push(suggest(s.q).then(function (l) { return add(l, 'You searched “' + s.q + '”', 4 - i * 0.6, 'search:' + s.q); }));
+      });
+      // 6. Store best sellers (always, so new visitors see something good)
+      jobs.push(popular().then(function (l) { return add(l, 'Popular at 705 BRBR', 1.6, 'popular'); }));
+      return Promise.all(jobs).then(function (groups) {
+        var inCart = {};
+        cartList.forEach(function (c) { inCart[c.id] = 1; });
+        var seen = {}, out = [];
+        groups.forEach(function (g) {
+          (g.items || []).forEach(function (p) {
+            if (!p || !p.id || !p.avail || inCart[p.id] || !p.t) return;
+            if (g.g === 'recent' && CURRENT && p.id === CURRENT.id) return;
+            var k = String(p.id);
+            if (seen[k]) { if (seen[k].w < g.w) { seen[k].w = g.w; seen[k].why = g.why; seen[k].g = g.g; } return; }
+            seen[k] = { p: p, why: g.why, w: g.w, g: g.g };
+            out.push(seen[k]);
+          });
+        });
+        return out;
+      });
+    }
+    // Weighted shuffle: strong signals show up more, at most 2 cards from the same reason
+    function pick(list, n, avoid) {
+      var bag = list.filter(function (x) { return !avoid || !avoid[x.p.id]; });
+      if (bag.length < n) bag = list.slice();
+      var picked = [], perGroup = {};
+      var keyed = bag.map(function (x) { return { x: x, k: Math.pow(Math.random(), 1 / x.w) }; }).sort(function (a, b) { return b.k - a.k; });
+      keyed.forEach(function (o) {
+        if (picked.length >= n) return;
+        var g = o.x.g.split(':')[0];
+        if ((perGroup[g] || 0) >= 2 && keyed.length > n * 2) return;
+        perGroup[g] = (perGroup[g] || 0) + 1;
+        picked.push(o.x);
+      });
+      keyed.forEach(function (o) { if (picked.length < n && picked.indexOf(o.x) === -1) picked.push(o.x); });
+      return picked;
+    }
+
+    // ---------- UI ----------
+    function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (m) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]; }); }
+    function money(c) { return '$' + (Number(c || 0) / 100).toFixed(2); }
+    var ICON_SHUFFLE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="m15 15 6 6"/><path d="M4 4l5 5"/></svg>';
+    var ICON_CLOCK = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+    var ICON_TREND = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>';
+    var ICON_PLUS = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
+    var ICON_CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 5 5L20 7"/></svg>';
+
+    function searchUrl(q) { return '/search?q=' + encodeURIComponent(q) + '&options%5Bprefix%5D=last'; }
+    function chipsHtml() {
+      if (db.searches.length) {
+        return '<div class="brbr-recs__label"><span>Recent searches</span><button type="button" class="brbr-recs__clear" data-recs-clear>Clear history</button></div>' +
+          '<div class="brbr-recs__chips">' + db.searches.slice(0, 6).map(function (s) {
+            return '<a class="brbr-recs__chip" href="' + searchUrl(s.q) + '" data-recs-q="' + esc(s.q) + '">' + ICON_CLOCK + esc(s.q) + '</a>';
+          }).join('') + '</div>';
+      }
+      var terms = POPULAR_TERMS.map(function (t) { return String(t).trim(); }).filter(Boolean);
+      if (!terms.length) return '';
+      return '<div class="brbr-recs__label"><span>Popular searches</span></div><div class="brbr-recs__chips">' + terms.map(function (t) {
+        return '<a class="brbr-recs__chip" href="' + searchUrl(t) + '" data-recs-q="' + esc(t) + '">' + ICON_TREND + esc(t) + '</a>';
+      }).join('') + '</div>';
+    }
+    function cardHtml(x, i) {
+      var p = x.p;
+      return '<a class="brbr-rec" href="' + esc(p.url) + '" style="animation-delay:' + (i * 40) + 'ms">' +
+        '<span class="brbr-rec__img">' + (p.img ? '<img src="' + esc(img(p.img, 300)) + '" alt="" loading="lazy">' : '') + '<span class="brbr-rec__why">' + esc(x.why) + '</span></span>' +
+        '<span class="brbr-rec__body"><span class="brbr-rec__t">' + esc(p.t) + '</span>' +
+        '<span class="brbr-rec__foot"><span class="brbr-rec__p">' + money(p.p) + '</span>' +
+        '<button type="button" class="brbr-rec__add" data-recs-add="' + esc(p.v || '') + '" data-recs-h="' + esc(p.h) + '" aria-label="Add ' + esc(p.t) + ' to cart">' + ICON_PLUS + '</button></span></span></a>';
+    }
+    function recentHtml() {
+      var list = db.viewed.filter(function (v) { return v.img && !(CURRENT && v.id === CURRENT.id); }).slice(0, 10);
+      if (list.length < 2) return '';
+      return '<div class="brbr-recs__label" style="margin-top:16px"><span>Recently viewed</span></div><div class="brbr-recs__recent" style="margin-top:0">' + list.map(function (v) {
+        return '<a class="brbr-recs__thumb" href="' + esc(v.url) + '" title="' + esc(v.t) + '"><img src="' + esc(img(v.img, 120)) + '" alt="' + esc(v.t) + '" loading="lazy"></a>';
+      }).join('') + '</div>';
+    }
+    function subtitle() {
+      var bits = [];
+      if (Object.keys(db.cart).length) bits.push('your cart');
+      if (db.viewed.length) bits.push('what you viewed');
+      if (db.searches.length) bits.push('your searches');
+      return bits.length ? 'Based on ' + bits.slice(0, 2).join(' & ') : 'Popular picks to get you started';
+    }
+
+    var lastShown = {};
+    function render(container, opts) {
+      opts = opts || {};
+      var wrap = container.querySelector('.brbr-recs');
+      if (!wrap) {
+        container.innerHTML = '';
+        wrap = document.createElement('div');
+        wrap.className = 'brbr-recs' + (opts.wide ? ' brbr-recs--wide' : '');
+        container.appendChild(wrap);
+      }
+      wrap.innerHTML =
+        '<div class="brbr-recs__head"><div class="brbr-recs__title"><i aria-hidden="true">✨</i><span>Picked for you<small>' + esc(subtitle()) + '</small></span></div>' +
+        '<button type="button" class="brbr-recs__shuffle" data-recs-shuffle>' + ICON_SHUFFLE + 'Shuffle</button></div>' +
+        chipsHtml() +
+        '<div class="brbr-recs__grid" data-recs-grid>' + Array(SHOW + 1).join('<div class="brbr-recs__skel"></div>') + '</div>' +
+        recentHtml();
+      fill(wrap, false);
+      return wrap;
+    }
+    function fill(wrap, reshuffle) {
+      var grid = wrap.querySelector('[data-recs-grid]');
+      Promise.resolve(buildPool()).then(function (list) {
+        var chosen = pick(list, SHOW, reshuffle ? lastShown : null);
+        lastShown = {};
+        chosen.forEach(function (x) { lastShown[x.p.id] = 1; });
+        grid.innerHTML = chosen.length ? chosen.map(cardHtml).join('') : '<p style="margin:6px 2px;color:#64748B;font-size:14px">Start browsing and we\'ll pick products for you.</p>';
+      });
+    }
+
+    function addToCart(btn) {
+      var v = btn.getAttribute('data-recs-add');
+      var h = btn.getAttribute('data-recs-h');
+      btn.classList.add('is-busy');
+      var getV = v ? Promise.resolve(v) : productByHandle(h).then(function (l) { return l[0] && l[0].v; });
+      getV.then(function (variant) {
+        if (!variant) { location.href = '/products/' + h; return; }
+        return window.fetch('/cart/add.js', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ items: [{ id: Number(variant), quantity: 1 }] }) })
+          .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.description || 'Could not add'); return j; }); })
+          .then(function () {
+            btn.classList.remove('is-busy'); btn.classList.add('is-done'); btn.innerHTML = ICON_CHECK; btn.setAttribute('aria-label', 'Added to cart');
+            return nf('/cart.js', { headers: { Accept: 'application/json' } }).then(function (r) { return r.json(); }).then(function (cart) {
+              document.querySelectorAll('.cart-pill-count, .cart-count-bubble span[aria-hidden]').forEach(function (el) { el.textContent = cart.item_count; });
+              trackCart(cart);
+            });
+          });
+      }).catch(function () { btn.classList.remove('is-busy'); location.href = '/products/' + h; });
+    }
+
+    document.addEventListener('click', function (e) {
+      var t = e.target;
+      var sh = t.closest && t.closest('[data-recs-shuffle]');
+      if (sh) {
+        e.preventDefault(); e.stopPropagation();
+        sh.classList.remove('is-spin'); void sh.offsetWidth; sh.classList.add('is-spin');
+        var wrap = sh.closest('.brbr-recs'); wrap.querySelector('[data-recs-grid]').style.minHeight = wrap.querySelector('[data-recs-grid]').offsetHeight + 'px';
+        fill(wrap, true);
+        return;
+      }
+      var add = t.closest && t.closest('[data-recs-add]');
+      if (add) { e.preventDefault(); e.stopPropagation(); addToCart(add); return; }
+      var clr = t.closest && t.closest('[data-recs-clear]');
+      if (clr) {
+        e.preventDefault(); e.stopPropagation();
+        db.searches = []; db.viewed = []; db.clicked = []; db.removed = []; save(); dirty();
+        var w = clr.closest('.brbr-recs'); render(w.parentNode, { wide: w.classList.contains('brbr-recs--wide') });
+        return;
+      }
+      var chip = t.closest && t.closest('[data-recs-q]');
+      if (chip) trackSearch(chip.getAttribute('data-recs-q'));
+    }, true);
+
+    // ---------- where it shows ----------
+    function hookHeader() {
+      var input = document.getElementById('centerSearchInput');
+      var dd = document.getElementById('searchResultsDropdown');
+      if (!input || !dd || input.dataset.recs) return;
+      input.dataset.recs = '1';
+      function showIfEmpty() {
+        if (input.value.trim().length >= 2) return;
+        render(dd, {});
+        dd.style.maxHeight = 'min(660px, calc(100vh - 130px))';
+        dd.style.display = 'block';
+      }
+      input.addEventListener('focus', showIfEmpty);
+      input.addEventListener('click', showIfEmpty);
+      input.addEventListener('input', function () { if (input.value.trim().length < 2) setTimeout(showIfEmpty, 320); });
+      var clearBtn = document.getElementById('clearSearchBtn');
+      if (clearBtn) clearBtn.addEventListener('click', function () { setTimeout(showIfEmpty, 30); });
+    }
+    function hookSearchPage() {
+      if (!/^\/search\/?$/.test(location.pathname) || SEARCHED) return;
+      var form = document.querySelector('main form[action*="/search"]');
+      if (!form || document.querySelector('.brbr-recs-page')) return;
+      var anchor = form.closest('.template-search__header') || form.closest('predictive-search') || form;
+      var box = document.createElement('section');
+      box.className = 'brbr-recs-page';
+      box.setAttribute('aria-label', 'Recommended products');
+      anchor.parentNode.insertBefore(box, anchor.nextSibling);
+      render(box, { wide: true });
+    }
+    function init() { hookHeader(); hookSearchPage(); }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+
+    window.BRBRRecs = { render: render, track: { view: trackView, search: trackSearch, click: trackClick }, _db: function () { return db; } };
+  })();
+</script>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Smart Search Picks",
+  "settings": [
+    { "type": "checkbox", "id": "enabled", "label": "Show \"Picked for you\" when search is opened", "default": true },
+    { "type": "range", "id": "count", "label": "Products to show", "min": 3, "max": 12, "step": 3, "default": 6 },
+    { "type": "text", "id": "popular_terms", "label": "Popular searches (for new visitors)", "info": "Comma separated.", "default": "IPA,Hard seltzer,Chips,Ice cream,Cat food,Energy drinks" }
+  ],
+  "enabled_on": { "groups": ["header"] }
+}
+{% endschema %}
