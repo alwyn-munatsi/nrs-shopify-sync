@@ -39,7 +39,7 @@ test('slimProduct cleans the search URL and keeps dollar prices', () => {
 
 test('system prompt has store facts, current status and stays on-topic', () => {
   const s = systemPrompt(ENV, '/collections/ipa', { text: 'Wednesday, Nov 11', open: true });
-  assert.match(s, /You are Murray/);
+  assert.match(s, /You are BRBR/);
   assert.match(s, /705 2nd Ave/);
   assert.match(s, /OPEN now/);
   assert.match(s, /https:\/\/705brbr.org\/collections\/ipa/);

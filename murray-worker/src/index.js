@@ -1,10 +1,10 @@
 /*
-  Murray: the 705 BRBR shopping assistant.
+  BRBR (formerly "Murray"): the 705 BRBR shopping assistant.
 
   POST /chat  { messages: [{ role: 'user' | 'assistant', content: '...' }], page?: '/collections/all-beer' }
   ->          { reply: '...markdown...', products: [{ title, price, url, image, available }] }
 
-  Murray answers questions about 705 BRBR (products, prices, hours, pickup, delivery, the 10% welcome offer,
+  BRBR answers questions about 705 BRBR (products, prices, hours, pickup, delivery, the 10% welcome offer,
   NY Lottery, in-store services) using Claude with tools that read the live store:
     - search_products: the storefront's own product search (prices and links straight from Shopify)
     - get_product: full details of one product
@@ -71,7 +71,7 @@ export function systemPrompt(env, page, now = nyNow()) {
   const site = env.STORE_URL || 'https://705brbr.org';
   const depts = STORE.departments.map(([n, p]) => `- ${n}: ${site}${p}`).join('\n');
   const delivery = STORE.delivery.map(([n, u]) => `- ${n}: ${u}`).join('\n');
-  return `You are Murray, the friendly shopping assistant for ${STORE.name}, a neighborhood bodega and market in Murray Hill, Manhattan (you're named after the neighborhood). You chat with customers on the store's website, ${site}.
+  return `You are BRBR, the friendly shopping assistant for ${STORE.name}, a neighborhood bodega and market in Murray Hill, Manhattan (you're named after the store). If anyone calls you Murray, that was your old name; you're BRBR now. You chat with customers on the store's website, ${site}.
 
 YOUR JOB
 Help people shop at ${STORE.name} and answer questions about the store, thoroughly and accurately. Stay focused on the shop: products, prices, availability, ordering, pickup, delivery, hours, location, the welcome offer, NY Lottery and in-store services. If someone asks about something unrelated (homework, general trivia, coding, news, other businesses), say briefly and kindly that you can only help with ${STORE.name}, then offer something you can help with.
@@ -488,7 +488,7 @@ export default {
     const cors = corsHeaders(env, origin);
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
     if (url.pathname === '/' || url.pathname === '/health') {
-      return json({ ok: true, name: 'Murray (705 BRBR assistant)', ready: Boolean(provider(env)), provider: provider(env) }, 200, cors);
+      return json({ ok: true, name: 'BRBR (705 BRBR assistant)', ready: Boolean(provider(env)), provider: provider(env) }, 200, cors);
     }
     if (url.pathname === '/models' && env.GROQ_API_KEY) {
       // Lists the Groq model ids this key can use (ids only, no key or account details).
@@ -497,7 +497,7 @@ export default {
       return json({ status: r.status, configured: groqModels(env), available: ((j && j.data) || []).map((m) => m.id).sort() }, 200, cors);
     }
     if (url.pathname !== '/chat' || request.method !== 'POST') return json({ error: 'Not found' }, 404, cors);
-    if (!provider(env)) return json({ error: 'Murray is not set up yet.' }, 503, cors);
+    if (!provider(env)) return json({ error: 'The BRBR assistant is not set up yet.' }, 503, cors);
     const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
     if (rateLimited(ip)) return json({ error: 'You are sending messages very fast. Please wait a minute and try again.' }, 429, cors);
     let body;
