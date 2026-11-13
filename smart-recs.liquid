@@ -104,7 +104,8 @@
       { match: /chips|cheese puffs|popcorn|pretzels|snack|crackers|jerky|nuts/i, from: ['soda', 'sparkling-water', 'energy-drinks'], why: 'Grab a drink with it' },
       { match: /chocolate|candy|cookies|sweets|gum/i, from: ['soda', 'ice-cream-pints', 'iced-coffee'], why: 'Sweet pairing' },
       { match: /ice cream/i, from: ['cookies', 'chocolate'], why: 'Treat yourself' },
-      { match: /pet care/i, from: ['pet-cat-treats', 'pet-dog-treats'], why: 'For your pet' },
+      { match: /pet care/i, title: /\bcat|kitten|feline/i, from: ['pet-cat-treats', 'pet-cat-litter'], why: 'For your cat' },
+      { match: /pet care/i, title: /\bdog|puppy|canine/i, from: ['pet-dog-treats'], why: 'For your dog' },
       { match: /soda|water|juice|tea|coffee|energy|sports/i, from: ['chips', 'candy-sweets'], why: 'Snack with your drink' }
     ];
 
@@ -222,7 +223,7 @@
       var pairSeen = {};
       cartList.concat(db.viewed.slice(0, 2)).forEach(function (c) {
         PAIRS.forEach(function (pr) {
-          if (!pr.match.test(c.type || '') || pairSeen[pr.why]) return;
+          if (!pr.match.test(c.type || '') || (pr.title && !pr.title.test(c.t || '')) || pairSeen[pr.why]) return;
           pairSeen[pr.why] = 1;
           pr.from.forEach(function (h) { jobs.push(collection(h).then(function (l) { return add(l, pr.why, 4.5, 'pair'); })); });
         });
