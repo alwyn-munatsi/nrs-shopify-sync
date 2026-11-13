@@ -1,0 +1,335 @@
+{%- comment -%}
+  705 BRBR 21+ age confirmation (every page).
+  - Products whose product type is in the "21+ product types" list are age-restricted.
+  - Adding one to the cart (from any page, quick add, quick view or the product page) asks the customer to confirm
+    their date of birth. Under 21: the restricted items are taken out of the cart.
+  - Checkout (cart page button, any /checkout link, Buy it now) is held until the date of birth is confirmed
+    when the cart has 21+ items. The confirmation is saved on the order as a cart attribute so staff can see it.
+  - The date of birth itself is never stored; only "confirmed 21+" is remembered in this browser for N days.
+  - Photo ID is still checked in person at pickup and delivery.
+  Sizes in px because this theme scales rem down.
+{%- endcomment -%}
+
+{%- if section.settings.enabled -%}
+{%- liquid
+  assign age_types = section.settings.types | downcase | newline_to_br | replace: '<br />', ',' | split: ','
+  assign product_restricted = false
+  if template.name == 'product' and product
+    assign ptype = product.type | downcase | strip
+    for t in age_types
+      assign tt = t | strip
+      if tt != blank and tt == ptype
+        assign product_restricted = true
+      endif
+    endfor
+  endif
+-%}
+<style>
+  .brbr-age-backdrop {
+    position: fixed; inset: 0; z-index: 10060; display: flex; align-items: center; justify-content: center; padding: 16px;
+    background: rgba(15, 10, 31, 0.6); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+    opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0s linear 0.2s;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .brbr-age-backdrop.is-open { opacity: 1; visibility: visible; transition: opacity 0.2s ease; }
+  .brbr-age-box {
+    width: 100%; max-width: 420px; background: #FFFFFF; border-radius: 22px; padding: 26px 22px 20px; text-align: center;
+    box-shadow: 0 30px 70px -20px rgba(15, 10, 31, 0.55); transform: translateY(12px) scale(0.98); transition: transform 0.25s ease;
+    color: #0F172A; box-sizing: border-box;
+  }
+  .brbr-age-backdrop.is-open .brbr-age-box { transform: none; }
+  .brbr-age-badge {
+    display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 50%;
+    background: linear-gradient(135deg, #6D28D9, #A855F7); color: #FFFFFF; font-size: 22px; font-weight: 800; letter-spacing: -0.02em;
+    box-shadow: 0 10px 24px -8px rgba(109, 40, 217, 0.6);
+  }
+  .brbr-age-box h2 { margin: 14px 0 6px; font-size: 22px; font-weight: 800; line-height: 1.25; letter-spacing: -0.01em; color: #0F172A; }
+  .brbr-age-box p { margin: 0 0 16px; font-size: 15px; line-height: 1.5; color: #475569; }
+  .brbr-age-label { display: block; margin: 0 0 8px; font-size: 13px; font-weight: 700; color: #334155; text-align: left; }
+  .brbr-age-dob { display: grid; grid-template-columns: 1.4fr 1fr 1.2fr; gap: 8px; margin-bottom: 8px; }
+  .brbr-age-dob select {
+    width: 100%; height: 48px; padding: 0 10px; border: 1.5px solid #CBD5E1; border-radius: 12px; background: #FFFFFF;
+    font: inherit; font-size: 16px; color: #0F172A; box-sizing: border-box; -webkit-appearance: menulist; appearance: menulist;
+  }
+  .brbr-age-dob select:focus { outline: none; border-color: #7C3AED; box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15); }
+  .brbr-age-err { min-height: 20px; margin: 0 0 8px; font-size: 13.5px; font-weight: 600; color: #B91C1C; text-align: left; }
+  .brbr-age-btn {
+    display: flex; align-items: center; justify-content: center; width: 100%; min-height: 50px; border: 0; border-radius: 14px; cursor: pointer;
+    font: inherit; font-size: 16px; font-weight: 800; transition: background-color 0.15s ease, transform 0.15s ease;
+  }
+  .brbr-age-btn--primary { background: #7C3AED; color: #FFFFFF; box-shadow: 0 8px 18px -8px rgba(124, 58, 237, 0.7); }
+  .brbr-age-btn--primary:hover { background: #6D28D9; }
+  .brbr-age-btn--primary:disabled { opacity: 0.6; cursor: default; }
+  .brbr-age-btn--ghost { margin-top: 8px; background: #F1F5F9; color: #334155; font-weight: 700; }
+  .brbr-age-btn--ghost:hover { background: #E2E8F0; }
+  .brbr-age-note {
+    display: flex; align-items: flex-start; gap: 8px; margin: 14px 0 0; padding: 10px 12px; border-radius: 12px; background: #F5F3FF;
+    font-size: 13px; line-height: 1.45; color: #4C1D95; text-align: left;
+  }
+  .brbr-age-note svg { flex: none; width: 18px; height: 18px; margin-top: 1px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .brbr-age-under h2 { color: #B91C1C; }
+  .brbr-age-under .brbr-age-badge { background: #FEE2E2; color: #B91C1C; box-shadow: none; }
+  .brbr-age-tag {
+    display: inline-flex; align-items: center; gap: 8px; margin: 12px 0 4px; padding: 8px 12px; border-radius: 10px;
+    background: #F5F3FF; color: #4C1D95; font-size: 14px; font-weight: 600; line-height: 1.35;
+  }
+  .brbr-age-tag b { display: inline-flex; align-items: center; justify-content: center; min-width: 34px; height: 24px; padding: 0 6px; border-radius: 6px; background: #7C3AED; color: #FFFFFF; font-size: 12.5px; font-weight: 800; }
+  @media (prefers-reduced-motion: reduce) { .brbr-age-backdrop, .brbr-age-box { transition: none; } }
+</style>
+
+<div class="brbr-age-backdrop" id="brbrAgeGate" role="dialog" aria-modal="true" aria-labelledby="brbrAgeTitle" aria-hidden="true">
+  <div class="brbr-age-box" id="brbrAgeBox">
+    <div data-age-step="ask">
+      <span class="brbr-age-badge" aria-hidden="true">21+</span>
+      <h2 id="brbrAgeTitle">{{ section.settings.heading | escape }}</h2>
+      <p data-age-msg>{{ section.settings.message | escape }}</p>
+      <form id="brbrAgeForm" novalidate>
+        <span class="brbr-age-label" id="brbrAgeDobLabel">Date of birth</span>
+        <div class="brbr-age-dob" role="group" aria-labelledby="brbrAgeDobLabel">
+          <select id="brbrAgeMonth" aria-label="Month" required>
+            <option value="">Month</option>
+            <option value="1">January</option><option value="2">February</option><option value="3">March</option>
+            <option value="4">April</option><option value="5">May</option><option value="6">June</option>
+            <option value="7">July</option><option value="8">August</option><option value="9">September</option>
+            <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+          </select>
+          <select id="brbrAgeDay" aria-label="Day" required><option value="">Day</option></select>
+          <select id="brbrAgeYear" aria-label="Year" required><option value="">Year</option></select>
+        </div>
+        <p class="brbr-age-err" id="brbrAgeErr" role="alert"></p>
+        <button type="submit" class="brbr-age-btn brbr-age-btn--primary" id="brbrAgeConfirm">Confirm I'm 21 or older</button>
+        <button type="button" class="brbr-age-btn brbr-age-btn--ghost" data-age-cancel>Not now</button>
+      </form>
+      <div class="brbr-age-note">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="12" r="2.2"/><path d="M14 10h4M14 14h3"/></svg>
+        <span>{{ section.settings.id_note | escape }}</span>
+      </div>
+    </div>
+    <div data-age-step="under" class="brbr-age-under" hidden>
+      <span class="brbr-age-badge" aria-hidden="true">21+</span>
+      <h2>Sorry, you must be 21 or older</h2>
+      <p>We can't sell alcohol to anyone under 21. We've taken the 21+ items out of your cart. Everything else is still there.</p>
+      <button type="button" class="brbr-age-btn brbr-age-btn--primary" data-age-close>Keep shopping</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    if (window.BRBRAge) return;
+    var TYPES = {{ age_types | json }}.map(function (t) { return String(t).trim().toLowerCase(); }).filter(Boolean);
+    var PRODUCT_RESTRICTED = {{ product_restricted | json }};
+    var MIN_AGE = {{ section.settings.min_age | default: 21 }};
+    var REMEMBER_DAYS = {{ section.settings.remember_days | default: 30 }};
+    var KEY = 'brbr-age-21';
+    var ATTR = 'Age confirmed (21+)';
+    var gate = document.getElementById('brbrAgeGate');
+    if (!gate) return;
+    if (gate.parentNode !== document.body) document.body.appendChild(gate);
+    var form = document.getElementById('brbrAgeForm');
+    var mSel = document.getElementById('brbrAgeMonth'), dSel = document.getElementById('brbrAgeDay'), ySel = document.getElementById('brbrAgeYear');
+    var err = document.getElementById('brbrAgeErr');
+    var askStep = gate.querySelector('[data-age-step="ask"]'), underStep = gate.querySelector('[data-age-step="under"]');
+    var msgEl = gate.querySelector('[data-age-msg]');
+    var DEFAULT_MSG = msgEl.textContent;
+
+    // Year and day options
+    var thisYear = new Date().getFullYear();
+    for (var y = thisYear; y >= thisYear - 110; y--) ySel.insertAdjacentHTML('beforeend', '<option value="' + y + '">' + y + '</option>');
+    function fillDays() {
+      var keep = dSel.value, m = +mSel.value, yr = +ySel.value || 2000;
+      var n = m ? new Date(yr, m, 0).getDate() : 31;
+      dSel.innerHTML = '<option value="">Day</option>';
+      for (var d = 1; d <= n; d++) dSel.insertAdjacentHTML('beforeend', '<option value="' + d + '">' + d + '</option>');
+      if (keep && +keep <= n) dSel.value = keep;
+    }
+    fillDays();
+    mSel.addEventListener('change', fillDays);
+    ySel.addEventListener('change', fillDays);
+
+    function isConfirmed() {
+      try {
+        var s = JSON.parse(localStorage.getItem(KEY) || 'null');
+        return !!(s && s.ok && Date.now() - s.at < REMEMBER_DAYS * 864e5);
+      } catch (e) { return false; }
+    }
+    function remember() { try { localStorage.setItem(KEY, JSON.stringify({ ok: true, at: Date.now() })); } catch (e) {} }
+    var sessionOk = false; // also works when browser storage is blocked
+    function confirmed() { return sessionOk || isConfirmed(); }
+
+    function restricted(item) {
+      var t = String((item && item.product_type) || '').trim().toLowerCase();
+      return !!t && TYPES.indexOf(t) !== -1;
+    }
+    var nativeFetch = window.fetch.bind(window);
+    function getCart() { return nativeFetch('/cart.js', { headers: { Accept: 'application/json' }, credentials: 'same-origin' }).then(function (r) { return r.json(); }); }
+    function stamp() {
+      var d = new Date();
+      var when = d.toLocaleDateString('en-US', { timeZone: 'America/New_York' });
+      var attrs = {}; attrs[ATTR] = 'Yes - date of birth confirmed on website ' + when + '. Check photo ID at pickup/delivery.';
+      return nativeFetch('/cart/update.js', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ attributes: attrs }) }).catch(function () {});
+    }
+    function removeRestricted() {
+      return getCart().then(function (cart) {
+        var updates = {};
+        (cart.items || []).forEach(function (it) { if (restricted(it)) updates[it.key] = 0; });
+        if (!Object.keys(updates).length) return cart;
+        return nativeFetch('/cart/update.js', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ updates: updates }) }).then(function (r) { return r.json(); });
+      });
+    }
+
+    var pending = null; // { onOk, onCancel, reload }
+    var lastFocus = null;
+    function open(opts) {
+      pending = opts || {};
+      msgEl.textContent = pending.message || DEFAULT_MSG;
+      askStep.hidden = false; underStep.hidden = true; err.textContent = '';
+      lastFocus = document.activeElement;
+      gate.classList.add('is-open'); gate.setAttribute('aria-hidden', 'false');
+      document.documentElement.style.overflow = 'hidden';
+      setTimeout(function () { mSel.focus(); }, 60);
+    }
+    function close() {
+      gate.classList.remove('is-open'); gate.setAttribute('aria-hidden', 'true');
+      document.documentElement.style.overflow = '';
+      if (lastFocus && lastFocus.focus) try { lastFocus.focus(); } catch (e) {}
+    }
+    function ageFrom(y, m, d) {
+      var now = new Date();
+      var age = now.getFullYear() - y;
+      if (now.getMonth() + 1 < m || (now.getMonth() + 1 === m && now.getDate() < d)) age--;
+      return age;
+    }
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var y = +ySel.value, m = +mSel.value, d = +dSel.value;
+      if (!y || !m || !d) { err.textContent = 'Please choose your month, day and year of birth.'; return; }
+      var p = pending || {};
+      if (ageFrom(y, m, d) >= MIN_AGE) {
+        sessionOk = true; remember();
+        mSel.value = ''; dSel.value = ''; ySel.value = '';
+        document.getElementById('brbrAgeConfirm').disabled = true;
+        stamp().then(function () {
+          document.getElementById('brbrAgeConfirm').disabled = false;
+          close();
+          if (p.onOk) p.onOk();
+        });
+      } else {
+        mSel.value = ''; dSel.value = ''; ySel.value = '';
+        removeRestricted().then(function () {
+          askStep.hidden = true; underStep.hidden = false;
+          pending = { reload: true };
+          gate.querySelector('[data-age-close]').focus();
+        });
+      }
+    });
+    gate.querySelector('[data-age-cancel]').addEventListener('click', function () {
+      var p = pending || {}; close(); if (p.onCancel) p.onCancel();
+    });
+    gate.querySelector('[data-age-close]').addEventListener('click', function () {
+      close(); if (pending && pending.reload) location.reload();
+    });
+    gate.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !underStep.hidden) { close(); if (pending && pending.reload) location.reload(); }
+      else if (e.key === 'Escape') { var p = pending || {}; close(); if (p.onCancel) p.onCancel(); }
+    });
+
+    // 1) Adding a 21+ item to the cart from anywhere on the site (fetch-based add to cart)
+    window.fetch = function (input, init) {
+      var url = typeof input === 'string' ? input : (input && input.url) || '';
+      var p = nativeFetch(input, init);
+      if (/\/cart\/add(\.js)?(\?|$)/.test(url)) {
+        p.then(function (res) {
+          if (!res.ok || confirmed()) return;
+          res.clone().json().then(function (data) {
+            var items = data && data.items ? data.items : [data];
+            if (!items.some(restricted)) return;
+            // "Not now" keeps the item; checkout will ask again before payment.
+            open({ message: 'This item is for customers 21 and older. Please confirm your date of birth.' });
+          }).catch(function () {});
+        }).catch(function () {});
+      }
+      return p;
+    };
+
+    // 2) Checkout: hold it until the date of birth is confirmed when the cart has 21+ items
+    function isCheckoutTrigger(el) {
+      if (!el || !el.closest) return null;
+      return el.closest('button[name="checkout"], input[name="checkout"], a[href*="/checkout"], .shopify-payment-button__button, .shopify-payment-button button');
+    }
+    function continueCheckout(trigger) {
+      if (trigger.closest('.shopify-payment-button')) { trigger.dataset.ageOk = '1'; trigger.click(); return; }
+      if (trigger.tagName === 'A') { location.href = trigger.href; return; }
+      var f = trigger.form || trigger.closest('form');
+      if (f) {
+        var h = document.createElement('input'); h.type = 'hidden'; h.name = 'checkout'; h.value = '1'; f.appendChild(h);
+        HTMLFormElement.prototype.submit.call(f);
+      } else { location.href = '/checkout'; }
+    }
+    document.addEventListener('click', function (e) {
+      var trigger = isCheckoutTrigger(e.target);
+      if (!trigger || trigger.dataset.ageOk === '1') return;
+      var isBuyNow = !!trigger.closest('.shopify-payment-button');
+      e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+      var check = isBuyNow && PRODUCT_RESTRICTED ? Promise.resolve(true) : getCart().then(function (cart) {
+        var has = (cart.items || []).some(restricted);
+        if (has && confirmed() && !(cart.attributes && cart.attributes[ATTR])) return stamp().then(function () { return false; });
+        return has;
+      });
+      check.then(function (needs) {
+        if (!needs || confirmed()) {
+          if (needs) return stamp().then(function () { continueCheckout(trigger); });
+          return continueCheckout(trigger);
+        }
+        open({
+          message: 'Your cart has items for customers 21 and older. Please confirm your date of birth to continue to checkout.',
+          onOk: function () { continueCheckout(trigger); }
+        });
+      }).catch(function () { continueCheckout(trigger); });
+    }, true);
+    document.addEventListener('submit', function (e) {
+      var f = e.target;
+      if (!f || !f.action || !/\/cart(\?|$|#)/.test(f.action)) return;
+      var sub = e.submitter;
+      if (!sub || sub.name !== 'checkout' || sub.dataset.ageOk === '1') return;
+      // handled by the click listener above (submit via Enter key falls through to here)
+      e.preventDefault();
+      sub.click();
+    }, true);
+
+    // 3) Product page: show a 21+ note above the Add to cart button
+    if (PRODUCT_RESTRICTED) {
+      var addForm = document.querySelector('form[action*="/cart/add"][id^="product-form"], .product-form form[action*="/cart/add"], main form[action*="/cart/add"]');
+      if (addForm && !document.querySelector('.brbr-age-tag')) {
+        addForm.insertAdjacentHTML('beforebegin', '<div class="brbr-age-tag"><b>21+</b><span>{{ section.settings.product_note | escape }}</span></div>');
+      }
+    }
+
+    window.BRBRAge = { open: open, confirmed: confirmed, reset: function () { sessionOk = false; try { localStorage.removeItem(KEY); } catch (e) {} } };
+  })();
+</script>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Age Check (21+)",
+  "settings": [
+    { "type": "checkbox", "id": "enabled", "label": "Ask for date of birth on 21+ products", "default": true },
+    {
+      "type": "textarea",
+      "id": "types",
+      "label": "21+ product types",
+      "info": "One product type per line, exactly as set on the product (Products > Type).",
+      "default": "Ale\nBelgian Ale\nBlonde Ale\nCabernet Sauvignon\nCanadian Whisky\nChardonnay\nFruit Beer\nHard Cider\nHard Kombucha\nHard Lemonade & Tea\nHard Malt Beverage\nHard Seltzer\nIPA\nLager\nMerlot\nPale Ale\nPilsner\nPinot Grigio\nPorter\nRTD Cocktails\nSangria\nSour Beer\nSparkling Wine\nSpecialty Beer\nStout\nVariety Pack\nWheat Ale\nWine Spritzer\nZinfandel"
+    },
+    { "type": "number", "id": "min_age", "label": "Minimum age", "default": 21 },
+    { "type": "number", "id": "remember_days", "label": "Remember confirmation for (days)", "default": 30 },
+    { "type": "text", "id": "heading", "label": "Pop-up heading", "default": "Are you 21 or older?" },
+    { "type": "text", "id": "message", "label": "Pop-up message", "default": "You must be 21 or older to buy alcohol. Please confirm your date of birth." },
+    { "type": "text", "id": "id_note", "label": "Photo ID note", "default": "A valid photo ID showing you're 21+ is required at pickup and delivery." },
+    { "type": "text", "id": "product_note", "label": "Product page note", "default": "Must be 21+ to buy. Photo ID checked at pickup or delivery." }
+  ],
+  "enabled_on": { "groups": ["header"] }
+}
+{% endschema %}
