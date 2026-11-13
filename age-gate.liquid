@@ -244,7 +244,7 @@
           if (!res.ok || confirmed()) return;
           res.clone().json().then(function (data) {
             var items = data && data.items ? data.items : [data];
-            if (!items.some(restricted)) return;
+            if (!items.some(restricted) || gate.classList.contains('is-open')) return;
             // "Not now" keeps the item; checkout will ask again before payment.
             open({ message: 'This item is for customers 21 and older. Please confirm your date of birth.' });
           }).catch(function () {});
@@ -252,6 +252,28 @@
       }
       return p;
     };
+
+    // 1b) The site's quantity stepper adds items itself and announces every cart change; ask when 21+ items go up.
+    var RQ_KEY = 'brbr-age-rq';
+    function lastRq() { try { var v = sessionStorage.getItem(RQ_KEY); return v === null ? null : +v; } catch (e) { return null; } }
+    function setRq(n) { try { sessionStorage.setItem(RQ_KEY, String(n)); } catch (e) {} }
+    function onCartChange(e) {
+      var cart = e && e.detail;
+      if (!cart || !cart.items) return;
+      var q = 0;
+      cart.items.forEach(function (it) { if (restricted(it)) q += it.quantity; });
+      var before = lastRq();
+      setRq(q);
+      if (before === null || q <= before || confirmed() || gate.classList.contains('is-open')) return;
+      open({ message: 'This item is for customers 21 and older. Please confirm your date of birth.' });
+    }
+    document.addEventListener('brbr:cart-synced', onCartChange);
+    document.addEventListener('brbr:cart-updated', onCartChange);
+    // Start counting from the current cart so a page load never opens the pop-up on its own
+    if (lastRq() === null) getCart().then(function (cart) {
+      if (lastRq() !== null) return;
+      var q = 0; (cart.items || []).forEach(function (it) { if (restricted(it)) q += it.quantity; }); setRq(q);
+    }).catch(function () {});
 
     // 2) Checkout: hold it until the date of birth is confirmed when the cart has 21+ items
     function isCheckoutTrigger(el) {
