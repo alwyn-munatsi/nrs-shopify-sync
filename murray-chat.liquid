@@ -1,8 +1,8 @@
 {%- comment -%}
-  Murray: the 705 BRBR chat assistant (chat bubble, bottom right, every page).
+  BRBR (formerly Murray): the 705 BRBR chat assistant (chat bubble, bottom right, every page).
   Answers come from the "brbr-murray" Cloudflare Worker (murray-worker/ in the nrs-shopify-sync repo), which uses
   Claude plus the live store catalog. The conversation is kept for the browser tab (sessionStorage) only.
-  Turn it off by removing this section or clearing "Murray API URL". Sizes in px because this theme scales rem down.
+  Turn it off by removing this section or clearing "Assistant API URL". Sizes in px because this theme scales rem down.
 {%- endcomment -%}
 
 {%- assign murray_api = section.settings.api_url | strip -%}
@@ -238,7 +238,7 @@
     // Live directly under <body> so no header/section stacking context can put page content on top of the chat
     if (root.parentNode !== document.body) document.body.appendChild(root);
     var API = String(root.dataset.api || '').replace(/\/+$/, '');
-    var NAME = root.dataset.name || 'Murray';
+    var NAME = root.dataset.name || 'BRBR';
     var KEY = 'brbr-murray-chat';
     var LOGO = root.dataset.logo || '';
     var AVATAR = LOGO
@@ -255,7 +255,7 @@
       ? '<span class="murray-avatar murray-avatar--logo" aria-hidden="true"><img src="' + LOGO.replace(/"/g, '&quot;') + '" alt=""></span>'
       : '<span class="murray-avatar" aria-hidden="true">M</span>';
     var HERO = '<div class="murray-hero">' + HERO_AVATAR + '<h3>Hi, I\'m ' + NAME.replace(/[<>&"]/g, '') + ' 👋</h3>' +
-      '<p>Your 705 BRBR helper. Ask me about products and prices, hours, pickup and delivery, the 10% welcome offer or NY Lottery.</p></div>';
+      '<p>Your shopping helper at 705 BRBR. Ask me about products and prices, hours, pickup and delivery, the 10% welcome offer or NY Lottery.</p></div>';
 
     var state = { messages: [] }; // [{role, content, products?}]
     try { var saved = JSON.parse(sessionStorage.getItem(KEY) || 'null'); if (saved && Array.isArray(saved.messages)) state = saved; } catch (e) {}
@@ -382,7 +382,7 @@
     form.addEventListener('submit', function (e) { e.preventDefault(); var t = input.value; input.value = ''; input.style.height = ''; ask(t); });
     input.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); form.requestSubmit ? form.requestSubmit() : form.dispatchEvent(new Event('submit')); } });
     input.addEventListener('input', function () { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 120) + 'px'; });
-    // Other parts of the site can open Murray with a link to #ask-murray or window.BRBRMurray.open()
+    // Other parts of the site can open the assistant with a link to #ask-murray or window.BRBRMurray.open()
     window.BRBRMurray = { open: open, ask: function (t) { open(); ask(t); } };
     if (location.hash === '#ask-murray') open();
     try { if (JSON.parse(sessionStorage.getItem(KEY) || '{}').open) open(); } catch (e) {}
@@ -392,12 +392,12 @@
 
 {% schema %}
 {
-  "name": "Murray Chat Assistant",
+  "name": "BRBR Chat Assistant",
   "settings": [
-    { "type": "text", "id": "api_url", "label": "Murray API URL", "default": "https://brbr-murray.munatsialwyn26.workers.dev", "info": "The brbr-murray Cloudflare Worker. Clear this to hide the chat." },
-    { "type": "text", "id": "bot_name", "label": "Assistant name", "default": "Murray" },
-    { "type": "image_picker", "id": "logo", "label": "Avatar (store logo)", "info": "Shown on the chat button, in the chat header and next to Murray's replies." },
-    { "type": "text", "id": "launcher_text", "label": "Chat button text", "default": "Ask Murray" }
+    { "type": "text", "id": "api_url", "label": "Assistant API URL", "default": "https://brbr-murray.munatsialwyn26.workers.dev", "info": "The brbr-murray Cloudflare Worker. Clear this to hide the chat." },
+    { "type": "text", "id": "bot_name", "label": "Assistant name", "default": "BRBR" },
+    { "type": "image_picker", "id": "logo", "label": "Avatar (store logo)", "info": "Shown on the chat button, in the chat header and next to the assistant's replies." },
+    { "type": "text", "id": "launcher_text", "label": "Chat button text", "default": "Ask BRBR" }
   ],
   "enabled_on": { "groups": ["header"] }
 }
