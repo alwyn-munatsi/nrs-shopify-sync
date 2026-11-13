@@ -813,8 +813,13 @@
         e.preventDefault();
         toggleDoorDashRail(false);
         setTimeout(function() {
+          const startY = window.scrollY;
           target.scrollIntoView({ behavior: 'smooth', block: 'start' });
           if (history.replaceState) history.replaceState(null, '', '#' + link.dataset.ddScroll);
+          // Some browsers ignore smooth scrolling over long distances: jump there if nothing moved.
+          setTimeout(function() {
+            if (Math.abs(window.scrollY - startY) < 2) target.scrollIntoView({ block: 'start' });
+          }, 400);
         }, 150);
       });
     });
