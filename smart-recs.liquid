@@ -263,20 +263,35 @@
         return out;
       });
     }
-    // Weighted shuffle: strong signals show up more, at most 2 cards from the same reason
+    // Shuffle: first pick a reason (stronger signals more often), then a random product from it.
+    // At most 2 cards per reason, so a big group (e.g. a whole collection) can't crowd out the rest.
     function pick(list, n, avoid) {
-      var bag = list.filter(function (x) { return !avoid || !avoid[x.p.id]; });
-      if (bag.length < n) bag = list.slice();
-      var picked = [], perGroup = {};
-      var keyed = bag.map(function (x) { return { x: x, k: Math.pow(Math.random(), 1 / x.w) }; }).sort(function (a, b) { return b.k - a.k; });
-      keyed.forEach(function (o) {
-        if (picked.length >= n) return;
-        var g = o.x.g.split(':')[0];
-        if ((perGroup[g] || 0) >= 2 && keyed.length > n * 2) return;
-        perGroup[g] = (perGroup[g] || 0) + 1;
-        picked.push(o.x);
+      var groups = {}, order = [];
+      list.forEach(function (x) {
+        var g = x.g;
+        if (!groups[g]) { groups[g] = { w: 0, fresh: [], seen: [] }; order.push(g); }
+        groups[g].w = Math.max(groups[g].w, x.w);
+        (avoid && avoid[x.p.id] ? groups[g].seen : groups[g].fresh).push(x);
       });
-      keyed.forEach(function (o) { if (picked.length < n && picked.indexOf(o.x) === -1) picked.push(o.x); });
+      var picked = [], count = {};
+      function takeFrom(g) {
+        var G = groups[g], src = G.fresh.length ? G.fresh : G.seen;
+        if (!src.length) return false;
+        var i = Math.floor(Math.random() * src.length);
+        picked.push(src.splice(i, 1)[0]);
+        count[g] = (count[g] || 0) + 1;
+        return true;
+      }
+      for (var cap = 2; cap <= n && picked.length < n; cap += 2) {
+        var guard = 0;
+        while (picked.length < n && guard++ < 200) {
+          var open = order.filter(function (g) { return (count[g] || 0) < cap && (groups[g].fresh.length || (cap > 2 && groups[g].seen.length)); });
+          if (!open.length) break;
+          var total = open.reduce(function (t, g) { return t + groups[g].w; }, 0), r = Math.random() * total, chosen = open[0];
+          for (var k = 0; k < open.length; k++) { r -= groups[open[k]].w; if (r <= 0) { chosen = open[k]; break; } }
+          takeFrom(chosen);
+        }
+      }
       return picked;
     }
 
