@@ -95,7 +95,7 @@
     var KEY = 'brbr-recs-v1';
     var SHOW = {{ section.settings.count | default: 6 }};
     var FEED = '/collections/all?view=brbr-feed&sort_by=best-selling';
-    var CURRENT = {%- if template.name == 'product' and product -%}{{ '{' }}"id":{{ product.id }},"h":{{ product.handle | json }},"t":{{ product.title | json }},"url":{{ product.url | json }},"img":{{ rec_img | json }},"p":{{ product.price }},"type":{{ product.type | json }},"v":{{ product.selected_or_first_available_variant.id }},"avail":{{ product.available | json }}{{ '}' }}{%- else -%}null{%- endif -%};
+    var CURRENT = {%- if template.name == 'product' and product -%}{ "id":{{ product.id }},"h":{{ product.handle | json }},"t":{{ product.title | json }},"url":{{ product.url | json }},"img":{{ rec_img | json }},"p":{{ product.price }},"type":{{ product.type | json }},"v":{{ product.selected_or_first_available_variant.id }},"avail":{{ product.available | json }} }{%- else -%}null{%- endif -%};
     var SEARCHED = {%- if search.performed and search.terms != blank -%}{{ search.terms | json }}{%- else -%}null{%- endif -%};
     var POPULAR_TERMS = {{ section.settings.popular_terms | split: ',' | json }};
     // "Goes with" pairings: words in a product type -> collections to suggest from
