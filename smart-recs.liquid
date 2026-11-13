@@ -60,9 +60,10 @@
     background: rgba(255, 255, 255, 0.94); color: #5B21B6; font-size: 10.5px; font-weight: 800; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
   }
-  .brbr-rec__body { display: flex; flex-direction: column; gap: 6px; flex: 1; padding: 8px 4px 2px; }
-  .brbr-rec__t { font-size: 12.5px; font-weight: 600; line-height: 1.35; color: #1E293B; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 34px; }
-  .brbr-rec__foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  .brbr-rec__link { display: flex; flex-direction: column; gap: 8px; color: inherit; text-decoration: none; }
+  .brbr-rec__t { margin: 0 4px; font-size: 12.5px; font-weight: 600; line-height: 1.35; color: #1E293B; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 34px; }
+  .brbr-rec__link:hover .brbr-rec__t { color: #6D28D9; }
+  .brbr-rec__foot { margin-top: auto; padding: 6px 4px 2px; display: flex; align-items: center; justify-content: space-between; gap: 6px; }
   .brbr-rec__p { font-size: 15px; font-weight: 800; letter-spacing: -0.02em; color: #0F172A; }
   .brbr-rec__add {
     flex: none; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 0; border-radius: 50%;
@@ -304,11 +305,12 @@
     }
     function cardHtml(x, i) {
       var p = x.p;
-      return '<a class="brbr-rec" href="' + esc(p.url) + '" style="animation-delay:' + (i * 40) + 'ms">' +
+      return '<div class="brbr-rec" style="animation-delay:' + (i * 40) + 'ms">' +
+        '<a class="brbr-rec__link" href="' + esc(p.url) + '">' +
         '<span class="brbr-rec__img">' + (p.img ? '<img src="' + esc(img(p.img, 300)) + '" alt="" loading="lazy">' : '') + '<span class="brbr-rec__why">' + esc(x.why) + '</span></span>' +
-        '<span class="brbr-rec__body"><span class="brbr-rec__t">' + esc(p.t) + '</span>' +
+        '<span class="brbr-rec__t">' + esc(p.t) + '</span></a>' +
         '<span class="brbr-rec__foot"><span class="brbr-rec__p">' + money(p.p) + '</span>' +
-        '<button type="button" class="brbr-rec__add" data-recs-add="' + esc(p.v || '') + '" data-recs-h="' + esc(p.h) + '" aria-label="Add ' + esc(p.t) + ' to cart">' + ICON_PLUS + '</button></span></span></a>';
+        '<button type="button" class="brbr-rec__add" data-recs-add="' + esc(p.v || '') + '" data-recs-h="' + esc(p.h) + '" aria-label="Add ' + esc(p.t) + ' to cart">' + ICON_PLUS + '</button></span></div>';
     }
     function recentHtml() {
       var list = db.viewed.filter(function (v) { return v.img && !(CURRENT && v.id === CURRENT.id); }).slice(0, 10);
