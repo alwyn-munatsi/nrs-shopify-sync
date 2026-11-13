@@ -299,11 +299,16 @@
     }, true);
 
     // 3) Product page: show a 21+ note above the Add to cart button
+    function addProductNote() {
+      if (document.querySelector('.brbr-age-tag')) return;
+      var addForm = document.querySelector('product-form form[action*="/cart/add"]') ||
+        document.querySelector('form[action*="/cart/add"][id^="product-form"]') ||
+        document.querySelector('main form.form[action*="/cart/add"]');
+      if (addForm) addForm.insertAdjacentHTML('beforebegin', '<div class="brbr-age-tag"><b>21+</b><span>{{ section.settings.product_note | escape }}</span></div>');
+    }
     if (PRODUCT_RESTRICTED) {
-      var addForm = document.querySelector('form[action*="/cart/add"][id^="product-form"], .product-form form[action*="/cart/add"], main form[action*="/cart/add"]');
-      if (addForm && !document.querySelector('.brbr-age-tag')) {
-        addForm.insertAdjacentHTML('beforebegin', '<div class="brbr-age-tag"><b>21+</b><span>{{ section.settings.product_note | escape }}</span></div>');
-      }
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', addProductNote);
+      else addProductNote();
     }
 
     window.BRBRAge = { open: open, confirmed: confirmed, reset: function () { sessionOk = false; try { localStorage.removeItem(KEY); } catch (e) {} } };
