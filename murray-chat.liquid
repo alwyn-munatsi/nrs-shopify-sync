@@ -8,7 +8,7 @@
 {%- assign murray_api = section.settings.api_url | strip -%}
 {%- assign murray_logo = '' -%}
 {%- if section.settings.logo != blank -%}{%- assign murray_logo = section.settings.logo | image_url: width: 160 -%}{%- endif -%}
-{%- capture murray_avatar -%}{%- if murray_logo != blank -%}<span class="murray-avatar murray-avatar--logo" aria-hidden="true"><img src="{{ murray_logo }}" alt="" width="80" height="80"></span>{%- else -%}<span class="murray-avatar" aria-hidden="true">M</span>{%- endif -%}{%- endcapture -%}
+{%- capture murray_avatar -%}{%- if murray_logo != blank -%}<span class="murray-avatar murray-avatar--logo" aria-hidden="true"><img src="{{ murray_logo }}" alt="" width="80" height="80"></span>{%- else -%}<span class="murray-avatar" aria-hidden="true">B</span>{%- endif -%}{%- endcapture -%}
 {%- if murray_api != blank -%}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -262,7 +262,7 @@
     var LOGO = root.dataset.logo || '';
     var AVATAR = LOGO
       ? '<span class="murray-avatar murray-avatar--logo" aria-hidden="true"><img src="' + LOGO.replace(/"/g, '&quot;') + '" alt=""></span>'
-      : '<span class="murray-avatar" aria-hidden="true">M</span>';
+      : '<span class="murray-avatar" aria-hidden="true">B</span>';
     var launch = document.getElementById('murrayLaunch');
     var panel = document.getElementById('murrayPanel');
     var log = document.getElementById('murrayLog');
@@ -272,7 +272,7 @@
     var chips = document.getElementById('murrayChips');
     var HERO_AVATAR = LOGO
       ? '<span class="murray-avatar murray-avatar--logo" aria-hidden="true"><img src="' + LOGO.replace(/"/g, '&quot;') + '" alt=""></span>'
-      : '<span class="murray-avatar" aria-hidden="true">M</span>';
+      : '<span class="murray-avatar" aria-hidden="true">B</span>';
     var HERO = '<div class="murray-hero">' + HERO_AVATAR + '<h3>Hi, I\'m ' + NAME.replace(/[<>&"]/g, '') + ' 👋</h3>' +
       '<p>Your shopping helper at 705 BRBR. Ask me about products and prices, hours, pickup and delivery, the 10% welcome offer or NY Lottery.</p></div>';
 
