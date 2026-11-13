@@ -1,0 +1,17 @@
+{%- layout none -%}
+{%- comment -%}
+  Small JSON product feed for the search recommendations ("Popular at 705 BRBR").
+  Used as /collections/all?view=brbr-feed&sort_by=best-selling. Customers never see this page.
+{%- endcomment -%}
+{%- paginate collection.products by 36 -%}
+{"products":[
+{%- assign first = true -%}
+{%- for p in collection.products -%}
+  {%- if p.available -%}
+    {%- assign img = '' -%}{%- if p.featured_image -%}{%- assign img = p.featured_image | image_url: width: 300 -%}{%- endif -%}
+    {%- unless first -%},{%- endunless -%}{%- assign first = false -%}
+    {"id":{{ p.id }},"h":{{ p.handle | json }},"t":{{ p.title | json }},"url":{{ p.url | json }},"img":{{ img | json }},"p":{{ p.price }},"type":{{ p.type | json }},"v":{{ p.selected_or_first_available_variant.id }},"avail":true}
+  {%- endif -%}
+{%- endfor -%}
+]}
+{%- endpaginate -%}
