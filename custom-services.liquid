@@ -1,0 +1,721 @@
+{% comment %}
+  705 BRBR In-Store Amenities: auto-playing card slideshow.
+  Advances one card every few seconds, loops back to the start, and pauses while a shopper hovers, taps or tabs into it.
+  Partner logos come from Shopify Files: luggagehero-logo.png, ny-lottery-logo.png, vintedgo-logo.png, amazon-hub-logo.png, keyzoo-logo.png (optional).
+{% endcomment %}
+
+<style>
+  .services-section-wrapper {
+    background-color: #FFFFFF;
+    color: #111827;
+    padding: 4.5rem 1.5rem 3.5rem;
+    border-top: 1px solid #E2E8F0;
+    font-family: var(--font-body-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+    box-sizing: border-box;
+    position: relative;
+    z-index: 5;
+    width: 100%;
+    overflow: hidden;
+    scroll-margin-top: 70px;
+  }
+
+  .services-container {
+    max-width: 1240px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2.25rem;
+  }
+
+  .services-header {
+    text-align: center;
+    max-width: 820px;
+    margin: 0 auto;
+  }
+
+  .services-pill {
+    display: inline-block;
+    padding: 0.45rem 1.15rem;
+    border-radius: 9999px;
+    background: #F3E8FF;
+    border: 1px solid #DDD6FE;
+    color: #6D28D9;
+    font-size: 0.88rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.95rem;
+  }
+
+  .services-title {
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: #0F172A;
+    margin: 0 0 0.75rem;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+
+  .services-subtitle {
+    font-size: 1.15rem;
+    font-weight: 500;
+    color: #1F2937;
+    line-height: 1.6;
+    margin: 0 auto;
+  }
+
+  .services-carousel-wrapper {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    padding: 0 68px;
+  }
+
+  .services-arrow-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 1px solid #CBD5E1;
+    background: #FFFFFF;
+    color: #0F172A;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  }
+
+  .services-arrow-btn.prev { left: 4px; }
+  .services-arrow-btn.next { right: 4px; }
+
+  .services-arrow-btn:hover {
+    background: #7C3AED;
+    border-color: #7C3AED;
+    color: #FFFFFF;
+    transform: translateY(-50%) scale(1.08);
+    box-shadow: 0 8px 22px rgba(124, 58, 237, 0.35);
+  }
+
+  .services-arrow-btn:active {
+    transform: translateY(-50%) scale(0.95);
+  }
+
+  .services-arrow-btn svg {
+    width: 24px;
+    height: 24px;
+    stroke: currentColor;
+    stroke-width: 2.4;
+    fill: none;
+  }
+
+  .services-slider-track {
+    display: flex;
+    gap: 1.5rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding: 0 16px;
+    padding: 1rem 16px 2rem;
+    width: 100%;
+    box-sizing: border-box;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .services-slider-track::-webkit-scrollbar {
+    display: none;
+  }
+
+  .service-card {
+    flex: 0 0 calc((100% - 3rem) / 3);
+    min-width: 310px;
+    max-width: 360px;
+    scroll-snap-align: start;
+    background: #FFFFFF;
+    border: 1px solid #CBD5E1;
+    border-radius: 18px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+    transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+  }
+
+  .service-card:hover {
+    transform: translateY(-6px);
+    border-color: #7C3AED;
+    box-shadow: 0 16px 34px rgba(124, 58, 237, 0.15);
+  }
+
+  .service-card-media {
+    position: relative;
+    width: 100%;
+    height: 200px;
+    background: #F8FAFC;
+    border-bottom: 1px solid #E2E8F0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    padding: 1.25rem;
+    box-sizing: border-box;
+  }
+
+  .service-card-media.photo-fill {
+    padding: 0;
+  }
+
+  .service-card-media.photo-fill img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.35s ease;
+  }
+
+  .service-card:hover .service-card-media.photo-fill img {
+    transform: scale(1.05);
+  }
+
+  .service-card-media img.brand-logo {
+    width: auto;
+    height: 100%;
+    max-height: 150px;
+    max-width: 100%;
+    object-fit: contain;
+    transition: transform 0.3s ease;
+  }
+
+  .service-card-media img.brand-logo--wide {
+    height: auto;
+    width: 82%;
+    max-height: 90px;
+  }
+
+  .service-card:hover .service-card-media img.brand-logo {
+    transform: scale(1.04);
+  }
+
+  .brand-text {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    font-size: 30px;
+    font-weight: 800;
+    color: #0F172A;
+    letter-spacing: -0.01em;
+  }
+
+  .brand-text svg {
+    width: 54px;
+    height: 54px;
+    fill: none;
+    stroke: #7C3AED;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .service-link {
+    color: #7C3AED;
+    text-decoration: none;
+  }
+
+  .service-link:hover {
+    text-decoration: underline;
+  }
+
+  .service-badge {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    padding: 0.35rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 2;
+  }
+
+  .service-badge.featured { background: #7C3AED; color: #FFFFFF; }
+  .service-badge.verified { background: #059669; color: #FFFFFF; }
+  .service-badge.alert { background: #DC2626; color: #FFFFFF; }
+
+  .service-content {
+    padding: 1.5rem 1.35rem 1.35rem;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    justify-content: space-between;
+    gap: 1rem;
+    background: #FFFFFF;
+  }
+
+  .service-name {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #0F172A;
+    margin: 0 0 0.5rem;
+    line-height: 1.3;
+  }
+
+  .service-desc {
+    font-size: 1.02rem;
+    font-weight: 450;
+    color: #111827;
+    line-height: 1.55;
+    margin: 0;
+    flex-grow: 1;
+  }
+
+  .service-meta {
+    border-top: 1px solid #E2E8F0;
+    padding-top: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #0F172A;
+  }
+
+  .service-meta-icon {
+    width: 18px;
+    height: 18px;
+    color: #7C3AED;
+    flex-shrink: 0;
+  }
+
+  /* Slide position dots */
+  .services-dots {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: -0.75rem;
+  }
+
+  .services-dot {
+    width: 10px;
+    height: 10px;
+    padding: 0;
+    border-radius: 999px;
+    border: none;
+    background: #CBD5E1;
+    cursor: pointer;
+    transition: width 0.25s ease, background-color 0.25s ease;
+  }
+
+  .services-dot.is-active {
+    width: 28px;
+    background: #7C3AED;
+  }
+
+  .services-dot:focus-visible {
+    outline: 2px solid #7C3AED;
+    outline-offset: 3px;
+  }
+
+  @media (max-width: 900px) {
+    .services-carousel-wrapper { padding: 0 52px; }
+    .service-card { flex: 0 0 calc((100% - 1.5rem) / 2); }
+  }
+
+  @media (max-width: 768px) {
+    .services-section-wrapper { padding: 3rem 1rem; }
+    .services-title { font-size: 2rem; }
+    .services-subtitle { font-size: 1.05rem; }
+    .services-carousel-wrapper { padding: 0; }
+    .services-arrow-btn { display: none; }
+    .services-slider-track {
+      scroll-padding: 0 8px;
+      padding: 0.5rem 8px 1.5rem;
+    }
+    .service-card {
+      flex: 0 0 295px;
+      max-width: 295px;
+      min-width: 0;
+    }
+    .service-card-media { height: 185px; }
+    .service-desc { font-size: 0.95rem; }
+  }
+</style>
+
+{%- liquid
+  assign lh_logo = images['luggagehero-logo.png']
+  assign nyl_logo = images['ny-lottery-logo.png']
+  assign vg_logo = images['vintedgo-logo.png']
+  assign ah_logo = images['amazon-hub-logo.png']
+  assign kz_logo = images['keyzoo-logo.png']
+-%}
+
+<section id="amenities" class="services-section-wrapper" aria-labelledby="servicesHeading-{{ section.id }}" data-services-carousel data-interval="{{ section.settings.interval | default: 4 }}">
+  <div class="services-container">
+
+    <div class="services-header">
+      <span class="services-pill">In-Store Amenities</span>
+      <h2 id="servicesHeading-{{ section.id }}" class="services-title">More Than Just a Bodega</h2>
+      <p class="services-subtitle">
+        Your neighborhood convenience stop on 2nd Ave offering certified luggage storage, lottery tickets, parcel drop-off and pickup, car key copying, and an on-site ATM.
+      </p>
+    </div>
+
+    <div class="services-carousel-wrapper">
+      <button type="button" class="services-arrow-btn prev" data-services-prev aria-label="Previous service">
+        <svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+
+      <div class="services-slider-track" data-services-track>
+
+        <!-- 1. LuggageHero -->
+        <div class="service-card">
+          <div class="service-card-media" style="background:#FFF;">
+            {%- if lh_logo != blank -%}
+              {{ lh_logo | image_url: width: 600 | image_tag: class: 'brand-logo brand-logo--wide', alt: 'LuggageHero', loading: 'lazy', widths: '300, 600' }}
+            {%- else -%}
+              <div class="brand-text">LuggageHero</div>
+            {%- endif -%}
+            <span class="service-badge featured">Certified Partner</span>
+          </div>
+          <div class="service-content">
+            <div>
+              <h3 class="service-name">LuggageHero</h3>
+              <p class="service-desc">
+                Secure, insured hourly and daily luggage storage near Grand Central and Midtown East. Drop your bags and explore NYC freely.
+              </p>
+            </div>
+            <div class="service-meta">
+              <svg class="service-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+              <span>Insured & Monitored Storage</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. New York Lottery -->
+        <div class="service-card">
+          <div class="service-card-media" style="background:#F0F7FF;">
+            {%- if nyl_logo != blank -%}
+              <a href="/pages/lottery" aria-label="NY Lottery draws and results" style="display:contents">{{ nyl_logo | image_url: width: 320 | image_tag: class: 'brand-logo', alt: 'New York Lottery', loading: 'lazy', width: 150, height: 150, widths: '160, 320' }}</a>
+            {%- endif -%}
+            <span class="service-badge featured">Licensed Retailer</span>
+          </div>
+          <div class="service-content">
+            <div>
+              <h3 class="service-name">New York Lottery</h3>
+              <p class="service-desc">
+                Play Powerball, Mega Millions, Millionaire for Life, NY LOTTO, Take 5, Numbers, Win 4, Pick 10 and scratch-off games right here at the counter.
+              </p>
+            </div>
+            <div class="service-meta">
+              <svg class="service-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+              <a class="service-link" href="/pages/lottery">Next draws &amp; winning numbers &rarr;</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. On-Site ATM -->
+        <div class="service-card">
+          <div class="service-card-media photo-fill">
+            <img
+              src="https://images.unsplash.com/photo-1601597111158-2fceff292cdc?auto=format&fit=crop&w=700&q=80"
+              alt="On-Site ATM Cash Machine"
+              loading="lazy"
+              width="700"
+              height="450"
+            >
+            <span class="service-badge verified">Instant Cash</span>
+          </div>
+          <div class="service-content">
+            <div>
+              <h3 class="service-name">On-Site ATM</h3>
+              <p class="service-desc">
+                Fast, secure cash withdrawals on 2nd Ave. Supports all major US bank debit cards, credit cash advances, and global traveler networks.
+              </p>
+            </div>
+            <div class="service-meta">
+              <svg class="service-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="4" width="20" height="16" rx="2"/>
+                <line x1="2" y1="10" x2="22" y2="10"/>
+              </svg>
+              <span>All Cards Accepted</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Vinted Go -->
+        <div class="service-card">
+          <div class="service-card-media" style="background:#F4FBF9;">
+            {%- if vg_logo != blank -%}
+              {{ vg_logo | image_url: width: 600 | image_tag: class: 'brand-logo brand-logo--wide', alt: 'Vinted Go', loading: 'lazy', widths: '300, 600' }}
+            {%- else -%}
+              <div class="brand-text">Vinted Go</div>
+            {%- endif -%}
+            <span class="service-badge featured">Drop-Off Point</span>
+          </div>
+          <div class="service-content">
+            <div>
+              <h3 class="service-name">Vinted Go</h3>
+              <p class="service-desc">
+                Drop off your pre-loved fashion parcels or collect your deliveries quickly at our dedicated neighborhood counter.
+              </p>
+            </div>
+            <div class="service-meta">
+              <svg class="service-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                <line x1="12" y1="22.08" x2="12" y2="12"/>
+              </svg>
+              <span>Fast Barcode Scan & Go</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. Amazon Hub Delivery -->
+        <div class="service-card">
+          <div class="service-card-media" style="background:#FFF;">
+            {%- if ah_logo != blank -%}
+              {{ ah_logo | image_url: width: 600 | image_tag: class: 'brand-logo brand-logo--wide', alt: 'Amazon Hub', loading: 'lazy', widths: '300, 600' }}
+            {%- else -%}
+              <div class="brand-text">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg>
+                Amazon Hub
+              </div>
+            {%- endif -%}
+            <span class="service-badge verified">Pickup Point</span>
+          </div>
+          <div class="service-content">
+            <div>
+              <h3 class="service-name">Amazon Hub Delivery</h3>
+              <p class="service-desc">
+                Never miss a package or worry about porch theft. Choose 705 BRBR as your secure Amazon pickup location at checkout.
+              </p>
+            </div>
+            <div class="service-meta">
+              <svg class="service-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 7h-9"/>
+                <path d="M14 17H5"/>
+                <circle cx="17" cy="17" r="3"/>
+                <circle cx="7" cy="7" r="3"/>
+              </svg>
+              <span>Secure Package Holding</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6. KeyZoo car key kiosk -->
+        <div class="service-card">
+          <div class="service-card-media" style="background:#FFF8EC;">
+            {%- if kz_logo != blank -%}
+              <a href="https://keyzoo.com/" target="_blank" rel="noopener" aria-label="KeyZoo car key kiosk" style="display:contents">{{ kz_logo | image_url: width: 600 | image_tag: class: 'brand-logo brand-logo--wide', alt: 'KeyZoo', loading: 'lazy', widths: '300, 600' }}</a>
+            {%- else -%}
+              <div class="brand-text">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 9.3-9.3"/><path d="m16 7 3 3"/><path d="m18 5 2 2"/></svg>
+                KeyZoo
+              </div>
+            {%- endif -%}
+            <span class="service-badge verified">Key Kiosk</span>
+          </div>
+          <div class="service-content">
+            <div>
+              <h3 class="service-name">KeyZoo Car Key Kiosk</h3>
+              <p class="service-desc">
+                Copy or replace your car key at the self-service KeyZoo kiosk inside the store, no locksmith call-out needed.
+              </p>
+            </div>
+            <div class="service-meta">
+              <svg class="service-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 9.3-9.3"/><path d="m16 7 3 3"/>
+              </svg>
+              <a class="service-link" href="https://keyzoo.com/" target="_blank" rel="noopener">Learn more or book at keyzoo.com &rarr;</a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <button type="button" class="services-arrow-btn next" data-services-next aria-label="Next service">
+        <svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+    </div>
+
+    <div class="services-dots" data-services-dots aria-label="Choose a service"></div>
+
+  </div>
+</section>
+
+<script>
+  (function () {
+    function initServices(root) {
+      if (!root || root.dataset.ready === 'true') return;
+      root.dataset.ready = 'true';
+
+      var track = root.querySelector('[data-services-track]');
+      var prevBtn = root.querySelector('[data-services-prev]');
+      var nextBtn = root.querySelector('[data-services-next]');
+      var dotsWrap = root.querySelector('[data-services-dots]');
+      if (!track) return;
+
+      var cards = track.querySelectorAll('.service-card');
+      var delay = Math.max(2, parseFloat(root.dataset.interval) || 4) * 1000;
+      var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var timer = null;
+      var paused = false;
+      var visible = true;
+
+      function stepSize() {
+        if (!cards.length) return track.clientWidth;
+        var gap = parseFloat(getComputedStyle(track).columnGap || getComputedStyle(track).gap) || 24;
+        return cards[0].offsetWidth + gap;
+      }
+
+      function maxScroll() {
+        return track.scrollWidth - track.clientWidth;
+      }
+
+      function pageCount() {
+        return Math.max(1, Math.round(maxScroll() / stepSize()) + 1);
+      }
+
+      function currentIndex() {
+        if (track.scrollLeft >= maxScroll() - 10) return pageCount() - 1;
+        return Math.round(track.scrollLeft / stepSize());
+      }
+
+      function goTo(index) {
+        var pages = pageCount();
+        if (index >= pages) index = 0;
+        if (index < 0) index = pages - 1;
+        var left = Math.min(index * stepSize(), maxScroll());
+        track.scrollTo({ left: left, behavior: reduceMotion ? 'auto' : 'smooth' });
+      }
+
+      function buildDots() {
+        if (!dotsWrap) return;
+        dotsWrap.innerHTML = '';
+        var pages = pageCount();
+        if (pages < 2) return;
+        for (var i = 0; i < pages; i++) {
+          var dot = document.createElement('button');
+          dot.type = 'button';
+          dot.className = 'services-dot';
+          dot.setAttribute('aria-label', 'Show slide ' + (i + 1) + ' of ' + pages);
+          dot.dataset.index = i;
+          dot.addEventListener('click', function () {
+            goTo(parseInt(this.dataset.index, 10));
+            restart();
+          });
+          dotsWrap.appendChild(dot);
+        }
+        updateDots();
+      }
+
+      function updateDots() {
+        if (!dotsWrap) return;
+        var active = currentIndex();
+        var dots = dotsWrap.querySelectorAll('.services-dot');
+        for (var i = 0; i < dots.length; i++) {
+          dots[i].classList.toggle('is-active', i === active);
+          dots[i].setAttribute('aria-current', i === active ? 'true' : 'false');
+        }
+      }
+
+      function tick() {
+        if (paused || !visible || document.hidden) return;
+        goTo(currentIndex() + 1);
+      }
+
+      function start() {
+        stop();
+        if (pageCount() > 1) timer = setInterval(tick, delay);
+      }
+
+      function stop() {
+        if (timer) clearInterval(timer);
+        timer = null;
+      }
+
+      function restart() {
+        start();
+      }
+
+      if (prevBtn) prevBtn.addEventListener('click', function () { goTo(currentIndex() - 1); restart(); });
+      if (nextBtn) nextBtn.addEventListener('click', function () { goTo(currentIndex() + 1); restart(); });
+
+      // Pause while the shopper is reading or interacting
+      root.addEventListener('mouseenter', function () { paused = true; });
+      root.addEventListener('mouseleave', function () { paused = false; restart(); });
+      root.addEventListener('focusin', function () { paused = true; });
+      root.addEventListener('focusout', function () { paused = false; restart(); });
+      track.addEventListener('touchstart', function () { paused = true; }, { passive: true });
+      track.addEventListener('touchend', function () {
+        setTimeout(function () { paused = false; restart(); }, 3000);
+      }, { passive: true });
+
+      var scrollTimer;
+      track.addEventListener('scroll', function () {
+        clearTimeout(scrollTimer);
+        scrollTimer = setTimeout(updateDots, 80);
+      }, { passive: true });
+
+      if ('IntersectionObserver' in window) {
+        new IntersectionObserver(function (entries) {
+          visible = entries[0].isIntersecting;
+        }, { threshold: 0.25 }).observe(root);
+      }
+
+      var resizeTimer;
+      window.addEventListener('resize', function () {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function () { buildDots(); start(); }, 200);
+      });
+
+      buildDots();
+      start();
+    }
+
+    document.querySelectorAll('[data-services-carousel]').forEach(initServices);
+    document.addEventListener('shopify:section:load', function (e) {
+      initServices(e.target.querySelector('[data-services-carousel]'));
+    });
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Store Services Hub",
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Partner logos load from Content > Files: luggagehero-logo.png, ny-lottery-logo.png, vintedgo-logo.png. To show the Amazon Hub or KeyZoo logo, upload the official logo from their partner materials to Files named amazon-hub-logo.png or keyzoo-logo.png."
+    },
+    {
+      "type": "range",
+      "id": "interval",
+      "label": "Seconds per slide",
+      "min": 2,
+      "max": 10,
+      "step": 1,
+      "unit": "s",
+      "default": 4
+    }
+  ],
+  "presets": [
+    {
+      "name": "Store Services Hub"
+    }
+  ]
+}
+{% endschema %}

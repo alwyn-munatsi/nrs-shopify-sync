@@ -1,0 +1,87 @@
+{%- comment -%}
+  705 BRBR hero "In store" amenity chips with partner logos.
+  Logos come from Shopify Files: luggagehero-logo.png, ny-lottery-logo.png, vintedgo-logo.png, amazon-hub-logo.png, keyzoo-logo.png (optional).
+  If a logo file is missing, the chip shows an icon instead.
+{%- endcomment -%}
+{%- liquid
+  assign lh = images['luggagehero-logo.png']
+  assign nyl = images['ny-lottery-logo.png']
+  assign vg = images['vintedgo-logo.png']
+  assign ah = images['amazon-hub-logo.png']
+  assign kz = images['keyzoo-logo.png']
+-%}
+<div class="hero-amenities" aria-label="In-store amenities">
+  <span class="hero-amenities-label">In store</span>
+  <a class="hero-amenity" href="#amenities" data-amenity="0" aria-label="LuggageHero bag storage">
+    {%- if lh != blank -%}{{ lh | image_url: width: 240 | image_tag: class: 'hero-amenity-logo', alt: 'LuggageHero', width: 100, height: 24, loading: 'eager' }}{%- else -%}<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="7" width="14" height="13" rx="2"/><path d="M9 7V4h6v3"/></svg><b>LuggageHero</b>{%- endif -%}
+    <span>Bag storage</span>
+  </a>
+  <a class="hero-amenity" href="/pages/lottery" aria-label="NY Lottery">
+    {%- if nyl != blank -%}{{ nyl | image_url: width: 96 | image_tag: class: 'hero-amenity-logo hero-amenity-logo--round', alt: 'New York Lottery', width: 30, height: 30, loading: 'eager' }}{%- endif -%}
+    <span>NY Lottery</span>
+  </a>
+  <a class="hero-amenity" href="#amenities" data-amenity="2" aria-label="ATM">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></svg>
+    <span>ATM</span>
+  </a>
+  <a class="hero-amenity" href="#amenities" data-amenity="3" aria-label="Vinted Go drop-off">
+    {%- if vg != blank -%}{{ vg | image_url: width: 240 | image_tag: class: 'hero-amenity-logo', alt: 'Vinted Go', width: 92, height: 20, loading: 'eager' }}{%- else -%}<b>Vinted Go</b>{%- endif -%}
+    <span>Drop-off</span>
+  </a>
+  <a class="hero-amenity" href="#amenities" data-amenity="4" aria-label="Amazon Hub pickup">
+    {%- if ah != blank -%}{{ ah | image_url: width: 240 | image_tag: class: 'hero-amenity-logo', alt: 'Amazon Hub', loading: 'eager' }}<span>Pickup</span>{%- else -%}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg><b>Amazon Hub</b><span>Pickup</span>{%- endif -%}
+  </a>
+  <a class="hero-amenity" href="#amenities" data-amenity="5" aria-label="KeyZoo car key kiosk">
+    {%- if kz != blank -%}{{ kz | image_url: width: 240 | image_tag: class: 'hero-amenity-logo', alt: 'KeyZoo', loading: 'eager' }}{%- else -%}<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 9.3-9.3"/><path d="m16 7 3 3"/><path d="m18 5 2 2"/></svg><b>KeyZoo</b>{%- endif -%}
+    <span>Car keys</span>
+  </a>
+</div>
+<style>
+  .hero-amenities { display: flex; flex-wrap: nowrap; justify-content: center; align-items: center; gap: 8px; margin: -1.25rem auto 2.25rem; max-width: 100%; }
+  .hero-amenities-label { flex: none; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #A78BFA; margin-right: 4px; white-space: nowrap; }
+  .hero-amenity { flex: none; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px 0 11px; border-radius: 999px; font-size: 13.5px; font-weight: 700; color: #0F172A; text-decoration: none; white-space: nowrap; background: #FFFFFF; border: 2px solid transparent; box-shadow: 0 4px 14px rgba(0,0,0,.25); transition: border-color .2s, transform .2s, box-shadow .2s; }
+  .hero-amenity:hover { border-color: #A78BFA; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(124,58,237,.35); color: #0F172A; }
+  .hero-amenity-logo { height: 20px; width: auto; display: block; }
+  .hero-amenity-logo--round { height: 28px; width: 28px; }
+  .hero-amenity svg { width: 19px; height: 19px; fill: none; stroke: #7C3AED; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+  .hero-amenity b { font-weight: 800; }
+  .hero-amenity span { color: #475569; font-weight: 700; }
+  .hero-amenity > img + span, .hero-amenity > b + span { padding-left: 8px; border-left: 1px solid #E2E8F0; }
+  @media (max-width: 1020px) {
+    .hero-amenities { justify-content: flex-start; overflow-x: auto; scrollbar-width: none; padding: 6px 4px 10px; margin: -1.6rem -1.5rem 1.9rem; padding-left: 1.5rem; padding-right: 1.5rem; scroll-snap-type: x proximity; -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 1.25rem, #000 calc(100% - 2rem), transparent); mask-image: linear-gradient(90deg, transparent 0, #000 1.25rem, #000 calc(100% - 2rem), transparent); }
+    .hero-amenities::-webkit-scrollbar { display: none; }
+    .hero-amenity { scroll-snap-align: start; }
+  }
+  @media (max-width: 768px) {
+    .hero-amenities { margin: -1.1rem -1rem 1.25rem; padding-left: 1rem; padding-right: 1rem; gap: 7px; }
+    .hero-amenity { height: 36px; font-size: 12.5px; padding: 0 11px 0 9px; gap: 6px; }
+    .hero-amenity-logo { height: 16px; }
+    .hero-amenity-logo--round { height: 24px; width: 24px; }
+    .hero-amenity > img + span, .hero-amenity > b + span { padding-left: 6px; }
+  }
+</style>
+<script>
+  (function () {
+    if (window.__heroAmenities) return; window.__heroAmenities = true;
+    document.addEventListener('click', function (e) {
+      var a = e.target.closest && e.target.closest('.hero-amenity[data-amenity]');
+      if (!a) return;
+      var sec = document.querySelector('[data-services-carousel]');
+      if (!sec) return;
+      e.preventDefault();
+      var top = sec.getBoundingClientRect().top + window.pageYOffset - 70;
+      window.scrollTo({ top: top, behavior: 'smooth' });
+      var track = sec.querySelector('[data-services-track]');
+      var card = track && track.querySelectorAll('.service-card')[parseInt(a.dataset.amenity, 10)];
+      if (card) {
+        setTimeout(function () {
+          track.scrollTo({ left: card.offsetLeft - track.offsetLeft - 16, behavior: 'smooth' });
+          card.style.transition = 'box-shadow .3s, border-color .3s';
+          card.style.borderColor = '#7C3AED';
+          card.style.boxShadow = '0 0 0 4px rgba(124,58,237,.25)';
+          setTimeout(function () { card.style.borderColor = ''; card.style.boxShadow = ''; }, 2200);
+        }, 450);
+      }
+    });
+  })();
+</script>

@@ -1,0 +1,513 @@
+{% comment %}
+  Custom 705 BRBR Hero Section: Department cards + order cards (Pick up in store, Order online for shipping, DoorDash, Uber Eats, Grubhub, delivery.com)
+  Card photos can be replaced in the theme editor (Customize > Custom Hero).
+{% endcomment %}
+
+<style>
+  :root {
+    --hero-top-offset: 96px;
+    --hero-rail-width: 0px;
+  }
+
+  .custom-hero-wrapper {
+    background: linear-gradient(180deg, #0B1120 0%, #0F172A 100%);
+    color: #FFFFFF;
+    padding-top: calc(var(--hero-top-offset) + 2.5rem);
+    padding-bottom: 4rem;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+    margin-left: var(--hero-rail-width);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    box-sizing: border-box;
+    position: relative;
+    z-index: 10;
+  }
+
+  .custom-hero-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .custom-hero-tag {
+    display: inline-block;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #C4B5FD;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 0.75rem;
+    background: rgba(124, 58, 237, 0.3);
+    padding: 0.3rem 0.85rem;
+    border-radius: 999px;
+    border: 1px solid rgba(196, 181, 253, 0.25);
+  }
+
+  .custom-hero-heading {
+    font-size: 2.5rem;
+    font-weight: 800;
+    line-height: 1.2;
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: #FFFFFF;
+    letter-spacing: -0.02em;
+  }
+
+  .custom-hero-subtext {
+    font-size: 1.15rem;
+    color: #CBD5E1;
+    max-width: 820px;
+    margin: 0 auto 2.5rem;
+    line-height: 1.5;
+  }
+
+  /* 4-Department Visual Grid */
+  .custom-cover-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .custom-cover-card {
+    position: relative;
+    height: 220px;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    transition: transform 0.25s ease, border-color 0.25s ease;
+    text-decoration: none;
+    display: block;
+  }
+
+  .custom-cover-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(196, 181, 253, 0.5);
+  }
+
+  .custom-cover-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .custom-cover-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.1) 0%, rgba(15, 23, 42, 0.88) 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 1rem;
+    text-align: left;
+  }
+
+  .custom-badge {
+    align-self: flex-start;
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 0.2rem 0.45rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.4rem;
+  }
+
+  .badge-beer { background: #F59E0B; color: #000; }
+  .badge-drinks { background: #06B6D4; color: #000; }
+  .badge-pet { background: #8B5CF6; color: #FFF; }
+  .badge-candy { background: #EC4899; color: #FFF; }
+
+  .custom-cover-overlay h3 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #FFFFFF;
+    margin: 0 0 0.15rem;
+  }
+
+  .custom-cover-overlay .custom-cover-desc {
+    font-size: 0.75rem;
+    color: #CBD5E1;
+  }
+
+  /* Outbound Order & Delivery Cards */
+  .custom-order-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    text-align: left;
+  }
+
+  .custom-order-card {
+    background: #FFFFFF;
+    border-radius: 12px;
+    padding: 1.35rem 1.25rem;
+    text-decoration: none;
+    color: #0F172A;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: all 0.25s ease;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+    border: 2px solid transparent;
+  }
+
+  .custom-order-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
+    border-color: #7C3AED;
+  }
+
+  .custom-order-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.85rem;
+  }
+
+  .custom-partner-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+  }
+
+  .brand-badge {
+    height: 38px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .brand-badge {
+    padding: 0 0.85rem;
+    font-weight: 800;
+    font-size: 1rem;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+  }
+
+  .brand-badge img {
+    height: 26px;
+    width: auto;
+    display: block;
+  }
+
+  .brand-badge--logo {
+    background: transparent !important;
+    padding: 0;
+  }
+
+  .badge-doordash { background: #FF3008; color: #FFFFFF; }
+  .badge-ubereats { background: #000000; color: #FFFFFF; }
+  .badge-ubereats .eats { color: #06C167; margin-left: 0.25rem; }
+  .badge-deliverycom { background: #1A73E8; color: #FFFFFF; text-transform: lowercase; }
+  .badge-grubhub { background: #FF5B00; color: #FFFFFF; text-transform: lowercase; font-size: 1.05rem; }
+
+  .custom-partner-name {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #0F172A;
+  }
+
+  .custom-partner-pill {
+    font-size: 0.72rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    background: #EDE9FE;
+    color: #7C3AED;
+    font-weight: 700;
+  }
+
+  .custom-order-card p {
+    font-size: 0.85rem;
+    color: #475569;
+    margin: 0 0 1.1rem;
+    line-height: 1.4;
+  }
+
+  .custom-order-cta {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #7C3AED;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  /* Direct order cards (pickup / shipping) */
+  .custom-order-card--direct {
+    background: linear-gradient(160deg, #7C3AED 0%, #6D28D9 100%);
+    color: #FFFFFF;
+  }
+  .custom-order-card--direct:hover { border-color: #C4B5FD; }
+  .custom-order-card--direct p { color: #EDE9FE; }
+  .custom-order-card--direct .custom-order-cta { color: #FFFFFF; }
+  .custom-order-card--direct .custom-partner-pill { background: rgba(255, 255, 255, 0.18); color: #FFFFFF; }
+  .direct-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 38px;
+    font-size: 18px;
+    font-weight: 800;
+    color: #FFFFFF;
+    white-space: nowrap;
+  }
+  .direct-badge svg {
+    width: 26px;
+    height: 26px;
+    flex: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  @media (max-width: 1024px) {
+    .custom-order-cards { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (max-width: 900px) {
+    .custom-cover-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (max-width: 768px) {
+    :root {
+      --hero-top-offset: 86px;
+      --hero-rail-width: 0px;
+    }
+    .custom-hero-wrapper {
+      margin-left: 0;
+      padding-top: calc(var(--hero-top-offset) + 1.5rem);
+      padding-left: 1rem;
+      padding-right: 1rem;
+      padding-bottom: 2.5rem;
+    }
+    .custom-hero-heading { font-size: 1.85rem; }
+    .custom-hero-subtext { font-size: 1rem; margin-bottom: 1.75rem; }
+    .custom-cover-grid { gap: 0.75rem; margin-bottom: 1.75rem; }
+    .custom-cover-card { height: 160px; }
+    .custom-cover-overlay { padding: 0.75rem; }
+    .custom-cover-overlay h3 { font-size: 0.95rem; line-height: 1.25; }
+    .custom-cover-overlay .custom-cover-desc { display: none; }
+    .custom-badge { font-size: 0.58rem; }
+    .custom-order-cards { grid-template-columns: 1fr; gap: 0.85rem; }
+  }
+</style>
+
+<section class="custom-hero-wrapper">
+  <div class="custom-hero-container">
+    <span class="custom-hero-tag">Midtown East Neighborhood Market</span>
+    <h1 class="custom-hero-heading">Cold Beers, Refreshing Drinks & Everyday Snacks</h1>
+    <p class="custom-hero-subtext">Your neighborhood bodega and market on 2nd Avenue. Stocked with chilled lagers, crisp ciders, wines, cold sodas, fruit juices, candy, chips, and pet care essentials. Plus in-store services like luggage storage, NY Lottery, an ATM, parcel drop-off and pickup, and a KeyZoo car key kiosk. Stop in or order direct delivery to your door.</p>
+
+    {% render 'hero-amenities' %}
+
+    <!-- 4-Department Visual Showcase -->
+    <div class="custom-cover-grid">
+      <!-- 1. Lagers, Ciders & Beer -->
+      <a href="/collections/all-beer" class="custom-cover-card">
+        {%- if section.settings.image_beer != blank -%}
+          {{ section.settings.image_beer | image_url: width: 800 | image_tag: widths: '300, 400, 600, 800', sizes: '(min-width: 901px) 25vw, 50vw', alt: 'Chilled lagers, ciders and beer cans' }}
+        {%- else -%}
+          <img src="https://brew-ed.com/wp-content/uploads/2023/02/mix-AND-MATCH-COOLER-1200x675.jpg" alt="Chilled lagers, ciders and beer cans">
+        {%- endif -%}
+        <div class="custom-cover-overlay">
+          <span class="custom-badge badge-beer">Cold Beers & Ciders</span>
+          <h3>Lagers, Ciders & Beer</h3>
+          <span class="custom-cover-desc">Corona, Modelo, Heineken, Lagers & Ciders</span>
+        </div>
+      </a>
+
+      <!-- 2. Sodas, Juices & Waters -->
+      <a href="/collections/drink-mixers" class="custom-cover-card">
+        {%- if section.settings.image_drinks != blank -%}
+          {{ section.settings.image_drinks | image_url: width: 800 | image_tag: widths: '300, 400, 600, 800', sizes: '(min-width: 901px) 25vw, 50vw', alt: 'Chilled sodas, juices and bottled waters' }}
+        {%- else -%}
+          <img src="https://www.uscooler.com/wp-content/uploads/2015/10/IMG_2033.jpg" alt="Chilled sodas, juices and bottled waters">
+        {%- endif -%}
+        <div class="custom-cover-overlay">
+          <span class="custom-badge badge-drinks">Chilled Drinks</span>
+          <h3>Sodas, Juices & Waters</h3>
+          <span class="custom-cover-desc">Coke, Pepsi, Sprite, Fanta, Juices & Waters</span>
+        </div>
+      </a>
+
+      <!-- 3. Pet Care -->
+      <a href="/collections/pet-care" class="custom-cover-card">
+        {%- if section.settings.image_pet != blank -%}
+          {{ section.settings.image_pet | image_url: width: 800 | image_tag: widths: '300, 400, 600, 800', sizes: '(min-width: 901px) 25vw, 50vw', alt: 'Pet food and care essentials' }}
+        {%- else -%}
+          <img src="https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=600&q=80" alt="Pet food and care essentials">
+        {%- endif -%}
+        <div class="custom-cover-overlay">
+          <span class="custom-badge badge-pet">Pet Care Aisle</span>
+          <h3>Pet Food & Treats</h3>
+          <span class="custom-cover-desc">Dog & Cat Care Essentials</span>
+        </div>
+      </a>
+
+      <!-- 4. Candy, Sweets & Chips -->
+      <a href="/collections/snacks" class="custom-cover-card">
+        {%- if section.settings.image_snacks != blank -%}
+          {{ section.settings.image_snacks | image_url: width: 800 | image_tag: widths: '300, 400, 600, 800', sizes: '(min-width: 901px) 25vw, 50vw', alt: 'Chocolates, candy bars, sweets and chips' }}
+        {%- else -%}
+          <img src="https://images.unsplash.com/photo-1621939514649-280e2ee25f60?auto=format&fit=crop&w=600&q=80" alt="Chocolates, candy bars, sweets and chips">
+        {%- endif -%}
+        <div class="custom-cover-overlay">
+          <span class="custom-badge badge-candy">Snacks & Sweets</span>
+          <h3>Candy, Sweets & Chips</h3>
+          <span class="custom-cover-desc">Chocolates, Gummies, Pretzels & Potato Chips</span>
+        </div>
+      </a>
+    </div>
+
+    <!-- Delivery partners -->
+    {%- liquid
+      assign dd_url = section.settings.doordash_url | default: 'https://www.doordash.com/store/705-brbr-new-york-26214688/'
+      assign ue_url = section.settings.ubereats_url | default: 'https://www.ubereats.com/search?q=705%20BRBR'
+      assign gh_url = section.settings.grubhub_url | default: 'https://www.grubhub.com/restaurant/705-brbr-inc-705-2nd-ave-new-york/26214688'
+      assign dc_url = section.settings.deliverycom_url | default: 'https://www.delivery.com/'
+    -%}
+    {%- assign pickup_url = section.settings.pickup_url | default: '/collections/all' -%}
+    {%- assign shipping_url = section.settings.shipping_url | default: '/collections/all' -%}
+    <div class="custom-order-cards">
+      <!-- Pick up in store -->
+      <a href="{{ pickup_url }}" class="custom-order-card custom-order-card--direct" aria-label="Order online and pick up at 705 BRBR">
+        <div>
+          <div class="custom-order-header">
+            <div class="direct-badge">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9.5 4.5 4h15L21 9.5"/><path d="M4 9.5V20h16V9.5"/><path d="M3 9.5c0 1.4 1.1 2.5 2.5 2.5S8 10.9 8 9.5c0 1.4 1.1 2.5 2.5 2.5h3c1.4 0 2.5-1.1 2.5-2.5 0 1.4 1.1 2.5 2.5 2.5S21 10.9 21 9.5"/><path d="M10 20v-5h4v5"/></svg>
+              Pick up in store
+            </div>
+            <span class="custom-partner-pill">Order direct</span>
+          </div>
+          <p>Order on our site and collect at 705 2nd Ave. Choose <strong>Pickup</strong> at checkout.</p>
+        </div>
+        <span class="custom-order-cta">Order for pickup &rarr;</span>
+      </a>
+
+      <!-- Order online, shipped -->
+      <a href="{{ shipping_url }}" class="custom-order-card custom-order-card--direct" aria-label="Order online from 705 BRBR for shipping">
+        <div>
+          <div class="custom-order-header">
+            <div class="direct-badge">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5"/><path d="M12 13v8"/><path d="m7.5 5.5 9 5"/></svg>
+              Order online
+            </div>
+            <span class="custom-partner-pill">Shipping</span>
+          </div>
+          <p>Shop our full catalog and have your order shipped to you.</p>
+        </div>
+        <span class="custom-order-cta">Shop &amp; ship &rarr;</span>
+      </a>
+
+      <!-- DoorDash -->
+      <a href="{{ dd_url }}" target="_blank" rel="noopener" class="custom-order-card" aria-label="Order from 705 BRBR on DoorDash">
+        <div>
+          <div class="custom-order-header">
+            <div class="custom-partner-brand">
+              {%- if section.settings.logo_doordash != blank -%}
+                <div class="brand-badge brand-badge--logo">{{ section.settings.logo_doordash | image_url: height: 80 | image_tag: alt: 'DoorDash', loading: 'lazy' }}</div>
+              {%- else -%}
+                <div class="brand-badge badge-doordash">DoorDash</div>
+              {%- endif -%}
+            </div>
+            <span class="custom-partner-pill">Featured</span>
+          </div>
+          <p>Fast delivery straight from our store shelves.</p>
+        </div>
+        <span class="custom-order-cta">Order on DoorDash &rarr;</span>
+      </a>
+
+      <!-- Uber Eats -->
+      <a href="{{ ue_url }}" target="_blank" rel="noopener" class="custom-order-card" aria-label="Order from 705 BRBR on Uber Eats">
+        <div>
+          <div class="custom-order-header">
+            <div class="custom-partner-brand">
+              {%- if section.settings.logo_ubereats != blank -%}
+                <div class="brand-badge brand-badge--logo">{{ section.settings.logo_ubereats | image_url: height: 80 | image_tag: alt: 'Uber Eats', loading: 'lazy' }}</div>
+              {%- else -%}
+                <div class="brand-badge badge-ubereats">Uber<span class="eats">Eats</span></div>
+              {%- endif -%}
+            </div>
+            <span class="custom-partner-pill">Delivery</span>
+          </div>
+          <p>Cold drinks, snacks & essentials delivered via Uber Eats.</p>
+        </div>
+        <span class="custom-order-cta">Order on Uber Eats &rarr;</span>
+      </a>
+
+      <!-- Grubhub -->
+      <a href="{{ gh_url }}" target="_blank" rel="noopener" class="custom-order-card" aria-label="Order from 705 BRBR on Grubhub">
+        <div>
+          <div class="custom-order-header">
+            <div class="custom-partner-brand">
+              {%- if section.settings.logo_grubhub != blank -%}
+                <div class="brand-badge brand-badge--logo">{{ section.settings.logo_grubhub | image_url: height: 80 | image_tag: alt: 'Grubhub', loading: 'lazy' }}</div>
+              {%- else -%}
+                <div class="brand-badge badge-grubhub">grubhub</div>
+              {%- endif -%}
+            </div>
+            <span class="custom-partner-pill">Delivery</span>
+          </div>
+          <p>Full catalog, cold beer & snack selections on Grubhub.</p>
+        </div>
+        <span class="custom-order-cta">Order on Grubhub &rarr;</span>
+      </a>
+
+      <!-- delivery.com -->
+      <a href="{{ dc_url }}" target="_blank" rel="noopener" class="custom-order-card" aria-label="Order from 705 BRBR on delivery.com">
+        <div>
+          <div class="custom-order-header">
+            <div class="custom-partner-brand">
+              {%- if section.settings.logo_deliverycom != blank -%}
+                <div class="brand-badge brand-badge--logo">{{ section.settings.logo_deliverycom | image_url: height: 80 | image_tag: alt: 'delivery.com', loading: 'lazy' }}</div>
+              {%- else -%}
+                <div class="brand-badge badge-deliverycom">delivery.com</div>
+              {%- endif -%}
+            </div>
+            <span class="custom-partner-pill">Delivery</span>
+          </div>
+          <p>Beer, wine, snacks & groceries delivered via delivery.com.</p>
+        </div>
+        <span class="custom-order-cta">Order on delivery.com &rarr;</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Custom Hero",
+  "settings": [
+    { "type": "paragraph", "content": "Upload photos of your own shelves to replace the placeholder pictures. Landscape photos work best." },
+    { "type": "image_picker", "id": "image_beer", "label": "Beer card photo" },
+    { "type": "image_picker", "id": "image_drinks", "label": "Drinks card photo" },
+    { "type": "image_picker", "id": "image_pet", "label": "Pet care card photo" },
+    { "type": "image_picker", "id": "image_snacks", "label": "Snacks card photo" },
+    { "type": "header", "content": "Order direct" },
+    { "type": "url", "id": "pickup_url", "label": "Pick up in store button link", "info": "Defaults to the full catalog. Customers choose Pickup at checkout (turn on Local pickup in Settings > Shipping and delivery)." },
+    { "type": "url", "id": "shipping_url", "label": "Order online (shipping) button link", "info": "Defaults to the full catalog." },
+    { "type": "header", "content": "Delivery partners" },
+    { "type": "text", "id": "doordash_url", "label": "DoorDash store link", "default": "https://www.doordash.com/store/705-brbr-new-york-26214688/" },
+    { "type": "text", "id": "ubereats_url", "label": "Uber Eats store link", "info": "Paste your Uber Eats store page link. Until then the button searches Uber Eats for 705 BRBR." },
+    { "type": "text", "id": "grubhub_url", "label": "Grubhub store link", "default": "https://www.grubhub.com/restaurant/705-brbr-inc-705-2nd-ave-new-york/26214688" },
+    { "type": "text", "id": "deliverycom_url", "label": "delivery.com store link", "info": "Paste your delivery.com store page link. Until then the button opens delivery.com." },
+    { "type": "paragraph", "content": "Optional: upload the official logos from each partner's merchant marketing kit (DoorDash Merchant Portal, Uber Eats Manager, Grubhub for Restaurants, delivery.com Merchant). Until then a branded text badge is shown." },
+    { "type": "image_picker", "id": "logo_doordash", "label": "DoorDash logo" },
+    { "type": "image_picker", "id": "logo_ubereats", "label": "Uber Eats logo" },
+    { "type": "image_picker", "id": "logo_grubhub", "label": "Grubhub logo" },
+    { "type": "image_picker", "id": "logo_deliverycom", "label": "delivery.com logo" }
+  ],
+  "presets": [
+    { "name": "Custom Hero" }
+  ]
+}
+{% endschema %}

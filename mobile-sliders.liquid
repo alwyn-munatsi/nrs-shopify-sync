@@ -2,7 +2,7 @@
   705 BRBR: phone slideshows to cut scrolling (screens up to 749px wide; desktop is unchanged).
   - Reviews ("Loved by Our Midtown East Neighbors") and the hero's order cards (Pick up / Order online / delivery apps)
     turn into swipeable slideshows with dots that move on their own.
-  - The Services slider (already swipeable) also moves on its own.
+  - (The Services slider moves on its own already, in sections/custom-services.liquid.)
   - "Shop All Products" starts with 6 products; "Show more products" reveals the rest.
   Slideshows pause while someone touches them, start again a few seconds later, and only move while on screen.
   Sizes in px because this theme scales rem down.
@@ -124,17 +124,6 @@
       made = [];
     }
 
-    // Services: already a swipeable slider with its own arrows and dots; just make it move on its own
-    var servicesAuto = null;
-    function services() {
-      var track = document.querySelector('.services-slider-track');
-      if (!track || servicesAuto) return;
-      var cards = track.querySelectorAll('.service-card');
-      servicesAuto = autoplay(track, function () { return cards.length; }, function (i) {
-        var c = cards[i]; if (c) track.scrollTo({ left: c.offsetLeft - track.offsetLeft, behavior: REDUCED ? 'auto' : 'smooth' });
-      });
-    }
-
     // Shop All Products: show 6 first on phones, with our own "Show more" until it's tapped once
     function shortGrid() {
       var grid = document.querySelector('.hs-grid');
@@ -157,8 +146,8 @@
     }
 
     function apply() {
-      if (MQ.matches) { TARGETS.forEach(build); services(); shortGrid(); }
-      else { unbuild(); if (servicesAuto) { servicesAuto.stop(); servicesAuto = null; } }
+      if (MQ.matches) { TARGETS.forEach(build); shortGrid(); }
+      else { unbuild(); }
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply); else apply();
     if (MQ.addEventListener) MQ.addEventListener('change', apply); else MQ.addListener(apply);
