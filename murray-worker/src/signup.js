@@ -15,7 +15,9 @@
 const API_VERSION = '2026-10';
 const GENDERS = ['Female', 'Male', 'Non-binary', 'Prefer not to say'];
 const STATES = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'DC', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY', 'PR'];
-export const MIN_AGE = 18;
+// 13+: US law (COPPA) doesn't allow collecting a child's personal details without parental consent.
+// Buying alcohol still needs 21+ (checked by the site's age check and at pickup/delivery).
+export const MIN_AGE = 13;
 
 const hits = new Map(); // ip -> [timestamps]
 export function signupRateLimited(ip, now = Date.now()) {

@@ -17,16 +17,18 @@ test('validateSignup cleans and accepts a full form', () => {
 });
 
 test('validateSignup flags every missing or bad field', () => {
-  const v = validateSignup({ dob: '2015-01-01', gender: 'x', zip: '1', province: 'ZZ' }, TODAY);
+  const v = validateSignup({ dob: '2020-01-01', gender: 'x', zip: '1', province: 'ZZ' }, TODAY);
   assert.equal(v.ok, false);
   for (const k of ['firstName', 'lastName', 'email', 'phone', 'dob', 'gender', 'address1', 'city', 'province', 'zip']) assert.ok(v.errors[k], k);
-  assert.match(v.errors.dob, /18 or older/);
+  assert.match(v.errors.dob, /13 or older/);
   assert.match(validateSignup({ ...GOOD, dob: '1990-02-31' }, TODAY).errors.dob, /date of birth/);
 });
 
-test('ageOn counts birthdays correctly', () => {
+test('ageOn counts birthdays correctly; 13-year-olds can sign up, 12-year-olds cannot', () => {
   assert.equal(ageOn('2008-11-14', TODAY), 18);
   assert.equal(ageOn('2008-11-15', TODAY), 17);
+  assert.equal(validateSignup({ ...GOOD, dob: '2013-11-14' }, TODAY).ok, true);
+  assert.match(validateSignup({ ...GOOD, dob: '2013-11-15' }, TODAY).errors.dob, /13 or older/);
 });
 
 function fakeShopify(opts = {}) {
