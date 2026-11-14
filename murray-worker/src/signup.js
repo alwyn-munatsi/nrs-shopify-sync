@@ -9,8 +9,9 @@
 //    honeypot field and a minimum fill time keep bots out.
 //  - An email that already belongs to a customer is NEVER changed: the visitor is told to sign in instead,
 //    so nobody can overwrite someone else's name, phone or address.
-//  - The Admin token comes from the "705 BRBR Account Extras" app (client credentials grant). Its client secret
-//    is the Worker secret SIGNUP_CLIENT_SECRET; nothing is sent back to the browser except a short status.
+//  - The Admin token is the NRS Inventory Sync app's token (Worker secret SIGNUP_ADMIN_TOKEN). A client-credentials
+//    app (SIGNUP_CLIENT_ID + SIGNUP_CLIENT_SECRET) also works if the app and store are in the same organization.
+//    Nothing is sent back to the browser except a short status.
 
 const API_VERSION = '2026-10';
 const GENDERS = ['Female', 'Male', 'Non-binary', 'Prefer not to say'];

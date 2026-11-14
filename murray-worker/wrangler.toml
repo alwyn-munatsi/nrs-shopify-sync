@@ -11,13 +11,17 @@ LOTTERY_API = "https://brbr-lottery.munatsialwyn26.workers.dev"
 ALLOWED_ORIGINS = "https://705brbr.org,https://www.705brbr.org,https://7e36ef-2.myshopify.com"
 MODEL = "claude-haiku-5-5"
 GROQ_MODEL = "openai/gpt-oss-120b"
-# Website sign-up (POST /signup): creates customers through the "705 BRBR Account Extras" app.
-# Its client secret is the Worker secret SIGNUP_CLIENT_SECRET (GitHub secret ACCOUNT_APP_CLIENT_SECRET).
+# Website sign-up (POST /signup): creates customers with the "NRS Inventory Sync" app's Admin token
+# (Worker secret SIGNUP_ADMIN_TOKEN, copied from the GitHub secret SHOPIFY_ADMIN_ACCESS_TOKEN by the deploy).
 SHOPIFY_STORE_DOMAIN = "7e36ef-2.myshopify.com"
-SIGNUP_CLIENT_ID = "1ffd4218b4ef1986b7f6f4a3cf74b89a"
 
 # Direct link to the 705 BRBR lottery Worker (live NY Lottery results). Workers on the same account can't
 # always call each other over workers.dev, so this uses a service binding.
 [[services]]
 binding = "LOTTERY"
 service = "brbr-lottery"
+
+# Run in the US (near Shopify): the NRS app's IP allowlist only accepts US traffic from listed networks,
+# and Cloudflare (AS13335) requests must come from a US location.
+[placement]
+region = "aws:us-east-1"

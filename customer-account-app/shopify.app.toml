@@ -6,10 +6,8 @@ application_url = "https://shopify.dev/apps/default-app-home"
 embedded = true
 
 [access_scopes]
-# unauthenticated_read_product_listings: the account block reads product names, photos and prices for "Popular right now".
-# read_customers, write_customers: the website "Sign up" page creates the customer (name, email, phone, birth date,
-# gender, default address) through the brbr-murray Worker's /signup endpoint.
-scopes = "unauthenticated_read_product_listings,read_customers,write_customers"
+# Lets the block read product names, photos and prices for "Popular right now".
+scopes = "unauthenticated_read_product_listings"
 
 [auth]
 redirect_urls = ["https://shopify.dev/apps/default-app-home/api/auth"]
