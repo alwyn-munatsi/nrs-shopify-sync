@@ -1,0 +1,179 @@
+{%- comment -%}
+  705 BRBR: phone slideshows to cut scrolling (screens up to 749px wide; desktop is unchanged).
+  - Reviews ("Loved by Our Midtown East Neighbors") and the hero's order cards (Pick up / Order online / delivery apps)
+    turn into swipeable slideshows with dots that move on their own.
+  - The Services slider (already swipeable) also moves on its own.
+  - "Shop All Products" starts with 6 products; "Show more products" reveals the rest.
+  Slideshows pause while someone touches them, start again a few seconds later, and only move while on screen.
+  Sizes in px because this theme scales rem down.
+{%- endcomment -%}
+
+{%- if section.settings.enabled -%}
+<style>
+  @media (max-width: 749px) {
+    .brbr-ms {
+      display: flex !important; flex-wrap: nowrap !important; grid-template-columns: none !important;
+      gap: 12px !important; overflow-x: auto !important; scroll-snap-type: x mandatory; scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch; scrollbar-width: none; overscroll-behavior-x: contain;
+      padding: 4px 16px 8px !important; margin-left: -16px !important; margin-right: -16px !important;
+      scroll-padding-left: 16px;
+    }
+    .brbr-ms::-webkit-scrollbar { display: none; }
+    .brbr-ms > * { flex: 0 0 86% !important; max-width: 86% !important; min-width: 0 !important; scroll-snap-align: start; margin: 0 !important; }
+    .brbr-ms--wide > * { flex-basis: 90% !important; max-width: 90% !important; }
+    .brbr-ms-dots { display: flex; justify-content: center; align-items: center; gap: 7px; margin: 12px 0 4px; }
+    .brbr-ms-dots button {
+      width: 8px; height: 8px; padding: 0; border: 0; border-radius: 9999px; background: #CBD5E1; cursor: pointer;
+      transition: width 0.25s ease, background-color 0.25s ease;
+    }
+    .brbr-ms-dots button[aria-current="true"] { width: 22px; background: #7C3AED; }
+    .brbr-ms-dots--dark button { background: rgba(255, 255, 255, 0.35); }
+    .brbr-ms-dots--dark button[aria-current="true"] { background: #FFFFFF; }
+    .brbr-ms-count { margin-left: 8px; font: 700 12px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #94A3B8; }
+
+    /* Shop All Products: first 6 until "Show more products" */
+    .brbr-hs-short > :nth-child(n+7) { display: none !important; }
+    .brbr-hs-short ~ .hs-more { display: none !important; }
+    .brbr-hs-reveal { display: flex; justify-content: center; margin: 18px 0 6px; }
+    .brbr-hs-reveal[hidden] { display: none; }
+    .brbr-hs-reveal button {
+      display: inline-flex; align-items: center; gap: 6px; height: 46px; padding: 0 22px; border: 1.5px solid #7C3AED; border-radius: 9999px;
+      background: #FFFFFF; color: #6D28D9; font: 800 15px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; cursor: pointer;
+    }
+    .brbr-hs-reveal button span { font-weight: 600; color: #8B5CF6; }
+  }
+  .brbr-hs-reveal { display: none; }
+  @media (max-width: 749px) { .brbr-hs-reveal:not([hidden]) { display: flex; } }
+  @media (prefers-reduced-motion: reduce) { .brbr-ms { scroll-behavior: auto; } }
+</style>
+
+<script>
+  (function () {
+    if (window.BRBRMobileSliders) return;
+    var MQ = window.matchMedia('(max-width: 749px)');
+    var DELAY = {{ section.settings.delay | default: 5 | times: 1000 }};
+    var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // container selector, label, options
+    var TARGETS = [
+      { sel: '.reviews-cards-grid', label: 'Customer reviews' },
+      { sel: '.custom-order-cards', label: 'Ways to order', wide: true },
+    ];
+    var made = [];
+
+    function slideWidth(el) { var c = el.children[0]; return c ? c.getBoundingClientRect().width + 12 : el.clientWidth; }
+    function currentIndex(el) { return Math.round(el.scrollLeft / slideWidth(el)); }
+
+    function autoplay(el, getCount, goTo) {
+      var timer = null, pausedUntil = 0, visible = false;
+      function tick() {
+        if (REDUCED || !visible || Date.now() < pausedUntil || document.hidden) return;
+        var n = getCount(); if (n < 2) return;
+        var i = currentIndex(el);
+        goTo(i + 1 >= n ? 0 : i + 1);
+      }
+      function pause(ms) { pausedUntil = Date.now() + (ms || 8000); }
+      ['touchstart', 'pointerdown', 'wheel', 'mouseenter', 'focusin'].forEach(function (ev) { el.addEventListener(ev, function () { pause(); }, { passive: true }); });
+      if ('IntersectionObserver' in window) {
+        new IntersectionObserver(function (es) { visible = es[0].isIntersecting && es[0].intersectionRatio > 0.5; }, { threshold: [0, 0.5, 1] }).observe(el);
+      } else { visible = true; }
+      timer = setInterval(tick, DELAY);
+      return { stop: function () { clearInterval(timer); }, pause: pause };
+    }
+
+    function build(t) {
+      var el = document.querySelector(t.sel);
+      if (!el || el.dataset.brbrMs) return;
+      var slides = [].filter.call(el.children, function (c) { return c.offsetParent !== null || getComputedStyle(c).display !== 'none'; });
+      if (slides.length < 2) return;
+      el.dataset.brbrMs = '1';
+      el.classList.add('brbr-ms');
+      if (t.wide) el.classList.add('brbr-ms--wide');
+      el.setAttribute('role', 'region');
+      el.setAttribute('aria-roledescription', 'carousel');
+      el.setAttribute('aria-label', t.label);
+      slides.forEach(function (s, i) { s.setAttribute('aria-roledescription', 'slide'); s.setAttribute('aria-label', (i + 1) + ' of ' + slides.length); });
+
+      var bg = getComputedStyle(el.closest('section, .shopify-section') || document.body).backgroundColor;
+      var dark = /rgb\((\d+), (\d+), (\d+)/.exec(bg); dark = dark && (+dark[1] + +dark[2] + +dark[3]) < 200;
+      var dots = document.createElement('div');
+      dots.className = 'brbr-ms-dots' + (dark ? ' brbr-ms-dots--dark' : '');
+      dots.innerHTML = slides.map(function (s, i) { return '<button type="button" aria-label="Show ' + (i + 1) + ' of ' + slides.length + '"' + (i === 0 ? ' aria-current="true"' : '') + '></button>'; }).join('');
+      el.parentNode.insertBefore(dots, el.nextSibling);
+      var btns = dots.querySelectorAll('button');
+      function goTo(i) { el.scrollTo({ left: i * slideWidth(el), behavior: REDUCED ? 'auto' : 'smooth' }); }
+      btns.forEach(function (b, i) { b.addEventListener('click', function () { ap.pause(); goTo(i); }); });
+      var raf = 0;
+      el.addEventListener('scroll', function () {
+        cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(function () {
+          var i = Math.min(btns.length - 1, currentIndex(el));
+          btns.forEach(function (b, k) { b.setAttribute('aria-current', k === i ? 'true' : 'false'); });
+        });
+      }, { passive: true });
+      var ap = autoplay(el, function () { return slides.length; }, goTo);
+      made.push({ el: el, dots: dots, ap: ap, t: t });
+    }
+
+    function unbuild() {
+      made.forEach(function (m) {
+        m.ap.stop(); m.dots.remove();
+        m.el.classList.remove('brbr-ms', 'brbr-ms--wide');
+        m.el.removeAttribute('role'); m.el.removeAttribute('aria-roledescription'); m.el.removeAttribute('aria-label');
+        delete m.el.dataset.brbrMs; m.el.scrollLeft = 0;
+      });
+      made = [];
+    }
+
+    // Services: already a swipeable slider with its own arrows and dots; just make it move on its own
+    var servicesAuto = null;
+    function services() {
+      var track = document.querySelector('.services-slider-track');
+      if (!track || servicesAuto) return;
+      var cards = track.querySelectorAll('.service-card');
+      servicesAuto = autoplay(track, function () { return cards.length; }, function (i) {
+        var c = cards[i]; if (c) track.scrollTo({ left: c.offsetLeft - track.offsetLeft, behavior: REDUCED ? 'auto' : 'smooth' });
+      });
+    }
+
+    // Shop All Products: show 6 first on phones, with our own "Show more" until it's tapped once
+    function shortGrid() {
+      var grid = document.querySelector('.hs-grid');
+      if (!grid || grid.dataset.brbrShort) return;
+      grid.dataset.brbrShort = '1';
+      grid.classList.add('brbr-hs-short');
+      var btn = document.createElement('div');
+      btn.className = 'brbr-hs-reveal';
+      btn.innerHTML = '<button type="button">Show more products <span></span></button>';
+      grid.parentNode.insertBefore(btn, grid.nextSibling);
+      function sync() {
+        var extra = grid.children.length - 6;
+        var on = grid.classList.contains('brbr-hs-short') && extra > 0;
+        btn.hidden = !on;
+        btn.querySelector('span').textContent = extra > 0 ? '(' + extra + ' more)' : '';
+      }
+      btn.querySelector('button').addEventListener('click', function () { grid.classList.remove('brbr-hs-short'); sync(); });
+      if ('MutationObserver' in window) new MutationObserver(sync).observe(grid, { childList: true });
+      sync();
+    }
+
+    function apply() {
+      if (MQ.matches) { TARGETS.forEach(build); services(); shortGrid(); }
+      else { unbuild(); if (servicesAuto) { servicesAuto.stop(); servicesAuto = null; } }
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply); else apply();
+    if (MQ.addEventListener) MQ.addEventListener('change', apply); else MQ.addListener(apply);
+    window.BRBRMobileSliders = { apply: apply };
+  })();
+</script>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Phone Slideshows",
+  "settings": [
+    { "type": "checkbox", "id": "enabled", "label": "Use slideshows on phones", "default": true },
+    { "type": "range", "id": "delay", "label": "Seconds per slide", "min": 3, "max": 10, "step": 1, "default": 5 }
+  ],
+  "enabled_on": { "groups": ["header"] }
+}
+{% endschema %}
