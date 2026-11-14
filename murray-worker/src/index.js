@@ -504,7 +504,9 @@ export default {
         return json(out.json, out.status, cors);
       } catch (e) {
         console.error('signup failed', e && e.message);
-        return json({ error: 'Sorry, we could not create your account right now. Please try again in a few minutes.' }, 502, cors);
+        const out = { error: 'Sorry, we could not create your account right now. Please try again in a few minutes.' };
+        if (body && body.debug === true) out.error_detail = String((e && e.message) || e).slice(0, 400); // troubleshooting only
+        return json(out, 502, cors);
       }
     }
     if (url.pathname === '/models' && env.GROQ_API_KEY) {
