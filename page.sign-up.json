@@ -1,0 +1,9 @@
+{
+  "sections": {
+    "main": {
+      "type": "signup-form",
+      "settings": {}
+    }
+  },
+  "order": ["main"]
+}

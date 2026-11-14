@@ -1,0 +1,419 @@
+{%- comment -%}
+  705 BRBR "Sign up" page (/pages/sign-up, template page.sign-up).
+  Three quick steps: About you (name, date of birth, gender) -> Contact (email, mobile) -> Address (with suggestions).
+  Sends everything to the brbr-murray Worker (POST /signup), which creates the Shopify customer:
+    name, email, phone -> customer profile; date of birth -> Birth date (facts.birth_date); gender -> Gender (custom.gender);
+    address -> DEFAULT address, which Shopify checkout offers as the shipping address once they sign in;
+    tags welcome-offer + website-signup -> the 10% welcome code works and is applied automatically when signed in.
+  Address suggestions come from Photon (OpenStreetMap), no key needed. Sizes in px because this theme scales rem down.
+{%- endcomment -%}
+
+<style>
+  .brbr-su { padding: 40px 16px 64px; background: #F6F5FB; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0F172A; }
+  .brbr-su *, .brbr-su *::before { box-sizing: border-box; }
+  .brbr-su__wrap { max-width: 1080px; margin: 0 auto; display: grid; grid-template-columns: 0.9fr 1.1fr; border-radius: 28px; overflow: hidden; background: #FFFFFF; box-shadow: 0 30px 70px -40px rgba(46, 16, 101, 0.55), 0 0 0 1px #ECEAF3; }
+  @media (max-width: 860px) { .brbr-su__wrap { grid-template-columns: 1fr; } }
+
+  /* Left panel */
+  .brbr-su__side { position: relative; padding: 40px 36px; color: #FFFFFF; overflow: hidden;
+    background: radial-gradient(120% 90% at 0% 0%, #7C3AED 0%, #4C1D95 50%, #2E1065 100%); }
+  .brbr-su__side::after { content: ""; position: absolute; right: -90px; bottom: -90px; width: 280px; height: 280px; border-radius: 50%; background: rgba(255, 255, 255, 0.07); }
+  .brbr-su__logo { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 3px solid rgba(255, 255, 255, 0.85); }
+  .brbr-su__badge { display: inline-flex; align-items: center; gap: 6px; margin: 22px 0 12px; padding: 6px 12px; border-radius: 9999px; background: rgba(253, 224, 71, 0.16); border: 1px solid rgba(253, 224, 71, 0.45); color: #FDE047; font-size: 12.5px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+  .brbr-su__h1 { margin: 0 0 10px; font-size: clamp(28px, 3.4vw, 40px); font-weight: 850; line-height: 1.08; letter-spacing: -0.02em; color: #FFFFFF; }
+  .brbr-su__h1 span { color: #FDE047; }
+  .brbr-su__lead { margin: 0 0 22px; font-size: 15.5px; line-height: 1.55; color: #E9E3FF; }
+  .brbr-su__perks { position: relative; z-index: 1; display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+  .brbr-su__perks li { display: flex; gap: 12px; align-items: flex-start; font-size: 14.5px; line-height: 1.45; color: #F5F3FF; }
+  .brbr-su__perks i { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 11px; background: rgba(255, 255, 255, 0.14); font-style: normal; font-size: 16px; }
+  .brbr-su__perks b { display: block; color: #FFFFFF; font-size: 15px; }
+  .brbr-su__signin { position: relative; z-index: 1; margin: 26px 0 0; font-size: 14px; color: #DDD6FE; }
+  .brbr-su__signin a { color: #FFFFFF; font-weight: 800; }
+  @media (max-width: 860px) { .brbr-su__side { padding: 28px 22px; } .brbr-su__perks { display: none; } .brbr-su__signin { display: none; } }
+
+  /* Form panel */
+  .brbr-su__main { padding: 36px 40px 32px; }
+  @media (max-width: 560px) { .brbr-su__main { padding: 24px 18px 22px; } }
+  .brbr-su__progress { display: flex; gap: 8px; margin: 0 0 22px; }
+  .brbr-su__step { flex: 1; }
+  .brbr-su__bar { height: 6px; border-radius: 6px; background: #EDE9FE; overflow: hidden; }
+  .brbr-su__bar i { display: block; height: 100%; width: 0; border-radius: 6px; background: linear-gradient(90deg, #6D28D9, #A855F7); transition: width 0.35s ease; }
+  .brbr-su__step.is-done .brbr-su__bar i, .brbr-su__step.is-on .brbr-su__bar i { width: 100%; }
+  .brbr-su__step span { display: block; margin-top: 7px; font-size: 12px; font-weight: 700; color: #94A3B8; }
+  .brbr-su__step.is-on span, .brbr-su__step.is-done span { color: #6D28D9; }
+  .brbr-su__title { margin: 0 0 4px; font-size: 24px; font-weight: 800; letter-spacing: -0.01em; color: #0F172A; }
+  .brbr-su__sub { margin: 0 0 20px; font-size: 14.5px; color: #64748B; }
+  .brbr-su__panel[hidden] { display: none; }
+  .brbr-su__panel { animation: brbr-su-in 0.3s ease both; }
+  @keyframes brbr-su-in { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: none; } }
+  .brbr-su__row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .brbr-su__row--3 { grid-template-columns: 1.3fr 1fr 0.9fr; }
+  @media (max-width: 480px) { .brbr-su__row { grid-template-columns: 1fr; gap: 0; } .brbr-su__row--3 { grid-template-columns: 1fr 1fr; gap: 0 12px; } .brbr-su__row--3 > :first-child { grid-column: 1 / -1; } }
+  .brbr-su__f { position: relative; margin: 0 0 14px; min-width: 0; }
+  .brbr-su__f label, .brbr-su__lbl { display: block; margin: 0 0 6px; font-size: 13px; font-weight: 700; color: #334155; }
+  .brbr-su__f label em, .brbr-su__lbl em { color: #DC2626; font-style: normal; margin-left: 2px; }
+  .brbr-su__f input, .brbr-su__f select {
+    width: 100%; height: 50px; padding: 0 14px; border: 1.5px solid #D9DEE8; border-radius: 14px; background: #FFFFFF;
+    font: inherit; font-size: 16px; color: #0F172A; transition: border-color 0.15s ease, box-shadow 0.15s ease; -webkit-appearance: none; appearance: none;
+  }
+  .brbr-su__f select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; background-size: 18px; padding-right: 38px; }
+  .brbr-su__f input:focus, .brbr-su__f select:focus { outline: none; border-color: #7C3AED; box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.14); }
+  .brbr-su__f.is-bad input, .brbr-su__f.is-bad select { border-color: #DC2626; }
+  .brbr-su__err { display: none; margin: 6px 0 0; font-size: 12.5px; font-weight: 600; color: #B91C1C; }
+  .brbr-su__f.is-bad .brbr-su__err, .brbr-su__group.is-bad .brbr-su__err { display: block; }
+  .brbr-su__dob { display: grid; grid-template-columns: 1.4fr 0.9fr 1.1fr; gap: 8px; }
+  .brbr-su__group { margin: 0 0 14px; }
+  .brbr-su__chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .brbr-su__chip input { position: absolute; opacity: 0; pointer-events: none; }
+  .brbr-su__chip span { display: inline-flex; align-items: center; height: 42px; padding: 0 16px; border-radius: 9999px; border: 1.5px solid #D9DEE8; background: #FFFFFF; font-size: 14.5px; font-weight: 600; color: #334155; cursor: pointer; transition: all 0.15s ease; }
+  .brbr-su__chip input:checked + span { border-color: #7C3AED; background: #F5F3FF; color: #5B21B6; box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12); }
+  .brbr-su__chip input:focus-visible + span { outline: 2px solid #7C3AED; outline-offset: 2px; }
+  .brbr-su__check { display: flex; gap: 10px; align-items: flex-start; margin: 4px 0 16px; padding: 12px 14px; border-radius: 14px; background: #F8FAFC; font-size: 13.5px; line-height: 1.45; color: #334155; cursor: pointer; }
+  .brbr-su__check input { flex: none; width: 20px; height: 20px; margin: 0; accent-color: #7C3AED; }
+  .brbr-su__hint { display: flex; gap: 8px; align-items: flex-start; margin: -2px 0 16px; padding: 10px 12px; border-radius: 12px; background: #F5F3FF; color: #4C1D95; font-size: 13px; line-height: 1.45; }
+
+  /* Address suggestions */
+  .brbr-su__sugg { position: absolute; left: 0; right: 0; top: calc(100% - 6px); z-index: 5; margin: 0; padding: 6px; list-style: none; background: #FFFFFF; border-radius: 14px; box-shadow: 0 18px 40px -16px rgba(15, 23, 42, 0.4), 0 0 0 1px #E2E8F0; }
+  .brbr-su__sugg[hidden] { display: none; }
+  .brbr-su__sugg li { display: flex; gap: 10px; align-items: flex-start; padding: 10px 10px; border-radius: 10px; cursor: pointer; font-size: 14px; line-height: 1.35; color: #0F172A; }
+  .brbr-su__sugg li small { display: block; color: #64748B; font-size: 12.5px; }
+  .brbr-su__sugg li[aria-selected="true"], .brbr-su__sugg li:hover { background: #F5F3FF; }
+  .brbr-su__sugg svg { flex: none; width: 18px; height: 18px; margin-top: 1px; stroke: #7C3AED; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+  .brbr-su__nav { display: flex; gap: 10px; margin-top: 8px; }
+  .brbr-su__btn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 52px; border: 0; border-radius: 9999px; font: inherit; font-size: 16px; font-weight: 800; cursor: pointer; transition: transform 0.15s ease, background-color 0.15s ease, opacity 0.15s ease; }
+  .brbr-su__btn--go { background: linear-gradient(135deg, #6D28D9, #A855F7); color: #FFFFFF; box-shadow: 0 12px 24px -12px rgba(124, 58, 237, 0.9); }
+  .brbr-su__btn--go:hover { transform: translateY(-1px); }
+  .brbr-su__btn--back { flex: 0 0 auto; padding: 0 20px; background: #F1F5F9; color: #334155; }
+  .brbr-su__btn[disabled] { opacity: 0.6; cursor: default; transform: none; }
+  .brbr-su__btn svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2.4; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .brbr-su__alert { margin: 0 0 14px; padding: 12px 14px; border-radius: 14px; font-size: 14px; line-height: 1.45; font-weight: 600; }
+  .brbr-su__alert--err { background: #FEF2F2; color: #991B1B; border: 1px solid #FECACA; }
+  .brbr-su__alert--info { background: #EFF6FF; color: #1E3A8A; border: 1px solid #BFDBFE; }
+  .brbr-su__alert a { color: inherit; font-weight: 800; }
+  .brbr-su__fine { margin: 14px 0 0; font-size: 12px; line-height: 1.5; color: #94A3B8; }
+  .brbr-su__hp { position: absolute !important; left: -9999px !important; width: 1px; height: 1px; overflow: hidden; }
+
+  .brbr-su__done { text-align: center; padding: 18px 4px 6px; }
+  .brbr-su__done-emoji { display: inline-flex; align-items: center; justify-content: center; width: 76px; height: 76px; border-radius: 50%; background: linear-gradient(135deg, #6D28D9, #A855F7); font-size: 36px; box-shadow: 0 16px 30px -12px rgba(124, 58, 237, 0.8); }
+  .brbr-su__done h2 { margin: 18px 0 8px; font-size: 26px; font-weight: 850; letter-spacing: -0.01em; color: #0F172A; }
+  .brbr-su__done p { margin: 0 auto 18px; max-width: 420px; font-size: 15px; line-height: 1.55; color: #475569; }
+  .brbr-su__done ol { margin: 0 auto 20px; padding: 0; max-width: 380px; list-style: none; text-align: left; display: grid; gap: 10px; counter-reset: s; }
+  .brbr-su__done ol li { counter-increment: s; display: flex; gap: 10px; align-items: flex-start; font-size: 14px; color: #334155; }
+  .brbr-su__done ol li::before { content: counter(s); flex: none; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; background: #EDE9FE; color: #6D28D9; font-weight: 800; font-size: 13px; }
+  @media (prefers-reduced-motion: reduce) { .brbr-su__panel, .brbr-su__bar i { animation: none; transition: none; } }
+</style>
+
+<section class="brbr-su">
+  <div class="brbr-su__wrap">
+    <aside class="brbr-su__side">
+      {%- if settings.logo != blank -%}<img class="brbr-su__logo" src="{{ settings.logo | image_url: width: 120 }}" alt="{{ shop.name | escape }}" width="56" height="56">{%- endif -%}
+      <span class="brbr-su__badge">🎁 Welcome offer</span>
+      <h1 class="brbr-su__h1">Join 705 BRBR &amp; get <span>10% off</span> your first order</h1>
+      <p class="brbr-su__lead">One minute to sign up. Your discount is applied automatically when you shop signed in.</p>
+      <ul class="brbr-su__perks" role="list">
+        <li><i aria-hidden="true">🏷️</i><span><b>10% off your first order</b>Applied at checkout, nothing to copy.</span></li>
+        <li><i aria-hidden="true">📍</i><span><b>Address saved for checkout</b>Your delivery address is ready when you check out.</span></li>
+        <li><i aria-hidden="true">⚡</i><span><b>Faster checkout</b>Your details are filled in for you.</span></li>
+        <li><i aria-hidden="true">📦</i><span><b>Track every order</b>See your orders and pickups in one place.</span></li>
+      </ul>
+      <p class="brbr-su__signin">Already have an account? <a href="{{ routes.account_login_url }}">Sign in</a></p>
+    </aside>
+
+    <div class="brbr-su__main">
+      {%- if customer -%}
+        <div class="brbr-su__done">
+          <span class="brbr-su__done-emoji" aria-hidden="true">👋</span>
+          <h2>You're signed in{% if customer.first_name != blank %}, {{ customer.first_name | escape }}{% endif %}</h2>
+          <p>Your account is all set. Update your details or addresses any time from your account.</p>
+          <div class="brbr-su__nav" style="max-width:420px;margin:0 auto">
+            <a class="brbr-su__btn brbr-su__btn--go" href="{{ routes.account_url }}">Go to my account</a>
+            <a class="brbr-su__btn brbr-su__btn--back" href="{{ routes.all_products_collection_url }}">Shop</a>
+          </div>
+        </div>
+      {%- else -%}
+      <form id="brbrSignup" novalidate data-api="{{ section.settings.api_url | strip | escape }}">
+        <div class="brbr-su__progress" aria-hidden="true">
+          <div class="brbr-su__step is-on" data-prog="1"><div class="brbr-su__bar"><i></i></div><span>About you</span></div>
+          <div class="brbr-su__step" data-prog="2"><div class="brbr-su__bar"><i></i></div><span>Contact</span></div>
+          <div class="brbr-su__step" data-prog="3"><div class="brbr-su__bar"><i></i></div><span>Address</span></div>
+        </div>
+        <div class="brbr-su__alert brbr-su__alert--err" id="brbrSuAlert" role="alert" hidden></div>
+        <div class="brbr-su__hp" aria-hidden="true"><label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+
+        <!-- Step 1 -->
+        <div class="brbr-su__panel" data-step="1">
+          <h2 class="brbr-su__title">Create your account</h2>
+          <p class="brbr-su__sub">Step 1 of 3 · Tell us a bit about you. All fields are required.</p>
+          <div class="brbr-su__row">
+            <div class="brbr-su__f" data-f="firstName"><label for="suFirst">First name<em>*</em></label><input id="suFirst" name="firstName" autocomplete="given-name" required><p class="brbr-su__err"></p></div>
+            <div class="brbr-su__f" data-f="lastName"><label for="suLast">Last name<em>*</em></label><input id="suLast" name="lastName" autocomplete="family-name" required><p class="brbr-su__err"></p></div>
+          </div>
+          <div class="brbr-su__group" data-f="dob">
+            <span class="brbr-su__lbl" id="suDobLbl">Date of birth<em>*</em></span>
+            <div class="brbr-su__dob" role="group" aria-labelledby="suDobLbl">
+              <div class="brbr-su__f" style="margin:0"><select id="suDobM" aria-label="Month" autocomplete="bday-month"><option value="">Month</option><option value="01">January</option><option value="02">February</option><option value="03">March</option><option value="04">April</option><option value="05">May</option><option value="06">June</option><option value="07">July</option><option value="08">August</option><option value="09">September</option><option value="10">October</option><option value="11">November</option><option value="12">December</option></select></div>
+              <div class="brbr-su__f" style="margin:0"><select id="suDobD" aria-label="Day" autocomplete="bday-day"><option value="">Day</option></select></div>
+              <div class="brbr-su__f" style="margin:0"><select id="suDobY" aria-label="Year" autocomplete="bday-year"><option value="">Year</option></select></div>
+            </div>
+            <p class="brbr-su__err"></p>
+          </div>
+          <div class="brbr-su__group" data-f="gender">
+            <span class="brbr-su__lbl" id="suGenderLbl">Gender<em>*</em></span>
+            <div class="brbr-su__chips" role="radiogroup" aria-labelledby="suGenderLbl">
+              <label class="brbr-su__chip"><input type="radio" name="gender" value="Female"><span>Female</span></label>
+              <label class="brbr-su__chip"><input type="radio" name="gender" value="Male"><span>Male</span></label>
+              <label class="brbr-su__chip"><input type="radio" name="gender" value="Non-binary"><span>Non-binary</span></label>
+              <label class="brbr-su__chip"><input type="radio" name="gender" value="Prefer not to say"><span>Prefer not to say</span></label>
+            </div>
+            <p class="brbr-su__err"></p>
+          </div>
+          <div class="brbr-su__nav"><button type="button" class="brbr-su__btn brbr-su__btn--go" data-next>Continue<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></button></div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="brbr-su__panel" data-step="2" hidden>
+          <h2 class="brbr-su__title">How can we reach you?</h2>
+          <p class="brbr-su__sub">Step 2 of 3 · We'll use these for your account and order updates.</p>
+          <div class="brbr-su__f" data-f="email"><label for="suEmail">Email<em>*</em></label><input id="suEmail" name="email" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com" required><p class="brbr-su__err"></p></div>
+          <div class="brbr-su__f" data-f="phone"><label for="suPhone">Mobile number<em>*</em></label><input id="suPhone" name="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="(917) 555-0123" required><p class="brbr-su__err"></p></div>
+          <label class="brbr-su__check"><input type="checkbox" name="marketing" checked><span>Email me deals, new arrivals and my welcome code. Unsubscribe anytime.</span></label>
+          <div class="brbr-su__nav">
+            <button type="button" class="brbr-su__btn brbr-su__btn--back" data-back>Back</button>
+            <button type="button" class="brbr-su__btn brbr-su__btn--go" data-next>Continue<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></button>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="brbr-su__panel" data-step="3" hidden>
+          <h2 class="brbr-su__title">Where should we deliver?</h2>
+          <p class="brbr-su__sub">Step 3 of 3 · Start typing and pick your address.</p>
+          <div class="brbr-su__f" data-f="address1">
+            <label for="suAddr">Street address<em>*</em></label>
+            <input id="suAddr" name="address1" autocomplete="off" placeholder="e.g. 705 2nd Ave" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="suSugg" required>
+            <ul class="brbr-su__sugg" id="suSugg" role="listbox" hidden></ul>
+            <p class="brbr-su__err"></p>
+          </div>
+          <div class="brbr-su__f" data-f="address2"><label for="suAddr2">Apt, suite, floor (optional)</label><input id="suAddr2" name="address2" autocomplete="address-line2" placeholder="Apt 4B"></div>
+          <div class="brbr-su__row brbr-su__row--3">
+            <div class="brbr-su__f" data-f="city"><label for="suCity">City<em>*</em></label><input id="suCity" name="city" autocomplete="address-level2" required><p class="brbr-su__err"></p></div>
+            <div class="brbr-su__f" data-f="province"><label for="suState">State<em>*</em></label>
+              <select id="suState" name="province" autocomplete="address-level1" required>
+                <option value="">State</option>
+                {%- assign states = 'AL:Alabama,AK:Alaska,AZ:Arizona,AR:Arkansas,CA:California,CO:Colorado,CT:Connecticut,DE:Delaware,DC:District of Columbia,FL:Florida,GA:Georgia,HI:Hawaii,ID:Idaho,IL:Illinois,IN:Indiana,IA:Iowa,KS:Kansas,KY:Kentucky,LA:Louisiana,ME:Maine,MD:Maryland,MA:Massachusetts,MI:Michigan,MN:Minnesota,MS:Mississippi,MO:Missouri,MT:Montana,NE:Nebraska,NV:Nevada,NH:New Hampshire,NJ:New Jersey,NM:New Mexico,NY:New York,NC:North Carolina,ND:North Dakota,OH:Ohio,OK:Oklahoma,OR:Oregon,PA:Pennsylvania,PR:Puerto Rico,RI:Rhode Island,SC:South Carolina,SD:South Dakota,TN:Tennessee,TX:Texas,UT:Utah,VT:Vermont,VA:Virginia,WA:Washington,WV:West Virginia,WI:Wisconsin,WY:Wyoming' | split: ',' -%}
+                {%- for s in states -%}{%- assign kv = s | split: ':' -%}<option value="{{ kv[0] }}"{% if kv[0] == 'NY' %} data-default{% endif %}>{{ kv[1] }}</option>{%- endfor -%}
+              </select><p class="brbr-su__err"></p></div>
+            <div class="brbr-su__f" data-f="zip"><label for="suZip">ZIP<em>*</em></label><input id="suZip" name="zip" autocomplete="postal-code" inputmode="numeric" maxlength="10" required><p class="brbr-su__err"></p></div>
+          </div>
+          <div class="brbr-su__hint"><span aria-hidden="true">📍</span><span>We'll save this as your default address and suggest it as your shipping address at checkout.</span></div>
+          <div class="brbr-su__nav">
+            <button type="button" class="brbr-su__btn brbr-su__btn--back" data-back>Back</button>
+            <button type="submit" class="brbr-su__btn brbr-su__btn--go" id="suSubmit">Create my account</button>
+          </div>
+          <p class="brbr-su__fine">By creating an account you agree to our terms and privacy policy. You must be 18 or older to create an account and 21 or older to buy alcohol. The 10% welcome discount is for your first order, once per customer.</p>
+        </div>
+
+        <!-- Done -->
+        <div class="brbr-su__panel" data-step="done" hidden>
+          <div class="brbr-su__done">
+            <span class="brbr-su__done-emoji" aria-hidden="true">🎉</span>
+            <h2>Welcome to 705 BRBR<span data-su-name></span>!</h2>
+            <p>Your account is created and your address is saved. One last step to finish:</p>
+            <ol>
+              <li>Tap <b>Sign in</b> and enter <b data-su-email>your email</b></li>
+              <li>Type the 6-digit code we email you</li>
+              <li>Shop, your 10% is applied automatically at checkout</li>
+            </ol>
+            <div class="brbr-su__nav" style="max-width:420px;margin:0 auto"><a class="brbr-su__btn brbr-su__btn--go" href="{{ routes.account_login_url }}">Sign in to my account</a></div>
+          </div>
+        </div>
+      </form>
+      {%- endif -%}
+    </div>
+  </div>
+</section>
+
+{%- unless customer -%}
+<script>
+  (function () {
+    var form = document.getElementById('brbrSignup');
+    if (!form) return;
+    var API = String(form.dataset.api || '').replace(/\/+$/, '');
+    var started = Date.now();
+    var step = 1;
+    var alertBox = document.getElementById('brbrSuAlert');
+    var $ = function (sel) { return form.querySelector(sel); };
+
+    // Date of birth selects
+    var m = $('#suDobM'), d = $('#suDobD'), y = $('#suDobY');
+    var thisYear = new Date().getFullYear();
+    for (var yr = thisYear - 18; yr >= thisYear - 100; yr--) y.insertAdjacentHTML('beforeend', '<option value="' + yr + '">' + yr + '</option>');
+    function days() { var keep = d.value, n = m.value ? new Date(+y.value || 2000, +m.value, 0).getDate() : 31; d.innerHTML = '<option value="">Day</option>'; for (var i = 1; i <= n; i++) { var v = (i < 10 ? '0' : '') + i; d.insertAdjacentHTML('beforeend', '<option value="' + v + '">' + i + '</option>'); } if (keep && +keep <= n) d.value = keep; }
+    days(); m.addEventListener('change', days); y.addEventListener('change', days);
+    var st = $('#suState'); var ny = st.querySelector('[data-default]'); if (ny) st.value = 'NY';
+
+    function setErr(name, msg) {
+      var box = form.querySelector('[data-f="' + name + '"]');
+      if (!box) return;
+      box.classList.toggle('is-bad', !!msg);
+      var e = box.querySelector('.brbr-su__err'); if (e) e.textContent = msg || '';
+    }
+    function val(name) { var el = form.elements[name]; return el ? String(el.value || '').trim() : ''; }
+    function dob() { return (y.value && m.value && d.value) ? y.value + '-' + m.value + '-' + d.value : ''; }
+    function age(s) { var p = s.split('-').map(Number), t = new Date(), a = t.getFullYear() - p[0]; if (t.getMonth() + 1 < p[1] || (t.getMonth() + 1 === p[1] && t.getDate() < p[2])) a--; return a; }
+    function gender() { var c = form.querySelector('input[name="gender"]:checked'); return c ? c.value : ''; }
+    function digits(s) { var x = String(s).replace(/\D/g, ''); return x.length === 11 && x[0] === '1' ? x.slice(1) : x; }
+
+    var checks = {
+      1: function () {
+        var ok = true;
+        [['firstName', 'Please enter your first name.'], ['lastName', 'Please enter your last name.']].forEach(function (f) { var bad = !val(f[0]); setErr(f[0], bad ? f[1] : ''); if (bad) ok = false; });
+        var b = dob(); var msg = !b ? 'Please choose your month, day and year of birth.' : (age(b) < 18 ? 'You must be 18 or older to create an account.' : '');
+        setErr('dob', msg); if (msg) ok = false;
+        var g = gender(); setErr('gender', g ? '' : 'Please choose an option.'); if (!g) ok = false;
+        return ok;
+      },
+      2: function () {
+        var ok = true;
+        var e = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(val('email')); setErr('email', e ? '' : 'Please enter a valid email address.'); if (!e) ok = false;
+        var p = digits(val('phone')).length === 10; setErr('phone', p ? '' : 'Please enter a 10-digit US mobile number.'); if (!p) ok = false;
+        return ok;
+      },
+      3: function () {
+        var ok = true;
+        [['address1', 'Please enter your street address.'], ['city', 'Please enter your city.'], ['province', 'Please choose your state.']].forEach(function (f) { var bad = !val(f[0]); setErr(f[0], bad ? f[1] : ''); if (bad) ok = false; });
+        var z = /^\d{5}(-\d{4})?$/.test(val('zip')); setErr('zip', z ? '' : 'Please enter a 5-digit ZIP code.'); if (!z) ok = false;
+        return ok;
+      }
+    };
+    function show(n) {
+      step = n;
+      form.querySelectorAll('[data-step]').forEach(function (p) { p.hidden = String(p.dataset.step) !== String(n); });
+      form.querySelectorAll('[data-prog]').forEach(function (p) { var k = +p.dataset.prog; p.classList.toggle('is-on', k === n); p.classList.toggle('is-done', n === 'done' || k < n); });
+      alertBox.hidden = true;
+      var panel = form.querySelector('[data-step="' + n + '"]');
+      var first = panel && panel.querySelector('input:not([type=radio]):not([type=checkbox]), select');
+      if (first && n !== 'done') setTimeout(function () { first.focus({ preventScroll: true }); }, 60);
+      var top = form.getBoundingClientRect().top + window.scrollY - 130;
+      if (window.scrollY > top) window.scrollTo({ top: top, behavior: 'smooth' });
+    }
+    form.addEventListener('click', function (e) {
+      if (e.target.closest('[data-next]')) { e.preventDefault(); if (checks[step]()) show(step + 1); }
+      if (e.target.closest('[data-back]')) { e.preventDefault(); show(step - 1); }
+    });
+    form.addEventListener('input', function (e) { var box = e.target.closest('[data-f]'); if (box && box.classList.contains('is-bad')) setErr(box.dataset.f, ''); });
+    form.addEventListener('change', function (e) { var box = e.target.closest('[data-f]'); if (box && box.classList.contains('is-bad')) setErr(box.dataset.f, ''); });
+    form.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && e.target.tagName === 'INPUT' && step !== 3 && !sugg.contains(e.target)) { e.preventDefault(); if (checks[step]()) show(step + 1); }
+    });
+
+    // Address suggestions (Photon / OpenStreetMap), biased to Manhattan
+    var addr = $('#suAddr'), sugg = $('#suSugg'), timer = null, items = [], active = -1, lastQ = '';
+    var STATE_CODES = { 'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA','Colorado':'CO','Connecticut':'CT','Delaware':'DE','District of Columbia':'DC','Florida':'FL','Georgia':'GA','Hawaii':'HI','Idaho':'ID','Illinois':'IL','Indiana':'IN','Iowa':'IA','Kansas':'KS','Kentucky':'KY','Louisiana':'LA','Maine':'ME','Maryland':'MD','Massachusetts':'MA','Michigan':'MI','Minnesota':'MN','Mississippi':'MS','Missouri':'MO','Montana':'MT','Nebraska':'NE','Nevada':'NV','New Hampshire':'NH','New Jersey':'NJ','New Mexico':'NM','New York':'NY','North Carolina':'NC','North Dakota':'ND','Ohio':'OH','Oklahoma':'OK','Oregon':'OR','Pennsylvania':'PA','Puerto Rico':'PR','Rhode Island':'RI','South Carolina':'SC','South Dakota':'SD','Tennessee':'TN','Texas':'TX','Utah':'UT','Vermont':'VT','Virginia':'VA','Washington':'WA','West Virginia':'WV','Wisconsin':'WI','Wyoming':'WY' };
+    var PIN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>';
+    function esc(s) { return String(s || '').replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+    function closeSugg() { sugg.hidden = true; addr.setAttribute('aria-expanded', 'false'); active = -1; }
+    function lookup(q) {
+      lastQ = q;
+      fetch('https://photon.komoot.io/api/?q=' + encodeURIComponent(q) + '&limit=6&lang=en&lat=40.748&lon=-73.973&layer=house&layer=street')
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (q !== lastQ) return;
+          items = (j.features || []).map(function (f) { return f.properties; }).filter(function (p) { return p.countrycode === 'US' && (p.street || p.name); }).map(function (p) {
+            var street = [p.housenumber, p.street || p.name].filter(Boolean).join(' ');
+            var city = p.city || p.district || p.county || '';
+            if (/^(Manhattan|New York County)$/i.test(city)) city = 'New York';
+            return { street: street, city: city, state: STATE_CODES[p.state] || '', zip: (p.postcode || '').slice(0, 5) };
+          }).filter(function (x, i, a) { return a.findIndex(function (o) { return o.street + o.city + o.zip === x.street + x.city + x.zip; }) === i; }).slice(0, 5);
+          if (!items.length) { closeSugg(); return; }
+          sugg.innerHTML = items.map(function (it, i) { return '<li role="option" id="suOpt' + i + '" data-i="' + i + '">' + PIN + '<span>' + esc(it.street) + '<small>' + esc([it.city, it.state, it.zip].filter(Boolean).join(', ')) + '</small></span></li>'; }).join('');
+          sugg.hidden = false; addr.setAttribute('aria-expanded', 'true'); active = -1;
+        }).catch(closeSugg);
+    }
+    function choose(i) {
+      var it = items[i]; if (!it) return;
+      addr.value = it.street;
+      if (it.city) form.elements.city.value = it.city;
+      if (it.state) form.elements.province.value = it.state;
+      if (it.zip) form.elements.zip.value = it.zip;
+      ['address1', 'city', 'province', 'zip'].forEach(function (n) { setErr(n, ''); });
+      closeSugg();
+      $('#suAddr2').focus();
+    }
+    addr.addEventListener('input', function () {
+      clearTimeout(timer);
+      var q = addr.value.trim();
+      if (q.length < 4) { closeSugg(); return; }
+      timer = setTimeout(function () { lookup(q); }, 280);
+    });
+    addr.addEventListener('keydown', function (e) {
+      if (sugg.hidden) return;
+      var lis = sugg.querySelectorAll('li');
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault(); active = (active + (e.key === 'ArrowDown' ? 1 : -1) + lis.length) % lis.length;
+        lis.forEach(function (li, i) { li.setAttribute('aria-selected', i === active ? 'true' : 'false'); });
+        addr.setAttribute('aria-activedescendant', 'suOpt' + active);
+      } else if (e.key === 'Enter' && active >= 0) { e.preventDefault(); choose(active); }
+      else if (e.key === 'Escape') closeSugg();
+    });
+    sugg.addEventListener('mousedown', function (e) { var li = e.target.closest('li'); if (li) { e.preventDefault(); choose(+li.dataset.i); } });
+    addr.addEventListener('blur', function () { setTimeout(closeSugg, 150); });
+
+    // Submit
+    var submit = $('#suSubmit');
+    function showAlert(html, kind) { alertBox.className = 'brbr-su__alert brbr-su__alert--' + (kind || 'err'); alertBox.innerHTML = html; alertBox.hidden = false; }
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (!checks[3]()) return;
+      if (!API) { showAlert('Sign-up is not available right now. Please try again later.'); return; }
+      submit.disabled = true; submit.textContent = 'Creating your account…';
+      var payload = {
+        firstName: val('firstName'), lastName: val('lastName'), email: val('email'), phone: digits(val('phone')),
+        dob: dob(), gender: gender(), address1: val('address1'), address2: val('address2'), city: val('city'),
+        province: val('province'), zip: val('zip'), marketing: !!form.elements.marketing.checked,
+        website: form.elements.website.value, elapsed: Date.now() - started
+      };
+      fetch(API + '/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+        .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { return { status: r.status, j: j }; }); })
+        .then(function (res) {
+          submit.disabled = false; submit.textContent = 'Create my account';
+          if (res.status === 200 && res.j.status === 'created') {
+            try { localStorage.setItem('brbr-welcome-done', String(Date.now())); } catch (err) {}
+            form.querySelector('[data-su-name]').textContent = payload.firstName ? ', ' + payload.firstName : '';
+            form.querySelector('[data-su-email]').textContent = payload.email;
+            show('done');
+            return;
+          }
+          if (res.j.status === 'exists') {
+            show(2); setErr('email', 'This email already has an account.');
+            showAlert('You already have an account with this email. <a href="{{ routes.account_login_url }}">Sign in instead →</a>', 'info');
+            return;
+          }
+          if (res.j.fields) {
+            var firstBad = null;
+            Object.keys(res.j.fields).forEach(function (k) { setErr(k, res.j.fields[k]); if (!firstBad) firstBad = k; });
+            var where = { firstName: 1, lastName: 1, dob: 1, gender: 1, email: 2, phone: 2 }[firstBad] || 3;
+            show(where); Object.keys(res.j.fields).forEach(function (k) { setErr(k, res.j.fields[k]); });
+            showAlert(res.j.error || 'Please check the highlighted fields.');
+            return;
+          }
+          showAlert(res.j.error || 'Sorry, something went wrong. Please try again.');
+        })
+        .catch(function () {
+          submit.disabled = false; submit.textContent = 'Create my account';
+          showAlert('We couldn\'t reach our server. Check your connection and try again.');
+        });
+    });
+  })();
+</script>
+{%- endunless -%}
+
+{% schema %}
+{
+  "name": "Sign Up Form",
+  "settings": [
+    { "type": "text", "id": "api_url", "label": "Sign-up API", "default": "https://brbr-murray.munatsialwyn26.workers.dev", "info": "The brbr-murray Worker (POST /signup)." }
+  ],
+  "presets": [{ "name": "Sign Up Form" }]
+}
+{% endschema %}
