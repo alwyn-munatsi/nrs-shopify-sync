@@ -481,6 +481,8 @@ function json(data, status, headers) {
   return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json; charset=utf-8', ...headers } });
 }
 
+import { signup, signupRateLimited, signupReady } from './signup.js';
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -488,7 +490,22 @@ export default {
     const cors = corsHeaders(env, origin);
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
     if (url.pathname === '/' || url.pathname === '/health') {
-      return json({ ok: true, name: 'BRBR (705 BRBR assistant)', ready: Boolean(provider(env)), provider: provider(env) }, 200, cors);
+      return json({ ok: true, name: 'BRBR (705 BRBR assistant)', ready: Boolean(provider(env)), provider: provider(env), signup: signupReady(env) }, 200, cors);
+    }
+    if (url.pathname === '/signup' && request.method === 'POST') {
+      const allowed = String(env.ALLOWED_ORIGINS || '').split(',').map((x) => x.trim()).filter(Boolean);
+      if (!allowed.includes(origin)) return json({ error: 'Not allowed.' }, 403, cors);
+      const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+      if (signupRateLimited(ip)) return json({ error: 'Too many sign-up attempts. Please try again in an hour.' }, 429, cors);
+      let body;
+      try { body = await request.json(); } catch { return json({ error: 'Invalid request.' }, 400, cors); }
+      try {
+        const out = await signup(env, body);
+        return json(out.json, out.status, cors);
+      } catch (e) {
+        console.error('signup failed', e && e.message);
+        return json({ error: 'Sorry, we could not create your account right now. Please try again in a few minutes.' }, 502, cors);
+      }
     }
     if (url.pathname === '/models' && env.GROQ_API_KEY) {
       // Lists the Groq model ids this key can use (ids only, no key or account details).

@@ -8,6 +8,7 @@ name: Deploy Murray (chat assistant)
 #   CLOUDFLARE_ACCOUNT_ID  Cloudflare dashboard > Workers & Pages (right-hand side: Account ID)
 #   GROQ_API_KEY           console.groq.com > API Keys (used when present)
 #   ANTHROPIC_API_KEY      console.anthropic.com > API Keys (used if there is no Groq key)
+#   ACCOUNT_APP_CLIENT_SECRET  Dev Dashboard > 705 BRBR Account Extras > Settings > Client secret (website sign-up)
 # At least one of GROQ_API_KEY / ANTHROPIC_API_KEY is needed.
 on:
   workflow_dispatch:
@@ -72,8 +73,9 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SIGNUP_CLIENT_SECRET: ${{ secrets.ACCOUNT_APP_CLIENT_SECRET }}
         run: |
-          for name in GROQ_API_KEY ANTHROPIC_API_KEY; do
+          for name in GROQ_API_KEY ANTHROPIC_API_KEY SIGNUP_CLIENT_SECRET; do
             value="${!name}"
             if [ -n "$value" ]; then
               printf '%s' "$value" | npx --yes wrangler@4 secret put "$name"
