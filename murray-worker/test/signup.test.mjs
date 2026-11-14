@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validateSignup, signup, ageOn, signupRateLimited } from '../src/signup.js';
+import { validateSignup, signup, ageOn, signupRateLimited, signinCheck, lookupRateLimited } from '../src/signup.js';
 
 const TODAY = new Date('2026-11-14T12:00:00Z');
 const GOOD = { firstName: ' Ana ', lastName: 'Diaz', email: 'Ana@Example.com', phone: '(917) 555-0123', dob: '1990-05-10', gender: 'Female',
@@ -90,4 +90,12 @@ test('sign-up rate limit: 5 per IP per hour', () => {
   for (let i = 0; i < 5; i++) assert.equal(signupRateLimited('1.2.3.4', 1000 + i), false);
   assert.equal(signupRateLimited('1.2.3.4', 2000), true);
   assert.equal(signupRateLimited('1.2.3.4', 1000 + 3600e3 + 10), false);
+});
+
+test('signinCheck says whether an email already has an account', async () => {
+  assert.equal((await signinCheck(ENV, { email: 'Ana@Example.com' }, { fetch: fakeShopify({ exists: true }).f })).json.exists, true);
+  assert.equal((await signinCheck(ENV, { email: 'new@example.com' }, { fetch: fakeShopify().f })).json.exists, false);
+  assert.equal((await signinCheck(ENV, { email: 'nope' }, { fetch: fakeShopify().f })).status, 422);
+  for (let i = 0; i < 20; i++) assert.equal(lookupRateLimited('9.9.9.9', 1000 + i), false);
+  assert.equal(lookupRateLimited('9.9.9.9', 5000), true);
 });

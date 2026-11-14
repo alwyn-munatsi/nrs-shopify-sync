@@ -481,7 +481,7 @@ function json(data, status, headers) {
   return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json; charset=utf-8', ...headers } });
 }
 
-import { signup, signupRateLimited, signupReady } from './signup.js';
+import { signup, signupRateLimited, signupReady, signinCheck, lookupRateLimited } from './signup.js';
 
 export default {
   async fetch(request, env) {
@@ -491,6 +491,21 @@ export default {
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
     if (url.pathname === '/' || url.pathname === '/health') {
       return json({ ok: true, name: 'BRBR (705 BRBR assistant)', ready: Boolean(provider(env)), provider: provider(env), signup: signupReady(env) }, 200, cors);
+    }
+    if (url.pathname === '/signin-check' && request.method === 'POST') {
+      const allowed = String(env.ALLOWED_ORIGINS || '').split(',').map((x) => x.trim()).filter(Boolean);
+      if (!allowed.includes(origin)) return json({ error: 'Not allowed.' }, 403, cors);
+      const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+      if (lookupRateLimited(ip)) return json({ error: 'Too many attempts. Please try again later.' }, 429, cors);
+      let body;
+      try { body = await request.json(); } catch { return json({ error: 'Invalid request.' }, 400, cors); }
+      try {
+        const out = await signinCheck(env, body);
+        return json(out.json, out.status, cors);
+      } catch (e) {
+        console.error('signin-check failed', e && e.message);
+        return json({ error: 'unavailable' }, 502, cors);
+      }
     }
     if (url.pathname === '/signup' && request.method === 'POST') {
       const allowed = String(env.ALLOWED_ORIGINS || '').split(',').map((x) => x.trim()).filter(Boolean);

@@ -158,3 +158,22 @@ export async function signup(env, body, deps = {}) {
   const addrErrs = addr.customerAddressCreate.userErrors || [];
   return { status: 200, json: { status: 'created', addressSaved: addrErrs.length === 0 } };
 }
+
+// POST /signin-check { email } -> { exists: true|false }
+// Used by the website's Sign in tab: known emails go on to Shopify's sign-in (6-digit code),
+// unknown emails are sent to the Create account tab with the email filled in.
+const lookups = new Map(); // ip -> [timestamps]
+export function lookupRateLimited(ip, now = Date.now()) {
+  const list = (lookups.get(ip) || []).filter((t) => now - t < 3600e3);
+  if (list.length >= 20) { lookups.set(ip, list); return true; }
+  list.push(now); lookups.set(ip, list);
+  return false;
+}
+export async function signinCheck(env, body, deps = {}) {
+  const f = deps.fetch || fetch;
+  if (!signupReady(env)) return { status: 503, json: { error: 'Not available right now.' } };
+  const email = clean(body && body.email, 254).toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return { status: 422, json: { error: 'Please enter a valid email address.' } };
+  const found = await gql(env, f, FIND, { q: `email:"${email.replace(/"/g, '')}"` });
+  return { status: 200, json: { exists: found.customers.nodes.length > 0 } };
+}
