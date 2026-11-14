@@ -63,6 +63,8 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: murray-worker
+          # Placement region hints ([placement] region = ...) need a recent Wrangler.
+          wranglerVersion: '4.162.0'
           command: deploy
 
       - name: Set model API keys as Worker secrets
