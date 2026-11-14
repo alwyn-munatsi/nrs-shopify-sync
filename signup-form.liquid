@@ -210,7 +210,7 @@
             <button type="button" class="brbr-su__btn brbr-su__btn--back" data-back>Back</button>
             <button type="submit" class="brbr-su__btn brbr-su__btn--go" id="suSubmit">Create my account</button>
           </div>
-          <p class="brbr-su__fine">By creating an account you agree to our terms and privacy policy. You must be 18 or older to create an account and 21 or older to buy alcohol. The 10% welcome discount is for your first order, once per customer.</p>
+          <p class="brbr-su__fine">By creating an account you agree to our terms and privacy policy. You must be 13 or older to create an account and 21 or older to buy alcohol. The 10% welcome discount is for your first order, once per customer.</p>
         </div>
 
         <!-- Done -->
@@ -247,7 +247,7 @@
     // Date of birth selects
     var m = $('#suDobM'), d = $('#suDobD'), y = $('#suDobY');
     var thisYear = new Date().getFullYear();
-    for (var yr = thisYear - 18; yr >= thisYear - 100; yr--) y.insertAdjacentHTML('beforeend', '<option value="' + yr + '">' + yr + '</option>');
+    for (var yr = thisYear - 13; yr >= thisYear - 100; yr--) y.insertAdjacentHTML('beforeend', '<option value="' + yr + '">' + yr + '</option>');
     function days() { var keep = d.value, n = m.value ? new Date(+y.value || 2000, +m.value, 0).getDate() : 31; d.innerHTML = '<option value="">Day</option>'; for (var i = 1; i <= n; i++) { var v = (i < 10 ? '0' : '') + i; d.insertAdjacentHTML('beforeend', '<option value="' + v + '">' + i + '</option>'); } if (keep && +keep <= n) d.value = keep; }
     days(); m.addEventListener('change', days); y.addEventListener('change', days);
     var st = $('#suState'); var ny = st.querySelector('[data-default]'); if (ny) st.value = 'NY';
@@ -268,7 +268,7 @@
       1: function () {
         var ok = true;
         [['firstName', 'Please enter your first name.'], ['lastName', 'Please enter your last name.']].forEach(function (f) { var bad = !val(f[0]); setErr(f[0], bad ? f[1] : ''); if (bad) ok = false; });
-        var b = dob(); var msg = !b ? 'Please choose your month, day and year of birth.' : (age(b) < 18 ? 'You must be 18 or older to create an account.' : '');
+        var b = dob(); var msg = !b ? 'Please choose your month, day and year of birth.' : (age(b) < 13 ? 'You must be 13 or older to create an account.' : '');
         setErr('dob', msg); if (msg) ok = false;
         var g = gender(); setErr('gender', g ? '' : 'Please choose an option.'); if (!g) ok = false;
         return ok;
