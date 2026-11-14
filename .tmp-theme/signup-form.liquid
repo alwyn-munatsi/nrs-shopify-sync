@@ -247,11 +247,11 @@
             <h2>Welcome to 705 BRBR<span data-su-name></span>!</h2>
             <p>Your account is created and your address is saved. One last step to finish:</p>
             <ol>
-              <li>Tap <b>Sign in</b> and enter <b data-su-email>your email</b></li>
+              <li>Tap <b>Sign in</b>. We'll send a code to <b data-su-email>your email</b></li>
               <li>Type the 6-digit code we email you</li>
               <li>Shop, your 10% is applied automatically at checkout</li>
             </ol>
-            <div class="brbr-su__nav" style="max-width:420px;margin:0 auto"><a class="brbr-su__btn brbr-su__btn--go" href="{{ brbr_login }}">Sign in to my account</a></div>
+            <div class="brbr-su__nav" style="max-width:420px;margin:0 auto"><a class="brbr-su__btn brbr-su__btn--go" href="{{ brbr_login }}" data-su-login>Sign in to my account</a></div>
           </div>
         </div>
       </form>
@@ -339,6 +339,8 @@
 
     // Sign in: known email -> Shopify's secure sign-in (6-digit code); new email -> Create account with it filled in
     var LOGIN = {{ brbr_login | json }};
+    // Passing the email lets Shopify skip its own "enter your email" screen and go straight to the 6-digit code
+    function loginFor(email) { return email ? LOGIN + '&login_hint=' + encodeURIComponent(email) + '&login_hint_mode=submit' : LOGIN; }
     var inGo = $('#suInGo');
     function signinGo() {
       var email = val('signinEmail');
@@ -357,9 +359,9 @@
             return;
           }
           inGo.textContent = 'Taking you to secure sign-in…';
-          location.href = LOGIN;
+          location.href = loginFor(email);
         })
-        .catch(function () { location.href = LOGIN; });
+        .catch(function () { location.href = loginFor(email); });
     }
     inGo.addEventListener('click', signinGo);
 
@@ -448,12 +450,13 @@
             try { localStorage.setItem('brbr-welcome-done', String(Date.now())); } catch (err) {}
             form.querySelector('[data-su-name]').textContent = payload.firstName ? ', ' + payload.firstName : '';
             form.querySelector('[data-su-email]').textContent = payload.email;
+            var lg = form.querySelector('[data-su-login]'); if (lg) lg.href = loginFor(payload.email);
             show('done');
             return;
           }
           if (res.j.status === 'exists') {
             show(2); setErr('email', 'This email already has an account.');
-            showAlert('You already have an account with this email. <a href="{{ brbr_login }}">Sign in instead →</a> (enter the same email on the next screen)', 'info');
+            showAlert('You already have an account with this email. <a href="' + loginFor(payload.email).replace(/"/g, '&quot;') + '">Sign in instead →</a> (we\'ll email you a 6-digit code)', 'info');
             return;
           }
           if (res.j.fields) {
