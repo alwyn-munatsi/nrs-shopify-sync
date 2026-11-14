@@ -85,7 +85,7 @@ async function adminToken(env, f) {
     body: JSON.stringify({ client_id: env.SIGNUP_CLIENT_ID, client_secret: env.SIGNUP_CLIENT_SECRET, grant_type: 'client_credentials' }),
   });
   const j = await r.json().catch(() => ({}));
-  if (!r.ok || !j.access_token) throw new Error(`token ${r.status}`);
+  if (!r.ok || !j.access_token) throw new Error(`token ${r.status} ${String(j.error || '')} ${String(j.error_description || j.errors || '').slice(0, 160)}`.trim());
   tokenCache = { token: j.access_token, exp: Date.now() + ((j.expires_in || 3600) * 1000) };
   return tokenCache.token;
 }
