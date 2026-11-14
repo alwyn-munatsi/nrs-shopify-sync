@@ -34,6 +34,11 @@
   /* Form panel */
   .brbr-su__main { padding: 36px 40px 32px; }
   @media (max-width: 560px) { .brbr-su__main { padding: 24px 18px 22px; } }
+  .brbr-su__tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin: 0 0 22px; padding: 4px; border-radius: 9999px; background: #F1EEF9; }
+  .brbr-su__tab { height: 42px; border: 0; border-radius: 9999px; background: transparent; font: inherit; font-size: 14.5px; font-weight: 800; color: #6B6880; cursor: pointer; transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease; }
+  .brbr-su__tab[aria-selected="true"] { background: #FFFFFF; color: #5B21B6; box-shadow: 0 4px 12px -6px rgba(76, 29, 149, 0.45); }
+  .brbr-su__tab:focus-visible { outline: 2px solid #7C3AED; outline-offset: 2px; }
+  .brbr-su__progress[hidden] { display: none; }
   .brbr-su__progress { display: flex; gap: 8px; margin: 0 0 22px; }
   .brbr-su__step { flex: 1; }
   .brbr-su__bar { height: 6px; border-radius: 6px; background: #EDE9FE; overflow: hidden; }
@@ -117,7 +122,7 @@
         <li><i aria-hidden="true">⚡</i><span><b>Faster checkout</b>Your details are filled in for you.</span></li>
         <li><i aria-hidden="true">📦</i><span><b>Track every order</b>See your orders and pickups in one place.</span></li>
       </ul>
-      <p class="brbr-su__signin">Already have an account? <a href="{{ routes.account_login_url }}">Sign in</a></p>
+      <p class="brbr-su__signin">Already have an account? <a href="?mode=signin" data-mode-link="signin">Sign in</a></p>
     </aside>
 
     <div class="brbr-su__main">
@@ -133,6 +138,10 @@
         </div>
       {%- else -%}
       <form id="brbrSignup" novalidate data-api="{{ section.settings.api_url | strip | escape }}">
+        <div class="brbr-su__tabs" role="tablist" aria-label="Sign in or create an account">
+          <button type="button" class="brbr-su__tab" role="tab" data-mode="signin" aria-selected="false">Sign in</button>
+          <button type="button" class="brbr-su__tab" role="tab" data-mode="signup" aria-selected="true">Create account</button>
+        </div>
         <div class="brbr-su__progress" aria-hidden="true">
           <div class="brbr-su__step is-on" data-prog="1"><div class="brbr-su__bar"><i></i></div><span>About you</span></div>
           <div class="brbr-su__step" data-prog="2"><div class="brbr-su__bar"><i></i></div><span>Contact</span></div>
@@ -140,6 +149,16 @@
         </div>
         <div class="brbr-su__alert brbr-su__alert--err" id="brbrSuAlert" role="alert" hidden></div>
         <div class="brbr-su__hp" aria-hidden="true"><label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+
+        <!-- Sign in -->
+        <div class="brbr-su__panel" data-step="signin" hidden>
+          <h2 class="brbr-su__title">Welcome back 👋</h2>
+          <p class="brbr-su__sub">Enter your email and we'll find your account.</p>
+          <div class="brbr-su__f" data-f="signinEmail"><label for="suInEmail">Email<em>*</em></label><input id="suInEmail" name="signinEmail" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com"><p class="brbr-su__err"></p></div>
+          <div class="brbr-su__nav"><button type="button" class="brbr-su__btn brbr-su__btn--go" id="suInGo">Continue<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></button></div>
+          <div class="brbr-su__hint" style="margin-top:16px"><span aria-hidden="true">🔒</span><span>Next you'll go to our secure sign-in. Enter the same email there and we'll send you a 6-digit code, no password needed.</span></div>
+          <p class="brbr-su__fine">New to 705 BRBR? <a href="#" data-mode-link="signup" style="color:#6D28D9;font-weight:800">Create an account</a> and get 10% off your first order.</p>
+        </div>
 
         <!-- Step 1 -->
         <div class="brbr-su__panel" data-step="1">
@@ -286,8 +305,14 @@
         return ok;
       }
     };
+    var tabs = form.querySelectorAll('[data-mode]');
+    var progress = form.querySelector('.brbr-su__progress');
     function show(n) {
       step = n;
+      var signin = n === 'signin';
+      progress.hidden = signin || n === 'done';
+      tabs.forEach(function (t) { t.setAttribute('aria-selected', String((t.dataset.mode === 'signin') === signin)); });
+      form.querySelector('.brbr-su__tabs').hidden = n === 'done';
       form.querySelectorAll('[data-step]').forEach(function (p) { p.hidden = String(p.dataset.step) !== String(n); });
       form.querySelectorAll('[data-prog]').forEach(function (p) { var k = +p.dataset.prog; p.classList.toggle('is-on', k === n); p.classList.toggle('is-done', n === 'done' || k < n); });
       alertBox.hidden = true;
@@ -297,6 +322,38 @@
       var top = form.getBoundingClientRect().top + window.scrollY - 130;
       if (window.scrollY > top) window.scrollTo({ top: top, behavior: 'smooth' });
     }
+    document.addEventListener('click', function (e) {
+      var ml = e.target.closest('[data-mode-link]');
+      if (ml) { e.preventDefault(); show(ml.dataset.modeLink === 'signin' ? 'signin' : 1); }
+    });
+    tabs.forEach(function (t) { t.addEventListener('click', function () { show(t.dataset.mode === 'signin' ? 'signin' : 1); }); });
+
+    // Sign in: known email -> Shopify's secure sign-in (6-digit code); new email -> Create account with it filled in
+    var LOGIN = {{ routes.account_login_url | json }};
+    var inGo = $('#suInGo');
+    function signinGo() {
+      var email = val('signinEmail');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { setErr('signinEmail', 'Please enter a valid email address.'); return; }
+      setErr('signinEmail', '');
+      try { sessionStorage.setItem('brbr-signin-email', email); } catch (err) {}
+      inGo.disabled = true; inGo.textContent = 'Checking…';
+      fetch(API + '/signin-check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email }) })
+        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+        .then(function (res) {
+          if (res.ok && res.j.exists === false) {
+            inGo.disabled = false; inGo.innerHTML = 'Continue';
+            form.elements.email.value = email;
+            show(1);
+            showAlert('No account found for <b>' + email.replace(/[<>&"]/g, '') + '</b>. Create one below. It takes a minute and you get 10% off your first order.', 'info');
+            return;
+          }
+          inGo.textContent = 'Taking you to secure sign-in…';
+          location.href = LOGIN;
+        })
+        .catch(function () { location.href = LOGIN; });
+    }
+    inGo.addEventListener('click', signinGo);
+
     form.addEventListener('click', function (e) {
       if (e.target.closest('[data-next]')) { e.preventDefault(); if (checks[step]()) show(step + 1); }
       if (e.target.closest('[data-back]')) { e.preventDefault(); show(step - 1); }
@@ -304,6 +361,7 @@
     form.addEventListener('input', function (e) { var box = e.target.closest('[data-f]'); if (box && box.classList.contains('is-bad')) setErr(box.dataset.f, ''); });
     form.addEventListener('change', function (e) { var box = e.target.closest('[data-f]'); if (box && box.classList.contains('is-bad')) setErr(box.dataset.f, ''); });
     form.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && e.target.tagName === 'INPUT' && step === 'signin') { e.preventDefault(); signinGo(); return; }
       if (e.key === 'Enter' && e.target.tagName === 'INPUT' && step !== 3 && !sugg.contains(e.target)) { e.preventDefault(); if (checks[step]()) show(step + 1); }
     });
 
@@ -386,7 +444,7 @@
           }
           if (res.j.status === 'exists') {
             show(2); setErr('email', 'This email already has an account.');
-            showAlert('You already have an account with this email. <a href="{{ routes.account_login_url }}">Sign in instead →</a>', 'info');
+            showAlert('You already have an account with this email. <a href="{{ routes.account_login_url }}">Sign in instead →</a> (enter the same email on the next screen)', 'info');
             return;
           }
           if (res.j.fields) {
@@ -404,6 +462,10 @@
           showAlert('We couldn\'t reach our server. Check your connection and try again.');
         });
     });
+
+    // Open on the right tab: ?mode=signin (Sign in links) or Create account (default)
+    if (/[?&]mode=signin\b/.test(location.search)) show('signin');
+    else { progress.hidden = false; }
   })();
 </script>
 {%- endunless -%}

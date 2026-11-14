@@ -590,8 +590,19 @@
     margin-left: -0.45rem;
   }
 
+  /* Small phones: one person icon that opens "Sign in / Create account" */
+  .custom-auth-icon-menu { display: none; }
+  .custom-auth-icon-menu > summary { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; color: #1E293B; background: #F1F5F9; }
+  .custom-auth-icon-menu[open] > summary, .custom-auth-icon-menu > summary:hover { background: #F5F3FF; color: #7C3AED; }
+  .custom-auth-icon-menu > summary svg { width: 21px; height: 21px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .custom-auth-icon-menu .custom-account-dropdown { min-width: 250px; }
+  .custom-auth-icon-menu .custom-auth-badge { margin-left: auto; padding: 2px 8px; border-radius: 9999px; background: #FEF3C7; color: #92400E; font-size: 11.5px; font-weight: 800; }
+  .custom-auth-icon-menu a.custom-auth-create { background: #7C3AED; color: #FFFFFF; margin-top: 2px; }
+  .custom-auth-icon-menu a.custom-auth-create:hover { background: #6D28D9; color: #FFFFFF; }
+
   @media (max-width: 520px) {
-    .custom-auth-btn--signup { display: none; }
+    .custom-auth-btn--signup, .custom-auth-btn--ghost { display: none; }
+    .custom-auth-icon-menu { display: block; }
     .custom-auth-btn { height: 34px; padding: 0 10px; font-size: 13px; }
     .custom-auth-btn--name { max-width: 110px; }
   }
@@ -768,8 +779,28 @@
           </div>
         </details>
       {%- else -%}
-        <a href="{{ routes.account_login_url }}" class="custom-auth-btn custom-auth-btn--ghost">Sign in</a>
+        <a href="/pages/sign-up?mode=signin" class="custom-auth-btn custom-auth-btn--ghost">Sign in</a>
         <a href="/pages/sign-up" class="custom-auth-btn custom-auth-btn--outline custom-auth-btn--signup">Sign up</a>
+        <details class="custom-account-menu custom-auth-icon-menu">
+          <summary aria-label="Sign in or create an account" title="Account">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          </summary>
+          <div class="custom-account-dropdown" role="menu">
+            <div class="custom-account-head">
+              <strong>Welcome to 705 BRBR</strong>
+              <span>Get 10% off your first order</span>
+            </div>
+            <a href="/pages/sign-up?mode=signin" role="menuitem">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><path d="m10 17 5-5-5-5"></path><path d="M15 12H3"></path></svg>
+              Sign in
+            </a>
+            <a href="/pages/sign-up" role="menuitem" class="custom-auth-create">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M19 8v6M22 11h-6"></path></svg>
+              Create account
+              <span class="custom-auth-badge">10% off</span>
+            </a>
+          </div>
+        </details>
       {%- endif -%}
 
       <a href="{{ routes.cart_url }}" class="custom-cart-pill" title="Shopping Cart" aria-label="Cart">

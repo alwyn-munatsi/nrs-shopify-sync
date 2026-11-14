@@ -731,14 +731,14 @@
     <span class="dd-rail-label">Search Products</span>
   </a>
 
-  <a href="https://shopify.com/85105541419/account" class="dd-rail-btn" aria-label="Sign up or Login">
+  <a href="{% if customer %}{{ routes.account_url }}{% else %}/pages/sign-up?mode=signin{% endif %}" class="dd-rail-btn" aria-label="{% if customer %}My account{% else %}Sign in or create an account{% endif %}">
     <div class="dd-rail-icon">
       <svg viewBox="0 0 24 24">
         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
         <circle cx="12" cy="7" r="4"/>
       </svg>
     </div>
-    <span class="dd-rail-label">Sign up or Login</span>
+    <span class="dd-rail-label">{% if customer %}My account{% else %}Sign in or Sign up{% endif %}</span>
   </a>
 
   <div class="dd-drawer-footer-actions">
