@@ -1,130 +1,159 @@
 {%- comment -%}
-  705 BRBR: phone slideshows to cut scrolling (screens up to 749px wide; desktop is unchanged).
+  705 BRBR slideshows (phones, tablets and desktop).
   - Reviews ("Loved by Our Midtown East Neighbors") and the hero's order cards (Pick up / Order online / delivery apps)
-    turn into swipeable slideshows with dots that move on their own.
-  - (The Services slider moves on its own already, in sections/custom-services.liquid.)
-  - "Shop All Products" starts with 6 products; "Show more products" reveals the rest.
-  Slideshows pause while someone touches them, start again a few seconds later, and only move while on screen.
+    become slideshows that move on their own, with dots, and arrows on larger screens.
+      Reviews:     1 card on phones, 2 on tablets and desktop.
+      Order cards: 1 card on phones, 2 on tablets, 3 on desktop.
+  - The Services slider moves on its own already (sections/custom-services.liquid).
+  - Phones only: "Shop All Products" starts with 6 products; "Show more products" reveals the rest.
+  Slideshows pause while someone hovers, touches or tabs into them, and only move while on screen.
   Sizes in px because this theme scales rem down.
 {%- endcomment -%}
 
 {%- if section.settings.enabled -%}
 <style>
-  @media (max-width: 749px) {
-    .brbr-ms {
-      display: flex !important; flex-wrap: nowrap !important; grid-template-columns: none !important;
-      gap: 12px !important; overflow-x: auto !important; scroll-snap-type: x mandatory; scroll-behavior: smooth;
-      -webkit-overflow-scrolling: touch; scrollbar-width: none; overscroll-behavior-x: contain;
-      padding: 4px 16px 8px !important; margin-left: -16px !important; margin-right: -16px !important;
-      scroll-padding-left: 16px;
-    }
-    .brbr-ms::-webkit-scrollbar { display: none; }
-    .brbr-ms > * { flex: 0 0 86% !important; max-width: 86% !important; min-width: 0 !important; scroll-snap-align: start; margin: 0 !important; }
-    .brbr-ms--wide > * { flex-basis: 90% !important; max-width: 90% !important; }
-    .brbr-ms-dots { display: flex; justify-content: center; align-items: center; gap: 7px; margin: 12px 0 4px; }
-    .brbr-ms-dots button {
-      width: 8px; height: 8px; padding: 0; border: 0; border-radius: 9999px; background: #CBD5E1; cursor: pointer;
-      transition: width 0.25s ease, background-color 0.25s ease;
-    }
-    .brbr-ms-dots button[aria-current="true"] { width: 22px; background: #7C3AED; }
-    .brbr-ms-dots--dark button { background: rgba(255, 255, 255, 0.35); }
-    .brbr-ms-dots--dark button[aria-current="true"] { background: #FFFFFF; }
-    .brbr-ms-count { margin-left: 8px; font: 700 12px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #94A3B8; }
+  .brbr-ms-wrap { position: relative; }
+  .brbr-ms {
+    --pv: 1; --gap: 16px;
+    display: flex !important; flex-wrap: nowrap !important; grid-template-columns: none !important;
+    gap: var(--gap) !important; overflow-x: auto !important; scroll-snap-type: x mandatory; scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none; overscroll-behavior-x: contain;
+  }
+  .brbr-ms::-webkit-scrollbar { display: none; }
+  .brbr-ms > * { flex: 0 0 calc((100% - (var(--pv) - 1) * var(--gap)) / var(--pv)) !important; max-width: none !important; min-width: 0 !important; scroll-snap-align: start; margin: 0 !important; }
+  .brbr-ms-dots { display: flex; justify-content: center; align-items: center; gap: 7px; margin: 14px 0 4px; }
+  .brbr-ms-dots[hidden] { display: none; }
+  .brbr-ms-dots button { width: 8px; height: 8px; padding: 0; border: 0; border-radius: 9999px; background: #CBD5E1; cursor: pointer; transition: width 0.25s ease, background-color 0.25s ease; }
+  .brbr-ms-dots button[aria-current="true"] { width: 22px; background: #7C3AED; }
+  .brbr-ms-dots--dark button { background: rgba(255, 255, 255, 0.35); }
+  .brbr-ms-dots--dark button[aria-current="true"] { background: #FFFFFF; }
+  .brbr-ms-arrow {
+    position: absolute; top: 50%; z-index: 3; width: 44px; height: 44px; margin-top: -22px; border-radius: 50%;
+    border: 1px solid #CBD5E1; background: #FFFFFF; color: #0F172A; display: none; align-items: center; justify-content: center;
+    cursor: pointer; box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18); transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  }
+  .brbr-ms-arrow:hover { background: #7C3AED; border-color: #7C3AED; color: #FFFFFF; transform: scale(1.06); }
+  .brbr-ms-arrow svg { width: 20px; height: 20px; stroke: currentColor; stroke-width: 2.4; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .brbr-ms-arrow--prev { left: -22px; } .brbr-ms-arrow--next { right: -22px; }
+  .brbr-ms-arrow[hidden] { display: none !important; }
 
+  @media (max-width: 749px) {
+    .brbr-ms { --gap: 12px; padding: 4px 16px 8px !important; margin-left: -16px !important; margin-right: -16px !important; scroll-padding-left: 16px; }
+    .brbr-ms > * { flex-basis: 86% !important; }
+    .brbr-ms--wide > * { flex-basis: 90% !important; }
     /* Shop All Products: first 6 until "Show more products" */
     .brbr-hs-short > :nth-child(n+7) { display: none !important; }
     .brbr-hs-short ~ .hs-more { display: none !important; }
-    .brbr-hs-reveal { display: flex; justify-content: center; margin: 18px 0 6px; }
-    .brbr-hs-reveal[hidden] { display: none; }
-    .brbr-hs-reveal button {
-      display: inline-flex; align-items: center; gap: 6px; height: 46px; padding: 0 22px; border: 1.5px solid #7C3AED; border-radius: 9999px;
-      background: #FFFFFF; color: #6D28D9; font: 800 15px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; cursor: pointer;
-    }
-    .brbr-hs-reveal button span { font-weight: 600; color: #8B5CF6; }
   }
-  .brbr-hs-reveal { display: none; }
+  @media (min-width: 750px) {
+    .brbr-ms { padding: 4px 2px 10px !important; }
+    .brbr-ms-arrow { display: inline-flex; }
+  }
+  @media (min-width: 750px) and (max-width: 1100px) { .brbr-ms-arrow--prev { left: -8px; } .brbr-ms-arrow--next { right: -8px; } }
+
+  .brbr-hs-reveal { display: none; justify-content: center; margin: 18px 0 6px; }
   @media (max-width: 749px) { .brbr-hs-reveal:not([hidden]) { display: flex; } }
+  .brbr-hs-reveal button {
+    display: inline-flex; align-items: center; gap: 6px; height: 46px; padding: 0 22px; border: 1.5px solid #7C3AED; border-radius: 9999px;
+    background: #FFFFFF; color: #6D28D9; font: 800 15px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; cursor: pointer;
+  }
+  .brbr-hs-reveal button span { font-weight: 600; color: #8B5CF6; }
   @media (prefers-reduced-motion: reduce) { .brbr-ms { scroll-behavior: auto; } }
 </style>
 
 <script>
   (function () {
-    if (window.BRBRMobileSliders) return;
-    var MQ = window.matchMedia('(max-width: 749px)');
+    if (window.BRBRSliders) return;
+    var PHONE = window.matchMedia('(max-width: 749px)');
+    var TABLET = window.matchMedia('(min-width: 750px) and (max-width: 1100px)');
     var DELAY = {{ section.settings.delay | default: 5 | times: 1000 }};
     var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    // container selector, label, options
+    // How many cards to show at once: [phone, tablet, desktop]
     var TARGETS = [
-      { sel: '.reviews-cards-grid', label: 'Customer reviews' },
-      { sel: '.custom-order-cards', label: 'Ways to order', wide: true },
+      { sel: '.reviews-cards-grid', label: 'Customer reviews', per: [1, 2, 2] },
+      { sel: '.custom-order-cards', label: 'Ways to order', per: [1, 2, 3], wide: true },
     ];
+    var ARROW_L = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>';
+    var ARROW_R = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>';
     var made = [];
 
-    function slideWidth(el) { var c = el.children[0]; return c ? c.getBoundingClientRect().width + 12 : el.clientWidth; }
-    function currentIndex(el) { return Math.round(el.scrollLeft / slideWidth(el)); }
-
-    function autoplay(el, getCount, goTo) {
-      var timer = null, pausedUntil = 0, visible = false;
-      function tick() {
-        if (REDUCED || !visible || Date.now() < pausedUntil || document.hidden) return;
-        var n = getCount(); if (n < 2) return;
-        var i = currentIndex(el);
-        goTo(i + 1 >= n ? 0 : i + 1);
-      }
-      function pause(ms) { pausedUntil = Date.now() + (ms || 8000); }
-      ['touchstart', 'pointerdown', 'wheel', 'mouseenter', 'focusin'].forEach(function (ev) { el.addEventListener(ev, function () { pause(); }, { passive: true }); });
-      if ('IntersectionObserver' in window) {
-        new IntersectionObserver(function (es) { visible = es[0].isIntersecting && es[0].intersectionRatio > 0.5; }, { threshold: [0, 0.5, 1] }).observe(el);
-      } else { visible = true; }
-      timer = setInterval(tick, DELAY);
-      return { stop: function () { clearInterval(timer); }, pause: pause };
-    }
+    function perView(t) { return PHONE.matches ? t.per[0] : (TABLET.matches ? t.per[1] : t.per[2]); }
 
     function build(t) {
       var el = document.querySelector(t.sel);
       if (!el || el.dataset.brbrMs) return;
-      var slides = [].filter.call(el.children, function (c) { return c.offsetParent !== null || getComputedStyle(c).display !== 'none'; });
-      if (slides.length < 2) return;
+      var slides = [].slice.call(el.children);
+      var pv = Math.min(perView(t), slides.length);
+      var pages = slides.length - pv + 1;
+      if (slides.length < 2 || pages < 2) return;
       el.dataset.brbrMs = '1';
       el.classList.add('brbr-ms');
       if (t.wide) el.classList.add('brbr-ms--wide');
+      el.style.setProperty('--pv', pv);
       el.setAttribute('role', 'region');
       el.setAttribute('aria-roledescription', 'carousel');
       el.setAttribute('aria-label', t.label);
       slides.forEach(function (s, i) { s.setAttribute('aria-roledescription', 'slide'); s.setAttribute('aria-label', (i + 1) + ' of ' + slides.length); });
 
+      var wrap = document.createElement('div');
+      wrap.className = 'brbr-ms-wrap';
+      el.parentNode.insertBefore(wrap, el);
+      wrap.appendChild(el);
+      var prev = document.createElement('button'); prev.type = 'button'; prev.className = 'brbr-ms-arrow brbr-ms-arrow--prev'; prev.setAttribute('aria-label', 'Previous'); prev.innerHTML = ARROW_L;
+      var next = document.createElement('button'); next.type = 'button'; next.className = 'brbr-ms-arrow brbr-ms-arrow--next'; next.setAttribute('aria-label', 'Next'); next.innerHTML = ARROW_R;
+      wrap.appendChild(prev); wrap.appendChild(next);
+
       var bg = getComputedStyle(el.closest('section, .shopify-section') || document.body).backgroundColor;
-      var dark = /rgb\((\d+), (\d+), (\d+)/.exec(bg); dark = dark && (+dark[1] + +dark[2] + +dark[3]) < 200;
+      var m = /rgb\((\d+), (\d+), (\d+)/.exec(bg); var dark = m && (+m[1] + +m[2] + +m[3]) < 200;
       var dots = document.createElement('div');
       dots.className = 'brbr-ms-dots' + (dark ? ' brbr-ms-dots--dark' : '');
-      dots.innerHTML = slides.map(function (s, i) { return '<button type="button" aria-label="Show ' + (i + 1) + ' of ' + slides.length + '"' + (i === 0 ? ' aria-current="true"' : '') + '></button>'; }).join('');
-      el.parentNode.insertBefore(dots, el.nextSibling);
+      var html = '';
+      for (var i = 0; i < pages; i++) html += '<button type="button" aria-label="Show ' + (i + 1) + ' of ' + pages + '"' + (i === 0 ? ' aria-current="true"' : '') + '></button>';
+      dots.innerHTML = html;
+      wrap.parentNode.insertBefore(dots, wrap.nextSibling);
       var btns = dots.querySelectorAll('button');
-      function goTo(i) { el.scrollTo({ left: i * slideWidth(el), behavior: REDUCED ? 'auto' : 'smooth' }); }
-      btns.forEach(function (b, i) { b.addEventListener('click', function () { ap.pause(); goTo(i); }); });
+
+      function step() { var c = el.children[0]; var gap = parseFloat(getComputedStyle(el).columnGap) || 16; return c ? c.getBoundingClientRect().width + gap : el.clientWidth; }
+      function index() { if (el.scrollLeft >= el.scrollWidth - el.clientWidth - 4) return pages - 1; return Math.round(el.scrollLeft / step()); }
+      function goTo(i) { if (i >= pages) i = 0; if (i < 0) i = pages - 1; el.scrollTo({ left: i * step(), behavior: REDUCED ? 'auto' : 'smooth' }); }
+      function sync() { var k = Math.min(pages - 1, index()); btns.forEach(function (b, j) { b.setAttribute('aria-current', j === k ? 'true' : 'false'); }); }
+      btns.forEach(function (b, j) { b.addEventListener('click', function () { pause(); goTo(j); }); });
+      prev.addEventListener('click', function () { pause(); goTo(index() - 1); });
+      next.addEventListener('click', function () { pause(); goTo(index() + 1); });
       var raf = 0;
-      el.addEventListener('scroll', function () {
-        cancelAnimationFrame(raf);
-        raf = requestAnimationFrame(function () {
-          var i = Math.min(btns.length - 1, currentIndex(el));
-          btns.forEach(function (b, k) { b.setAttribute('aria-current', k === i ? 'true' : 'false'); });
-        });
-      }, { passive: true });
-      var ap = autoplay(el, function () { return slides.length; }, goTo);
-      made.push({ el: el, dots: dots, ap: ap, t: t });
+      el.addEventListener('scroll', function () { cancelAnimationFrame(raf); raf = requestAnimationFrame(sync); }, { passive: true });
+
+      // Auto-advance: only while on screen, paused while someone is interacting
+      var pausedUntil = 0, hovering = false, visible = false;
+      function pause(ms) { pausedUntil = Date.now() + (ms || 8000); }
+      wrap.addEventListener('mouseenter', function () { hovering = true; });
+      wrap.addEventListener('mouseleave', function () { hovering = false; pause(2500); });
+      ['touchstart', 'pointerdown', 'wheel', 'focusin'].forEach(function (ev) { wrap.addEventListener(ev, function () { pause(); }, { passive: true }); });
+      var io = null;
+      if ('IntersectionObserver' in window) { io = new IntersectionObserver(function (es) { visible = es[0].isIntersecting && es[0].intersectionRatio > 0.5; }, { threshold: [0, 0.5, 1] }); io.observe(el); } else visible = true;
+      var timer = setInterval(function () {
+        if (REDUCED || !visible || hovering || document.hidden || Date.now() < pausedUntil) return;
+        goTo(index() + 1);
+      }, DELAY);
+
+      made.push({ el: el, wrap: wrap, dots: dots, stop: function () { clearInterval(timer); if (io) io.disconnect(); } });
     }
 
     function unbuild() {
-      made.forEach(function (m) {
-        m.ap.stop(); m.dots.remove();
-        m.el.classList.remove('brbr-ms', 'brbr-ms--wide');
-        m.el.removeAttribute('role'); m.el.removeAttribute('aria-roledescription'); m.el.removeAttribute('aria-label');
-        delete m.el.dataset.brbrMs; m.el.scrollLeft = 0;
+      made.forEach(function (x) {
+        x.stop();
+        x.dots.remove();
+        x.wrap.parentNode.insertBefore(x.el, x.wrap);
+        x.wrap.remove();
+        x.el.classList.remove('brbr-ms', 'brbr-ms--wide');
+        x.el.style.removeProperty('--pv');
+        x.el.removeAttribute('role'); x.el.removeAttribute('aria-roledescription'); x.el.removeAttribute('aria-label');
+        delete x.el.dataset.brbrMs; x.el.scrollLeft = 0;
       });
       made = [];
     }
 
-    // Shop All Products: show 6 first on phones, with our own "Show more" until it's tapped once
+    // Phones: Shop All Products shows 6 first, with our own "Show more" until it's tapped once
     function shortGrid() {
       var grid = document.querySelector('.hs-grid');
       if (!grid || grid.dataset.brbrShort) return;
@@ -136,8 +165,7 @@
       grid.parentNode.insertBefore(btn, grid.nextSibling);
       function sync() {
         var extra = grid.children.length - 6;
-        var on = grid.classList.contains('brbr-hs-short') && extra > 0;
-        btn.hidden = !on;
+        btn.hidden = !(grid.classList.contains('brbr-hs-short') && extra > 0);
         btn.querySelector('span').textContent = extra > 0 ? '(' + extra + ' more)' : '';
       }
       btn.querySelector('button').addEventListener('click', function () { grid.classList.remove('brbr-hs-short'); sync(); });
@@ -145,22 +173,19 @@
       sync();
     }
 
-    function apply() {
-      if (MQ.matches) { TARGETS.forEach(build); shortGrid(); }
-      else { unbuild(); }
-    }
+    function apply() { unbuild(); TARGETS.forEach(build); shortGrid(); }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply); else apply();
-    if (MQ.addEventListener) MQ.addEventListener('change', apply); else MQ.addListener(apply);
-    window.BRBRMobileSliders = { apply: apply };
+    [PHONE, TABLET].forEach(function (mq) { if (mq.addEventListener) mq.addEventListener('change', apply); else mq.addListener(apply); });
+    window.BRBRSliders = window.BRBRMobileSliders = { apply: apply };
   })();
 </script>
 {%- endif -%}
 
 {% schema %}
 {
-  "name": "Phone Slideshows",
+  "name": "Slideshows",
   "settings": [
-    { "type": "checkbox", "id": "enabled", "label": "Use slideshows on phones", "default": true },
+    { "type": "checkbox", "id": "enabled", "label": "Use slideshows for reviews and order cards", "default": true },
     { "type": "range", "id": "delay", "label": "Seconds per slide", "min": 3, "max": 10, "step": 1, "default": 5 }
   ],
   "enabled_on": { "groups": ["header"] }
