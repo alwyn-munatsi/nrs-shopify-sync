@@ -1,0 +1,92 @@
+{%- comment -%}
+  705 BRBR welcome offer strip: a slim one-line teaser under the homepage hero that jumps to the full
+  "Get 10% off" sign-up section (#welcome-offer, further down the page).
+  Hidden for anyone signed in to an account (new customers get WELCOME10 applied automatically by the
+  "Welcome Auto-Apply" section) and on devices that already used the sign-up form ("brbr-welcome-done").
+  Sizes in px because this theme scales rem down.
+{%- endcomment -%}
+
+{%- unless customer -%}
+<style>
+  .brbr-wstrip {
+    padding: 14px 20px 0;
+    background: transparent;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  .brbr-wstrip__bar {
+    max-width: 1080px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 10px 16px;
+    border-radius: 9999px;
+    background: #F5F3FF;
+    border: 1px solid #DDD6FE;
+    color: #334155;
+    font-size: 15px;
+    line-height: 1.35;
+    text-align: center;
+    text-decoration: none;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  }
+  .brbr-wstrip__bar:hover {
+    background: #EDE9FE;
+    box-shadow: 0 6px 18px rgba(124, 58, 237, 0.15);
+    transform: translateY(-1px);
+  }
+  .brbr-wstrip__bar:focus-visible { outline: 2px solid #7C3AED; outline-offset: 3px; }
+  .brbr-wstrip__text strong { color: #4C1D95; font-weight: 800; }
+  .brbr-wstrip__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 14px;
+    border-radius: 9999px;
+    background: #7C3AED;
+    color: #FFFFFF;
+    font-size: 13.5px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+  .brbr-wstrip__bar:hover .brbr-wstrip__cta { background: #6D28D9; }
+  @media (max-width: 600px) {
+    .brbr-wstrip__bar { border-radius: 16px; font-size: 14px; gap: 8px; }
+  }
+</style>
+
+<div class="brbr-wstrip" id="brbrWelcomeStripWrap">
+  <script>try { if (localStorage.getItem('brbr-welcome-done')) document.getElementById('brbrWelcomeStripWrap').style.display = 'none'; } catch (e) {}</script>
+  <a class="brbr-wstrip__bar" id="brbrWelcomeStrip" href="{{ routes.root_url }}#welcome-offer">
+    <span class="brbr-wstrip__text">🎁 <strong>New here?</strong> Take <strong>10% off</strong> your first order. Sign up in 30 seconds.</span>
+    <span class="brbr-wstrip__cta">Claim my 10% →</span>
+  </a>
+</div>
+
+<script>
+  (function () {
+    var link = document.getElementById('brbrWelcomeStrip');
+    if (!link) return;
+    link.addEventListener('click', function (e) {
+      var target = document.getElementById('welcome-offer');
+      if (!target) return; // not on the homepage: follow the link
+      e.preventDefault();
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (history.replaceState) history.replaceState(null, '', '#welcome-offer');
+      var email = document.getElementById('BrbrWelcomeEmail');
+      if (email) setTimeout(function () { email.focus({ preventScroll: true }); }, 700);
+    });
+  })();
+</script>
+{%- endunless -%}
+
+{% schema %}
+{
+  "name": "Welcome Offer Strip",
+  "settings": [],
+  "presets": [{ "name": "Welcome Offer Strip" }]
+}
+{% endschema %}
