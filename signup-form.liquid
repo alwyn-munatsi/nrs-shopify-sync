@@ -30,6 +30,13 @@
   .brbr-su__signin { position: relative; z-index: 1; margin: 26px 0 0; font-size: 14px; color: #DDD6FE; }
   .brbr-su__signin a { color: #FFFFFF; font-weight: 800; }
   @media (max-width: 860px) { .brbr-su__side { padding: 28px 22px; } .brbr-su__perks { display: none; } .brbr-su__signin { display: none; } }
+  /* Sign in on phones: a slim banner so the email box is visible straight away */
+  @media (max-width: 860px) {
+    .brbr-su.is-signin .brbr-su__side { padding: 16px 20px; display: flex; align-items: center; gap: 12px; }
+    .brbr-su.is-signin .brbr-su__logo { width: 40px; height: 40px; }
+    .brbr-su.is-signin .brbr-su__badge, .brbr-su.is-signin .brbr-su__lead { display: none; }
+    .brbr-su.is-signin .brbr-su__h1 { margin: 0; font-size: 18px; }
+  }
 
   /* Form panel */
   .brbr-su__main { padding: 36px 40px 32px; }
@@ -310,6 +317,7 @@
     function show(n) {
       step = n;
       var signin = n === 'signin';
+      var sec = form.closest('.brbr-su'); if (sec) sec.classList.toggle('is-signin', signin);
       progress.hidden = signin || n === 'done';
       tabs.forEach(function (t) { t.setAttribute('aria-selected', String((t.dataset.mode === 'signin') === signin)); });
       form.querySelector('.brbr-su__tabs').hidden = n === 'done';
