@@ -1,0 +1,235 @@
+{%- comment -%}
+  705 BRBR pop-up on the top bar's store status badge.
+  - Open (6 AM – 12 AM New York time): "Get in Touch" with phone, email, address and hours.
+  - Closed (12 AM – 6 AM, badge says "Pre-Order for Later"): "Pre-order now" with a countdown to opening
+    and how overnight pickup / delivery orders work.
+  Opens on hover (desktop), on keyboard focus, and on tap (phones); closes when the pointer leaves,
+  on Escape, or on a tap elsewhere. The markup renders here and an inline script attaches it next to
+  the badge (#liveStoreStatusBadge in the Custom Top Bar). Sizes in px because this theme scales rem down.
+{%- endcomment -%}
+
+<style>
+  .brbr-gpop-host { position: relative; }
+  #liveStoreStatusBadge { cursor: pointer; }
+  #liveStoreStatusBadge:focus-visible { outline: 2px solid #A78BFA; outline-offset: 2px; }
+
+  .brbr-gpop {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0;
+    z-index: 1003;
+    width: 360px;
+    max-width: calc(100vw - 24px);
+    padding: 20px 20px 18px;
+    box-sizing: border-box;
+    border-radius: 16px;
+    border: 1px solid rgba(167, 139, 250, 0.25);
+    background: radial-gradient(120% 90% at 0% 0%, #3B1A78 0%, #1E1240 45%, #0B0B16 100%);
+    box-shadow: 0 18px 44px rgba(2, 6, 23, 0.55);
+    color: #E2E8F0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    text-align: left;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-6px);
+    transition: opacity 0.18s ease, transform 0.18s ease, visibility 0s linear 0.18s;
+  }
+  .brbr-gpop.is-open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+  }
+  .brbr-gpop::before {
+    content: "";
+    position: absolute;
+    top: -7px;
+    left: 26px;
+    width: 12px;
+    height: 12px;
+    background: #3B1A78;
+    border-left: 1px solid rgba(167, 139, 250, 0.25);
+    border-top: 1px solid rgba(167, 139, 250, 0.25);
+    transform: rotate(45deg);
+  }
+  /* Invisible bridge so the pop-up stays open while the pointer moves down into it */
+  .brbr-gpop::after { content: ""; position: absolute; left: 0; right: 0; top: -12px; height: 12px; }
+
+  .brbr-gpop__title { margin: 0 0 4px; font-size: 19px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.01em; }
+  .brbr-gpop__sub { margin: 0 0 14px; font-size: 13px; line-height: 1.45; color: #94A3B8; }
+  .brbr-gpop__list { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+  .brbr-gpop__row { display: flex; align-items: flex-start; gap: 12px; }
+  .brbr-gpop__icon {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: rgba(124, 58, 237, 0.22);
+    border: 1px solid rgba(167, 139, 250, 0.35);
+    color: #C4B5FD;
+  }
+  .brbr-gpop__icon svg { width: 17px; height: 17px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .brbr-gpop__label { display: block; margin: 1px 0 2px; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #A78BFA; }
+  .brbr-gpop__value, .brbr-gpop__value a { font-size: 14px; line-height: 1.45; color: #F1F5F9; text-decoration: none; }
+  .brbr-gpop__value a:hover { color: #FFFFFF; text-decoration: underline; }
+  .brbr-gpop__more {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 14px;
+    font-size: 13px;
+    font-weight: 800;
+    color: #C4B5FD;
+    text-decoration: none;
+  }
+  .brbr-gpop__more:hover { color: #FFFFFF; }
+  .brbr-gpop [hidden] { display: none !important; }
+
+  /* Closed: pre-order view */
+  .brbr-gpop__moon {
+    display: inline-flex; align-items: center; gap: 7px; margin: 0 0 10px; padding: 5px 10px 5px 8px; border-radius: 9999px;
+    background: rgba(251, 191, 36, 0.12); border: 1px solid rgba(251, 191, 36, 0.35); color: #FCD34D;
+    font-size: 12px; font-weight: 800; letter-spacing: 0.02em;
+  }
+  .brbr-gpop__moon svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .brbr-gpop__count { font-variant-numeric: tabular-nums; }
+  .brbr-gpop__cta {
+    display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 16px; min-height: 44px; border-radius: 12px;
+    background: linear-gradient(135deg, #7C3AED, #A855F7); color: #FFFFFF; font-size: 14.5px; font-weight: 800; text-decoration: none;
+    box-shadow: 0 10px 22px -10px rgba(168, 85, 247, 0.9); transition: transform 0.15s ease, filter 0.15s ease;
+  }
+  .brbr-gpop__cta:hover { transform: translateY(-1px); filter: brightness(1.08); color: #FFFFFF; }
+  .brbr-gpop__cta svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2.2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .brbr-gpop__foot { display: block; margin-top: 10px; font-size: 12px; line-height: 1.45; color: #94A3B8; text-align: center; }
+  .brbr-gpop__foot a { color: #C4B5FD; font-weight: 700; text-decoration: none; }
+  .brbr-gpop__foot a:hover { color: #FFFFFF; text-decoration: underline; }
+</style>
+
+<div class="brbr-gpop" id="brbrGetInTouch" role="dialog" aria-label="Get in touch" hidden>
+  <div data-gpop-view="open">
+  <p class="brbr-gpop__title">Get in Touch</p>
+  <p class="brbr-gpop__sub">Reach us by phone, email, or stop by the store anytime we're open.</p>
+  <ul class="brbr-gpop__list" role="list">
+    <li class="brbr-gpop__row">
+      <span class="brbr-gpop__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg></span>
+      <div><span class="brbr-gpop__label">Call us</span><span class="brbr-gpop__value"><a href="tel:9172658063">(917) 265-8063</a></span></div>
+    </li>
+    <li class="brbr-gpop__row">
+      <span class="brbr-gpop__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></span>
+      <div><span class="brbr-gpop__label">Email</span><span class="brbr-gpop__value"><a href="mailto:705quickstop@gmail.com">705quickstop@gmail.com</a></span></div>
+    </li>
+    <li class="brbr-gpop__row">
+      <span class="brbr-gpop__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
+      <div><span class="brbr-gpop__label">Visit</span><span class="brbr-gpop__value"><a href="https://maps.app.goo.gl/Rn9GY1jnfXuEgcM48" target="_blank" rel="noopener">705 2nd Ave (Between E 38th &amp; E 39th St), New York, NY 10016</a></span></div>
+    </li>
+    <li class="brbr-gpop__row">
+      <span class="brbr-gpop__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+      <div><span class="brbr-gpop__label">Hours</span><span class="brbr-gpop__value">Open daily, 6:00 AM – 12:00 AM (Next Day)</span></div>
+    </li>
+  </ul>
+  <a class="brbr-gpop__more" href="{{ routes.root_url }}#contact">Send us a message →</a>
+  </div>
+
+  <div data-gpop-view="closed" hidden>
+    <span class="brbr-gpop__moon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>Closed now · Opens in <span class="brbr-gpop__count" data-gpop-count>a few hours</span></span>
+    <p class="brbr-gpop__title">Pre-order now, we'll have it ready</p>
+    <p class="brbr-gpop__sub">We're closed overnight, but our online store never sleeps. Order now and we'll start on it first thing when we open at 6:00 AM.</p>
+    <ul class="brbr-gpop__list" role="list">
+      <li class="brbr-gpop__row">
+        <span class="brbr-gpop__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span>
+        <div><span class="brbr-gpop__label">Pickup</span><span class="brbr-gpop__value">Choose Pickup at checkout and collect it at 705 2nd Ave from 6:00 AM.</span></div>
+      </li>
+      <li class="brbr-gpop__row">
+        <span class="brbr-gpop__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 7h11v9H3z"/><path d="M14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="1.8"/><circle cx="17" cy="18" r="1.8"/></svg></span>
+        <div><span class="brbr-gpop__label">Delivery &amp; shipping</span><span class="brbr-gpop__value">Orders placed overnight are packed and sent out once we open.</span></div>
+      </li>
+      <li class="brbr-gpop__row">
+        <span class="brbr-gpop__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+        <div><span class="brbr-gpop__label">Store hours</span><span class="brbr-gpop__value">Open daily, 6:00 AM – 12:00 AM</span></div>
+      </li>
+    </ul>
+    <a class="brbr-gpop__cta" href="{{ routes.all_products_collection_url }}">Start your pre-order<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></a>
+    <span class="brbr-gpop__foot">Questions? <a href="mailto:705quickstop@gmail.com">Email us</a> or <a href="{{ routes.root_url }}#contact">send a message</a> and we'll reply when we open.</span>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var pop = document.getElementById('brbrGetInTouch');
+    var badge = document.getElementById('liveStoreStatusBadge');
+    if (!pop || !badge || !badge.parentNode) return;
+
+    var host = badge.parentNode;
+    host.classList.add('brbr-gpop-host');
+    host.appendChild(pop);
+    pop.hidden = false;
+
+    badge.setAttribute('tabindex', '0');
+    badge.setAttribute('role', 'button');
+    badge.setAttribute('aria-haspopup', 'dialog');
+    badge.setAttribute('aria-expanded', 'false');
+    badge.setAttribute('aria-controls', 'brbrGetInTouch');
+
+    var viewOpen = pop.querySelector('[data-gpop-view="open"]');
+    var viewClosed = pop.querySelector('[data-gpop-view="closed"]');
+    var countEl = pop.querySelector('[data-gpop-count]');
+    // Same rule as the top bar: open 6:00 AM – 12:00 AM New York time
+    function nyNow() {
+      var parts = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: 'numeric', hourCycle: 'h23' }).formatToParts(new Date());
+      var h = 0, m = 0;
+      parts.forEach(function (p) { if (p.type === 'hour') h = +p.value % 24; if (p.type === 'minute') m = +p.value; });
+      return { h: h, m: m };
+    }
+    function isClosed() {
+      if (badge.classList.contains('status-closed') || /pre-?order/i.test(badge.textContent)) return true;
+      if (badge.classList.contains('status-open')) return false;
+      return nyNow().h < 6;
+    }
+    function syncView() {
+      var closed = isClosed();
+      viewOpen.hidden = closed;
+      viewClosed.hidden = !closed;
+      pop.setAttribute('aria-label', closed ? 'Pre-order while we are closed' : 'Get in touch');
+      if (closed && countEl) {
+        var t = nyNow(), mins = Math.max(1, (6 * 60) - (t.h * 60 + t.m));
+        var hr = Math.floor(mins / 60), mn = mins % 60;
+        countEl.textContent = (hr ? hr + ' hr ' : '') + (mn || !hr ? mn + ' min' : '').trim();
+      }
+    }
+    syncView();
+
+    var timer = null;
+    var hoverCapable = window.matchMedia && window.matchMedia('(hover: hover)').matches;
+    function open() { clearTimeout(timer); syncView(); pop.classList.add('is-open'); badge.setAttribute('aria-expanded', 'true'); }
+    function close() { clearTimeout(timer); pop.classList.remove('is-open'); badge.setAttribute('aria-expanded', 'false'); }
+    function closeSoon() { clearTimeout(timer); timer = setTimeout(close, 180); }
+
+    if (hoverCapable) {
+      badge.addEventListener('mouseenter', open);
+      badge.addEventListener('mouseleave', closeSoon);
+      pop.addEventListener('mouseenter', open);
+      pop.addEventListener('mouseleave', closeSoon);
+    }
+    badge.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (pop.classList.contains('is-open') && !hoverCapable) close(); else open();
+    });
+    badge.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pop.classList.contains('is-open') ? close() : open(); }
+    });
+    host.addEventListener('focusout', function (e) { if (!host.contains(e.relatedTarget)) closeSoon(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+    document.addEventListener('click', function (e) { if (!host.contains(e.target)) close(); });
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Get in Touch Pop-up",
+  "settings": [],
+  "enabled_on": { "groups": ["header"] }
+}
+{% endschema %}
