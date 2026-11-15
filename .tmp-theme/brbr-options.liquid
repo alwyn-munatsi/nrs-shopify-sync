@@ -85,7 +85,7 @@
 
       <p class="brbr-opt__label" style="margin-top:0">Get directions with</p>
       <div class="brbr-opt__list" data-maps>
-        <a class="brbr-opt__item" data-app="apple" href="https://maps.apple.com/?address={{ addr | url_encode }}&q=705+BRBR" target="_blank" rel="noopener">
+        <a class="brbr-opt__item" data-app="apple" data-apple-maps href="https://maps.apple.com/?address={{ addr | url_encode }}&q=705+BRBR" target="_blank" rel="noopener">
           <span class="brbr-opt__logo" style="background:#111827" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 22s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
           <span><span class="brbr-opt__name">Apple Maps</span><span class="brbr-opt__note">iPhone, iPad &amp; Mac</span></span><span class="brbr-opt__ext" aria-hidden="true">↗</span>
         </a>
@@ -177,6 +177,8 @@
     var list = root.querySelector('[data-maps]');
     var apple = /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
     if (list && !apple) list.insertBefore(list.querySelector('[data-app="google"]'), list.firstChild);
+    // On Apple devices open the Apple Maps app directly (maps.apple.com follows the phone's default maps app)
+    if (apple) root.querySelectorAll('[data-apple-maps]').forEach(function (a) { a.setAttribute('href', 'maps://?q=705+BRBR&address=705+2nd+Ave,+New+York,+NY+10016'); a.removeAttribute('target'); });
     root.addEventListener('click', function (e) {
       var b = e.target.closest('[data-copy]');
       if (!b) return;

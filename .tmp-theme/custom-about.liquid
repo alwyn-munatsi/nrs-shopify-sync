@@ -183,7 +183,8 @@
           <a href="{{ section.settings.button_1_link | default: '#contact' }}" class="about-btn about-btn-primary">{{ section.settings.button_1_label }}</a>
         {%- endif -%}
         {%- if section.settings.button_2_label != blank -%}
-          <a href="{{ section.settings.button_2_link | default: '#' }}" target="_blank" rel="noopener noreferrer" class="about-btn about-btn-secondary">{{ section.settings.button_2_label }}</a>
+          {%- assign b2 = section.settings.button_2_link | default: '#store-location' -%}
+          <a href="{{ b2 }}"{% if b2 contains 'http' %} target="_blank" rel="noopener noreferrer"{% endif %} class="about-btn about-btn-secondary">{{ section.settings.button_2_label }}</a>
         {%- endif -%}
       </div>
     </div>
@@ -213,7 +214,7 @@
     { "type": "text", "id": "button_1_label", "label": "Button 1 label", "default": "Contact Us" },
     { "type": "text", "id": "button_1_link", "label": "Button 1 link", "default": "#contact", "info": "Use #contact to scroll to the Contact Us section" },
     { "type": "text", "id": "button_2_label", "label": "Button 2 label", "default": "Get Directions" },
-    { "type": "text", "id": "button_2_link", "label": "Button 2 link", "default": "https://maps.app.goo.gl/Rn9GY1jnfXuEgcM48" },
+    { "type": "text", "id": "button_2_link", "label": "Button 2 link", "default": "#store-location", "info": "#store-location scrolls to the map in the footer; a full https:// link opens in a new tab" },
     { "type": "header", "content": "Not shown (brand card removed)" },
     { "type": "image_picker", "id": "image", "label": "Store photo" },
     { "type": "image_picker", "id": "logo", "label": "Logo for branded card" },
