@@ -63,12 +63,13 @@
 
   .about-highlights {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.85rem;
     margin-bottom: 2rem;
   }
 
   .about-highlight {
+    min-width: 0;
     background: #F8FAFC;
     border: 1px solid #E2E8F0;
     border-radius: 12px;
@@ -151,7 +152,7 @@
 
   @media (max-width: 520px) {
     .about-highlights {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
     }
   }
 </style>
