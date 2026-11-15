@@ -1,0 +1,16 @@
+api_version = "2026-10"
+
+[[extensions]]
+type = "ui_extension"
+name = "705 BRBR my details"
+handle = "brbr-profile-details"
+description = "Profile page: mobile number, gender, date of birth and 'Age verified (21+)' (skips the website age check)."
+
+[[extensions.targeting]]
+target = "customer-account.profile.block.render"
+module = "./src/Profile.jsx"
+
+[extensions.capabilities]
+api_access = false
+# Calls the 705 BRBR Worker (/account/*) with Shopify's session token.
+network_access = true

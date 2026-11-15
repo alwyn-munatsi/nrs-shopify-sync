@@ -482,15 +482,38 @@ function json(data, status, headers) {
 }
 
 import { signup, signupRateLimited, signupReady, signinCheck, lookupRateLimited } from './signup.js';
+import { handleAccount, accountReady } from './account.js';
+
+// Customer account blocks run on extensions.shopifycdn.com; they're authenticated by the Shopify session token,
+// so any origin may call /account/* (the token decides whose data it is).
+const ACCOUNT_CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+  'Access-Control-Max-Age': '86400',
+};
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const origin = request.headers.get('Origin') || '';
     const cors = corsHeaders(env, origin);
+    if (url.pathname.startsWith('/account/')) {
+      if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: ACCOUNT_CORS });
+      const token = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
+      let body = null;
+      if (request.method === 'POST') { try { body = await request.json(); } catch { return json({ error: 'Bad request' }, 400, ACCOUNT_CORS); } }
+      try {
+        const out = await handleAccount(url.pathname, request.method, env, token, body);
+        return json(out.json, out.status, { ...ACCOUNT_CORS, 'Cache-Control': 'no-store' });
+      } catch (e) {
+        console.log('account error', e && e.message);
+        return json({ error: 'Something went wrong. Please try again.' }, 502, ACCOUNT_CORS);
+      }
+    }
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
     if (url.pathname === '/' || url.pathname === '/health') {
-      return json({ ok: true, name: 'BRBR (705 BRBR assistant)', ready: Boolean(provider(env)), provider: provider(env), signup: signupReady(env) }, 200, cors);
+      return json({ ok: true, name: 'BRBR (705 BRBR assistant)', ready: Boolean(provider(env)), provider: provider(env), signup: signupReady(env), account: accountReady(env) }, 200, cors);
     }
     if (url.pathname === '/signin-check' && request.method === 'POST') {
       const allowed = String(env.ALLOWED_ORIGINS || '').split(',').map((x) => x.trim()).filter(Boolean);

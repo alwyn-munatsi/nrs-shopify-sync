@@ -1,0 +1,15 @@
+api_version = "2026-10"
+
+[[extensions]]
+type = "ui_extension"
+name = "705 BRBR order help"
+handle = "brbr-order-help"
+description = "Order page: Order these again, call/email with the order number, pickup reminder."
+
+[[extensions.targeting]]
+target = "customer-account.order-status.block.render"
+module = "./src/OrderHelp.jsx"
+
+[extensions.capabilities]
+api_access = false
+network_access = false

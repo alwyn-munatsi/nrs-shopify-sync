@@ -14,6 +14,9 @@ GROQ_MODEL = "openai/gpt-oss-120b"
 # Website sign-up (POST /signup): creates customers with the "NRS Inventory Sync" app's Admin token
 # (Worker secret SIGNUP_ADMIN_TOKEN, copied from the GitHub secret SHOPIFY_ADMIN_ACCESS_TOKEN by the deploy).
 SHOPIFY_STORE_DOMAIN = "7e36ef-2.myshopify.com"
+# Customer account blocks (/account/*): session tokens are checked against the "705 BRBR Account Extras" app
+# (client id below; client secret = Worker secret ACCOUNT_APP_CLIENT_SECRET, from the GitHub secret of the same name).
+ACCOUNT_APP_CLIENT_ID = "1ffd4218b4ef1986b7f6f4a3cf74b89a"
 
 # Direct link to the 705 BRBR lottery Worker (live NY Lottery results). Workers on the same account can't
 # always call each other over workers.dev, so this uses a service binding.

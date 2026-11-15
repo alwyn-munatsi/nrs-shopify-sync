@@ -1,0 +1,16 @@
+api_version = "2026-10"
+
+[[extensions]]
+type = "ui_extension"
+name = "My 705"
+handle = "brbr-my-705"
+description = "My 705 page in the customer account: welcome offer, age verification, order again favorites, recent orders and shortcuts."
+
+[[extensions.targeting]]
+target = "customer-account.page.render"
+module = "./src/My705.jsx"
+
+[extensions.capabilities]
+api_access = false
+# Calls the 705 BRBR Worker (/account/me) with Shopify's session token.
+network_access = true

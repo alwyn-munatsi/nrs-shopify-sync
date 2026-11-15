@@ -1,4 +1,5 @@
-# 705 BRBR Account Extras: adds a branded block to the customer account Orders page.
+# 705 BRBR Account Extras: branded blocks and pages for the customer account (Orders, Profile, My 705, order pages)
+# and the Thank you page.
 # App created in the Dev Dashboard (705 BRBR org).
 client_id = "1ffd4218b4ef1986b7f6f4a3cf74b89a"
 name = "705 BRBR Account Extras"
@@ -6,8 +7,10 @@ application_url = "https://shopify.dev/apps/default-app-home"
 embedded = true
 
 [access_scopes]
-# Lets the block read product names, photos and prices for "Popular right now".
-scopes = "unauthenticated_read_product_listings"
+# unauthenticated_read_product_listings: the Orders page block reads product names, photos and prices ("Popular").
+# customer_read_customers: lets Shopify put the signed-in customer in the session token, so the 705 BRBR Worker
+#   knows whose details to show/save on the Profile and My 705 pages (needs protected customer data access).
+scopes = "unauthenticated_read_product_listings,customer_read_customers"
 
 [auth]
 redirect_urls = ["https://shopify.dev/apps/default-app-home/api/auth"]
