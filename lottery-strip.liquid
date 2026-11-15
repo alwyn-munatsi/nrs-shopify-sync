@@ -1,0 +1,69 @@
+{%- comment -%}
+  705 BRBR homepage NY Lottery strip, two slideshows:
+  1. Latest results: winning numbers from draws in the last 24 hours (New York time), newest first. Hidden if none.
+  2. Next draws: upcoming draws with live countdowns.
+  Tapping a card opens the game (results view for result cards). Data: assets/brbr-lottery.js.
+{%- endcomment -%}
+
+{{ 'brbr-lottery.css' | asset_url | stylesheet_tag }}
+<style>
+  .lt-chip-logo { display: flex; align-items: center; justify-content: center; height: 56px; margin: 0 0 8px; padding: 6px 10px; border-radius: 10px; background: radial-gradient(circle at 50% 0%, #26215F 0%, #0F172A 75%); border-bottom: 3px solid var(--c, #7C3AED); }
+  .lt-chip-logo img { max-height: 42px; max-width: 100%; object-fit: contain; display: block; }
+    .lt-row-logo { display: inline-flex; align-items: center; justify-content: center; height: 54px; min-width: 150px; max-width: 70%; padding: 7px 16px; border-radius: 12px; background: radial-gradient(circle at 50% 0%, #26215F 0%, #0F172A 75%); border-bottom: 3px solid var(--c, #7C3AED); }
+  .lt-row-logo img { max-height: 40px; max-width: 180px; object-fit: contain; display: block; }
+  /* Two rows: Latest results, then Next draws */
+  [data-lt-results-row] { display: contents; }
+  [data-lt-results-row][hidden] { display: none !important; }
+  .lt-strip-title em { display: block; margin-top: 2px; font-style: normal; font-size: 12px; font-weight: 700; color: #A78BFA; }
+  .lt-chip--result .lt-balls { margin-top: 8px; }
+  .lt-strip-spacer { display: block; }
+  @media (max-width: 900px) { .lt-strip-spacer { display: none; } }
+</style>
+
+<section class="lt lt-strip" data-lt-strip data-limit="{{ section.settings.limit }}" aria-label="NY Lottery results and next draws">
+  {%- assign nyl_logo = section.settings.logo | default: images['ny-lottery-logo.png'] -%}
+  <div class="lt-strip-inner">
+    <div data-lt-results-row hidden>
+      <div class="lt-strip-title">
+        {%- if nyl_logo != blank -%}{{ nyl_logo | image_url: width: 140 | image_tag: class: 'lt-strip-logo', alt: 'New York Lottery', loading: 'lazy', width: 56, height: 56 }}{%- endif -%}
+        <div>
+          <small>{{ section.settings.eyebrow }}</small>
+          <strong>{{ section.settings.results_heading | default: 'Latest results' }}</strong>
+          <em>Last 24 hours</em>
+        </div>
+      </div>
+      <div class="lt-next" data-lt-results-list aria-label="Winning numbers from the last 24 hours"></div>
+      <a class="lt-strip-cta" href="{{ section.settings.link | default: '/pages/lottery' }}">{{ section.settings.button }} &rarr;</a>
+    </div>
+
+    <div class="lt-strip-title">
+      <div>
+        <small>Coming up</small>
+        <strong>{{ section.settings.heading }}</strong>
+      </div>
+    </div>
+    <div class="lt-next" data-lt-next></div>
+    <span class="lt-strip-spacer" aria-hidden="true"></span>
+    <p class="lt-strip-note">Tickets sold in store only &middot; 18+ &middot; Times are New York time</p>
+  </div>
+</section>
+
+{% render 'lottery-games-json' %}
+{% render 'lottery-autoscroll' %}
+<script src="{{ 'brbr-lottery.js' | asset_url }}" defer></script>
+
+{% schema %}
+{
+  "name": "NY Lottery Draws Strip",
+  "settings": [
+    { "type": "image_picker", "id": "logo", "label": "NY Lottery logo", "info": "Defaults to the NY Lottery logo in Files (ny-lottery-logo.png)." },
+    { "type": "text", "id": "eyebrow", "label": "Small label", "default": "NY Lottery sold here" },
+    { "type": "text", "id": "results_heading", "label": "Results heading", "default": "Latest results" },
+    { "type": "text", "id": "heading", "label": "Next draws heading", "default": "Next draws" },
+    { "type": "range", "id": "limit", "label": "Games in the slideshow", "min": 2, "max": 9, "step": 1, "default": 8 },
+    { "type": "text", "id": "button", "label": "Button text", "default": "Games & results" },
+    { "type": "url", "id": "link", "label": "Button link", "info": "Defaults to /pages/lottery" }
+  ],
+  "presets": [{ "name": "NY Lottery Draws Strip" }]
+}
+{% endschema %}
