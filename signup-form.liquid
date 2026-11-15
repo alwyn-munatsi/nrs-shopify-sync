@@ -1,3 +1,4 @@
+{%- assign brbr_login = '/customer_authentication/login?return_to=%2F' -%}
 {%- comment -%}
   705 BRBR "Sign up" page (/pages/sign-up, template page.sign-up).
   Three quick steps: About you (name, date of birth, gender) -> Contact (email, mobile) -> Address (with suggestions).
@@ -53,6 +54,11 @@
   .brbr-su__step.is-done .brbr-su__bar i, .brbr-su__step.is-on .brbr-su__bar i { width: 100%; }
   .brbr-su__step span { display: block; margin-top: 7px; font-size: 12px; font-weight: 700; color: #94A3B8; }
   .brbr-su__step.is-on span, .brbr-su__step.is-done span { color: #6D28D9; }
+  /* Banner title: sign-up message on Create account, ordering message on Sign in */
+  .brbr-su__h1-in { display: none; }
+  .brbr-su.is-signin .brbr-su__h1-up { display: none; }
+  .brbr-su.is-signin .brbr-su__h1-in { display: inline; }
+  .brbr-su__h1 .brbr-su__h1-up, .brbr-su__h1 .brbr-su__h1-in { color: inherit; }
   .brbr-su__title { margin: 0 0 4px; font-size: 24px; font-weight: 800; letter-spacing: -0.01em; color: #0F172A; }
   .brbr-su__sub { margin: 0 0 20px; font-size: 14.5px; color: #64748B; }
   .brbr-su__panel[hidden] { display: none; }
@@ -121,7 +127,7 @@
     <aside class="brbr-su__side">
       {%- if settings.logo != blank -%}<img class="brbr-su__logo" src="{{ settings.logo | image_url: width: 120 }}" alt="{{ shop.name | escape }}" width="56" height="56">{%- endif -%}
       <span class="brbr-su__badge">🎁 Welcome offer</span>
-      <h1 class="brbr-su__h1">Join 705 BRBR &amp; get <span>10% off</span> your first order</h1>
+      <h1 class="brbr-su__h1"><span class="brbr-su__h1-up">Join 705 BRBR &amp; get <span>10% off</span> your first order</span><span class="brbr-su__h1-in">LET&rsquo;S START YOUR NEW ORDER FOR <span>DELIVERY OR PICKUP</span> NOW!</span></h1>
       <p class="brbr-su__lead">One minute to sign up. Your discount is applied automatically when you shop signed in.</p>
       <ul class="brbr-su__perks" role="list">
         <li><i aria-hidden="true">🏷️</i><span><b>10% off your first order</b>Applied at checkout, nothing to copy.</span></li>
@@ -246,11 +252,11 @@
             <h2>Welcome to 705 BRBR<span data-su-name></span>!</h2>
             <p>Your account is created and your address is saved. One last step to finish:</p>
             <ol>
-              <li>Tap <b>Sign in</b> and enter <b data-su-email>your email</b></li>
+              <li>Tap <b>Sign in</b>. We'll send a code to <b data-su-email>your email</b></li>
               <li>Type the 6-digit code we email you</li>
               <li>Shop, your 10% is applied automatically at checkout</li>
             </ol>
-            <div class="brbr-su__nav" style="max-width:420px;margin:0 auto"><a class="brbr-su__btn brbr-su__btn--go" href="{{ routes.account_login_url }}">Sign in to my account</a></div>
+            <div class="brbr-su__nav" style="max-width:420px;margin:0 auto"><a class="brbr-su__btn brbr-su__btn--go" href="{{ brbr_login }}" data-su-login>Sign in to my account</a></div>
           </div>
         </div>
       </form>
@@ -337,7 +343,9 @@
     tabs.forEach(function (t) { t.addEventListener('click', function () { show(t.dataset.mode === 'signin' ? 'signin' : 1); }); });
 
     // Sign in: known email -> Shopify's secure sign-in (6-digit code); new email -> Create account with it filled in
-    var LOGIN = {{ routes.account_login_url | json }};
+    var LOGIN = {{ brbr_login | json }};
+    // Passing the email lets Shopify skip its own "enter your email" screen and go straight to the 6-digit code
+    function loginFor(email) { return email ? LOGIN + '&login_hint=' + encodeURIComponent(email) + '&login_hint_mode=submit' : LOGIN; }
     var inGo = $('#suInGo');
     function signinGo() {
       var email = val('signinEmail');
@@ -356,9 +364,9 @@
             return;
           }
           inGo.textContent = 'Taking you to secure sign-in…';
-          location.href = LOGIN;
+          location.href = loginFor(email);
         })
-        .catch(function () { location.href = LOGIN; });
+        .catch(function () { location.href = loginFor(email); });
     }
     inGo.addEventListener('click', signinGo);
 
@@ -447,12 +455,13 @@
             try { localStorage.setItem('brbr-welcome-done', String(Date.now())); } catch (err) {}
             form.querySelector('[data-su-name]').textContent = payload.firstName ? ', ' + payload.firstName : '';
             form.querySelector('[data-su-email]').textContent = payload.email;
+            var lg = form.querySelector('[data-su-login]'); if (lg) lg.href = loginFor(payload.email);
             show('done');
             return;
           }
           if (res.j.status === 'exists') {
             show(2); setErr('email', 'This email already has an account.');
-            showAlert('You already have an account with this email. <a href="{{ routes.account_login_url }}">Sign in instead →</a> (enter the same email on the next screen)', 'info');
+            showAlert('You already have an account with this email. <a href="' + loginFor(payload.email).replace(/"/g, '&quot;') + '">Sign in instead →</a> (we\'ll email you a 6-digit code)', 'info');
             return;
           }
           if (res.j.fields) {

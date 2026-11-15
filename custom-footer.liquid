@@ -1,0 +1,578 @@
+{% comment %}
+  705 BRBR Dark Branded Footer with Social Pills, Operating Info, Dual Maps & Legal Verification
+  Layout: Far Left, Center, and Far Right Distribution with Increased Typography Scale
+{% endcomment %}
+
+<style>
+  .custom-footer-wrapper {
+    background-color: #070B14;
+    color: #94A3B8;
+    padding: 4rem 2.5rem 2.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    font-family: var(--font-body-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+    box-sizing: border-box;
+    position: relative;
+    z-index: 10;
+    width: 100%;
+  }
+
+  /* Distributed Layout: Far Left, Center, Far Right */
+  .custom-footer-container {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 3rem;
+    padding-bottom: 3rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    box-sizing: border-box;
+  }
+
+  /* Column 1: Far Left */
+  .footer-col-left {
+    flex: 0 1 370px;
+    text-align: left;
+  }
+
+  /* Column 2: Exact Center */
+  .footer-col-center {
+    flex: 0 1 420px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin: 0 auto;
+  }
+
+  /* Column 3: Far Right */
+  .footer-col-right {
+    flex: 0 1 370px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    text-align: right;
+  }
+
+  .footer-col-heading {
+    color: #FFFFFF;
+    font-family: inherit;
+    line-height: 1.3;
+    font-size: 1.15rem; /* Increased from 0.95rem */
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 0 0 1.35rem;
+    position: relative;
+    display: inline-block;
+  }
+
+  .footer-col-heading::after {
+    content: '';
+    display: block;
+    width: 28px;
+    height: 3px;
+    background-color: #7C3AED;
+    margin-top: 8px;
+    border-radius: 2px;
+  }
+
+  .footer-col-center .footer-col-heading::after {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .footer-col-right .footer-col-heading::after {
+    margin-left: auto;
+  }
+
+  /* Brand and Contact */
+  .footer-brand-header {
+    display: flex;
+    align-items: center;
+    gap: 1.1rem;
+    margin-bottom: 1.4rem;
+  }
+
+  .footer-logo-badge {
+    width: 52px; /* Increased from 46px */
+    height: 52px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #7C3AED;
+    display: block;
+    flex-shrink: 0;
+  }
+
+  .footer-brand-title {
+    color: #FFFFFF;
+    font-size: 1.4rem; /* Increased from 1.25rem */
+    font-weight: 800;
+    margin: 0 0 0.25rem;
+    letter-spacing: -0.01em;
+  }
+
+  .footer-brand-tagline {
+    font-size: 0.85rem; /* Increased from 0.75rem */
+    color: #A78BFA;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin: 0;
+  }
+
+  .footer-contact-details {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    font-size: 0.98rem; /* Increased from 0.86rem */
+  }
+
+  .footer-contact-details li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.8rem;
+    line-height: 1.5;
+  }
+
+  .footer-contact-icon {
+    width: 20px; /* Increased from 17px */
+    height: 20px;
+    color: #7C3AED;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .footer-contact-details a {
+    color: #CBD5E1;
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .footer-contact-details a:hover {
+    color: #FFFFFF;
+    text-decoration: underline;
+  }
+
+  /* Operating Hours Card */
+  .footer-hours-box {
+    width: 100%;
+    background: #0B1120;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 1.15rem 1.35rem;
+    margin-bottom: 1.75rem;
+    box-sizing: border-box;
+  }
+
+  .footer-hours-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 1.75rem;
+    font-size: 0.95rem; /* Increased from 0.84rem */
+    padding: 0.55rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .footer-hours-line:last-child {
+    border-bottom: none;
+  }
+
+  .footer-hours-line span:first-child {
+    color: #E2E8F0;
+    font-weight: 500;
+  }
+
+  .footer-hours-line span:last-child {
+    color: #34D399;
+    font-weight: 700;
+  }
+
+  /* Social Media Pills */
+  .footer-social-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.65rem;
+    width: 100%;
+  }
+
+  .footer-pill-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    background: #111827;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #E2E8F0;
+    text-decoration: none;
+    padding: 0.55rem 1rem;
+    border-radius: 8px;
+    font-size: 0.92rem; /* Increased from 0.82rem */
+    font-weight: 600;
+    transition: all 0.2s ease;
+  }
+
+  .footer-pill-btn:hover {
+    background: #1E293B;
+    border-color: #7C3AED;
+    color: #FFFFFF;
+    transform: translateY(-2px);
+  }
+
+  .footer-pill-btn svg {
+    width: 17px;
+    height: 17px;
+    fill: currentColor;
+    flex-shrink: 0;
+  }
+
+  /* Embedded Map Section */
+  .footer-map-frame {
+    width: 100%;
+    height: 180px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 1rem;
+    background: #0B1120;
+  }
+
+  .footer-map-frame iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+  }
+
+  /* Dual Map Action Buttons */
+  .footer-maps-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
+    width: 100%;
+  }
+
+  .footer-maps-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0.68rem 0.85rem;
+    border-radius: 8px;
+    background: #111827;
+    color: #FFFFFF;
+    font-size: 0.9rem; /* Increased from 0.8rem */
+    font-weight: 600;
+    text-decoration: none;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+    white-space: nowrap;
+  }
+
+  .footer-maps-action:hover {
+    border-color: #7C3AED;
+    background: #1E293B;
+    transform: translateY(-1px);
+  }
+
+  #store-location { scroll-margin-top: 120px; }
+
+  .footer-maps-action.apple:hover {
+    border-color: #A78BFA;
+  }
+
+  .footer-maps-action svg {
+    width: 17px;
+    height: 17px;
+    fill: currentColor;
+    flex-shrink: 0;
+  }
+
+  /* Bottom Row: Legal & Policies */
+  .footer-bottom-legal {
+    width: 100%;
+    margin: 2rem 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    font-size: 0.88rem; /* Increased from 0.775rem */
+    color: #94A3B8;
+  }
+
+  .footer-policy-row {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .footer-policy-row a {
+    color: #94A3B8;
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .footer-policy-row a:hover {
+    color: #FFFFFF;
+    text-decoration: underline;
+  }
+
+  /* Responsive Adjustments */
+  @media (max-width: 1024px) {
+    .custom-footer-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+    .footer-col-right {
+      grid-column: span 2;
+      align-items: flex-start;
+      text-align: left;
+    }
+    .footer-col-right .footer-col-heading::after {
+      margin-left: 0;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .custom-footer-wrapper {
+      padding: 3rem 1.25rem 5.5rem;
+      margin-left: 0;
+      width: 100%;
+    }
+    .custom-footer-container {
+      display: flex;
+      flex-direction: column;
+      gap: 2.25rem;
+    }
+    .footer-col-left,
+    .footer-col-center,
+    .footer-col-right {
+      flex: 1 1 100%;
+      width: 100%;
+      align-items: flex-start;
+      text-align: left;
+      margin: 0;
+    }
+    .footer-col-center .footer-col-heading::after,
+    .footer-col-right .footer-col-heading::after {
+      margin-left: 0;
+      margin-right: 0;
+    }
+    .footer-social-grid {
+      justify-content: flex-start;
+    }
+    .footer-bottom-legal {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+  }
+</style>
+
+<footer class="custom-footer-wrapper">
+  <div class="custom-footer-container">
+    <!-- Col 1: Far Left (Brand & Contact Info) -->
+    <div class="footer-col-left">
+      <div class="footer-brand-header">
+        {% if section.settings.logo != blank %}
+          <img src="{{ section.settings.logo | image_url: width: 140 }}" alt="705 BRBR" class="footer-logo-badge">
+        {% else %}
+          <div class="footer-logo-badge" style="background:#7C3AED; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:bold; font-size:1rem;">705</div>
+        {% endif %}
+        <div>
+          <p class="footer-brand-title">705 BRBR Inc.</p>
+          <p class="footer-brand-tagline">Beer • Groceries • Pet Supplies</p>
+        </div>
+      </div>
+
+      <ul class="footer-contact-details">
+        <li>
+          <svg class="footer-contact-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"></path>
+            <circle cx="12" cy="9" r="2.5"></circle>
+          </svg>
+          <span>705 2nd Ave (Between E 38th & E 39th St)<br>New York, NY 10016</span>
+        </li>
+        <li>
+          <svg class="footer-contact-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+          </svg>
+          <a href="tel:9172658063">(917) 265-8063</a>
+        </li>
+        <li>
+          <svg class="footer-contact-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+            <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+          </svg>
+          <a href="mailto:705quickstop@gmail.com">705quickstop@gmail.com</a>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Col 2: Center (Operating Hours & Community Socials) -->
+    <div class="footer-col-center">
+      <h2 class="footer-col-heading">Store Hours</h2>
+      <div class="footer-hours-box">
+        <div class="footer-hours-line">
+          <span>Every Day</span>
+          <span>6:00 AM – 12:00 AM (Next Day)</span>
+        </div>
+      </div>
+
+      <h2 class="footer-col-heading" style="margin-bottom: 1rem;">Follow & Connect</h2>
+      <div class="footer-social-grid">
+        <!-- X -->
+        <a href="https://x.com/705BRBRInc" target="_blank" rel="noopener" class="footer-pill-btn" aria-label="705 BRBR on X">
+          <svg viewBox="0 0 24 24">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+          </svg>
+          X
+        </a>
+
+        <!-- TikTok -->
+        <a href="https://www.tiktok.com/@705.brbr.inc" target="_blank" rel="noopener" class="footer-pill-btn" aria-label="705 BRBR on TikTok">
+          <svg viewBox="0 0 24 24">
+            <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.29 0 .58.04.85.12V9.4a6.33 6.33 0 0 0-.85-.06A6.34 6.34 0 0 0 3.14 15.7a6.34 6.34 0 0 0 10.82 4.48 6.27 6.27 0 0 0 1.86-4.51v-6.6a8.27 8.27 0 0 0 4.84 1.56v-3.48a4.85 4.85 0 0 1-1.07-.46z"/>
+          </svg>
+          TikTok
+        </a>
+
+        <!-- YouTube -->
+        <a href="https://www.youtube.com/@705BRBRInc" target="_blank" rel="noopener" class="footer-pill-btn" aria-label="705 BRBR on YouTube">
+          <svg viewBox="0 0 24 24">
+            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+          </svg>
+          YouTube
+        </a>
+
+        <!-- Instagram -->
+        <a href="https://instagram.com/705brbr" target="_blank" rel="noopener" class="footer-pill-btn" aria-label="705 BRBR on Instagram">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+          </svg>
+          Instagram
+        </a>
+
+        <!-- Facebook -->
+        <a href="https://facebook.com/705BRBRInc" target="_blank" rel="noopener" class="footer-pill-btn" aria-label="705 BRBR on Facebook">
+          <svg viewBox="0 0 24 24">
+            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+          </svg>
+          Facebook
+        </a>
+
+        <!-- LinkedIn (link set in theme editor: Custom Footer > LinkedIn URL) -->
+        <a href="{{ section.settings.linkedin_url | default: '#' }}" target="_blank" rel="noopener" class="footer-pill-btn" aria-label="705 BRBR on LinkedIn">
+          <svg viewBox="0 0 24 24">
+            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+          </svg>
+          LinkedIn
+        </a>
+
+        <!-- Pinterest -->
+        <a href="https://www.pinterest.com/705BRBR/" target="_blank" rel="noopener" class="footer-pill-btn" aria-label="705 BRBR on Pinterest">
+          <svg viewBox="0 0 24 24">
+            <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.099.12.112.225.085.345-.09.375-.293 1.199-.334 1.363-.053.225-.172.271-.401.165-1.495-.69-2.433-2.878-2.433-4.646 0-3.776 2.748-7.252 7.92-7.252 4.158 0 7.392 2.967 7.392 6.923 0 4.135-2.607 7.462-6.233 7.462-1.214 0-2.354-.629-2.758-1.379l-.749 2.848c-.269 1.045-1.004 2.352-1.498 3.146 1.123.345 2.306.535 3.55.535 6.607 0 11.985-5.365 11.985-11.987C23.97 5.39 18.592.026 11.985.026L12.017 0z"/>
+          </svg>
+          Pinterest
+        </a>
+
+        <!-- Yelp -->
+        <a href="https://www.yelp.com/biz/705-brbr-new-york-3" target="_blank" rel="noopener" class="footer-pill-btn" aria-label="705 BRBR on Yelp">
+          <svg viewBox="0 0 24 24">
+            <path d="M12.08 12.92l2.36 4.96c.26.54.91.75 1.45.48l2.94-1.48c.55-.28.76-.94.48-1.48l-2.45-4.83c-.3-.59-.09-1.32.48-1.63l5.06-2.71c.54-.29.74-.96.44-1.49l-1.67-2.94c-.3-.53-.97-.72-1.5-.42l-5.11 2.82c-.62.34-1.39.02-1.6-.66L11.39.5c-.17-.58-.75-.95-1.35-.85L6.9.18c-.61.1-.99.69-.87 1.3l1.17 5.76c.14.68-.32 1.34-1 1.43L.54 9.53c-.6.08-1.02.63-.98 1.23l.18 3.39c.04.6.57 1.07 1.17 1.03l5.65-.36c.71-.05 1.31.5 1.29 1.22l-.21 5.79c-.02.61.45 1.12 1.06 1.16l3.38.22c.61.04 1.13-.42 1.2-1.03l.63-5.74c.08-.71.74-1.2 1.43-.98l5.28 1.64c.57.18 1.18-.16 1.33-.74l.87-3.28c.15-.58-.2-1.17-.79-1.31l-5.46-1.36c-.68-.17-1.07-.87-.85-1.54z"/>
+          </svg>
+          Yelp
+        </a>
+      </div>
+    </div>
+
+    <!-- Col 3: Far Right (Directions & Embedded Map) -->
+    <div class="footer-col-right" id="store-location">
+      <h2 class="footer-col-heading">Store Location</h2>
+      <div class="footer-map-frame">
+        <iframe 
+          title="705 2nd Ave Store Map"
+          src="https://maps.google.com/maps?q=705%202nd%20Ave,%20New%20York,%20NY%2010016&t=&z=15&ie=UTF8&iwloc=&output=embed"
+          loading="lazy" 
+          allowfullscreen>
+        </iframe>
+      </div>
+
+      <!-- Dual Google Maps & Apple Maps Selector -->
+      <div class="footer-maps-grid">
+        <a href="https://maps.app.goo.gl/Rn9GY1jnfXuEgcM48" target="_blank" rel="noopener noreferrer" class="footer-maps-action google">
+          <svg viewBox="0 0 24 24">
+            <path fill="#EA4335" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+            <circle fill="#FFFFFF" cx="12" cy="9" r="2.5"/>
+          </svg>
+          Google Maps
+        </a>
+
+        <a href="https://maps.apple.com/?address=705+2nd+Ave,+New+York,+NY+10016&q=705+BRBR" target="_blank" rel="noopener noreferrer" class="footer-maps-action apple" data-apple-maps>
+          <svg viewBox="0 0 24 24">
+            <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.62-.75 1.04-1.8 0.92-2.85-.9.04-1.99.6-2.64 1.35-.57.65-1.07 1.72-.93 2.75 1 .08 2.02-.5 2.65-1.25z"/>
+          </svg>
+          Apple Maps
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Legal & Verification: Full-Width Alignment -->
+  <div class="footer-bottom-legal">
+    <div>
+      © {{ 'now' | date: '%Y' }} 705 BRBR Inc. All rights reserved.
+    </div>
+    
+    {%- comment -%} Only policies that exist in Settings > Policies are listed {%- endcomment -%}
+    <div class="footer-policy-row">
+      {%- for policy in shop.policies -%}
+        {%- if policy != blank -%}
+          <a href="{{ policy.url }}">{{ policy.title }}</a>
+        {%- endif -%}
+      {%- endfor -%}
+    </div>
+  </div>
+</footer>
+<script>
+  // iPhone, iPad and Mac: open the Apple Maps app directly. A normal maps.apple.com link follows the phone's
+  // default maps app, which can be set to Google Maps.
+  (function () {
+    if (!/iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent)) return;
+    document.querySelectorAll('[data-apple-maps]').forEach(function (a) {
+      a.setAttribute('href', 'maps://?q=705+BRBR&address=705+2nd+Ave,+New+York,+NY+10016');
+      a.removeAttribute('target');
+    });
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Custom Footer",
+  "settings": [
+    {
+      "type": "image_picker",
+      "id": "logo",
+      "label": "Footer Logo"
+    },
+    {
+      "type": "url",
+      "id": "linkedin_url",
+      "label": "LinkedIn URL"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Custom Footer"
+    }
+  ]
+}
+{% endschema %}

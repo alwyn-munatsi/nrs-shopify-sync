@@ -6,6 +6,13 @@
   - Checkout (cart page button, any /checkout link, Buy it now) is held until the date of birth is confirmed
     when the cart has 21+ items. The confirmation is saved on the order as a cart attribute so staff can see it.
   - The date of birth itself is never stored; only "confirmed 21+" is remembered in this browser for N days.
+  - Signed-in customers who gave a date of birth at sign-up must enter the SAME date here. A different date shows
+    "doesn't match" with Try again; after 3 mismatches the 21+ items are taken out for this visit. A match (or a 21+
+    date for guests) shows a success message with a Continue button.
+  - Customers whose account says "Age verified (21+)" (custom.age_verified, set on the account Profile page) are never
+    asked while signed in, on any device.
+  - Once a signed-in customer's date of birth has matched, they're never asked again on that device while signed in
+    to that account (guests: remembered for N days).
   - Photo ID is still checked in person at pickup and delivery.
   Sizes in px because this theme scales rem down.
 {%- endcomment -%}
@@ -14,6 +21,14 @@
 {%- liquid
   assign age_types = section.settings.types | downcase | newline_to_br | replace: '<br />', ',' | split: ','
   assign product_restricted = false
+  assign acct_dob = ''
+  assign acct_verified = false
+  if customer and customer.metafields.custom.age_verified.value == true
+    assign acct_verified = true
+  endif
+  if customer and customer.metafields.facts.birth_date.value != blank
+    assign acct_dob = customer.metafields.facts.birth_date.value | date: '%Y-%m-%d'
+  endif
   if template.name == 'product' and product
     assign ptype = product.type | downcase | strip
     for t in age_types
@@ -74,6 +89,16 @@
     background: #F5F3FF; color: #4C1D95; font-size: 14px; font-weight: 600; line-height: 1.35;
   }
   .brbr-age-tag b { display: inline-flex; align-items: center; justify-content: center; min-width: 34px; height: 24px; padding: 0 6px; border-radius: 6px; background: #7C3AED; color: #FFFFFF; font-size: 12.5px; font-weight: 800; }
+  .brbr-age-ok .brbr-age-badge { background: linear-gradient(135deg, #059669, #10B981); box-shadow: 0 10px 24px -8px rgba(5, 150, 105, 0.55); }
+  .brbr-age-ok h2 { color: #047857; }
+  .brbr-age-warn .brbr-age-badge { background: #FEF3C7; color: #B45309; box-shadow: none; }
+  .brbr-age-warn h2 { color: #B45309; }
+  .brbr-age-alert { margin: 0 0 16px; padding: 10px 12px; border-radius: 12px; font-size: 13.5px; line-height: 1.45; text-align: left; }
+  .brbr-age-warn .brbr-age-alert { background: #FFFBEB; border: 1px solid #FDE68A; color: #92400E; }
+  .brbr-age-ok .brbr-age-alert { background: #ECFDF5; border: 1px solid #A7F3D0; color: #065F46; }
+  .brbr-age-badge svg { width: 30px; height: 30px; stroke: currentColor; stroke-width: 2.6; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .brbr-age-btn--ok { background: #059669; color: #FFFFFF; box-shadow: 0 8px 18px -8px rgba(5, 150, 105, 0.7); }
+  .brbr-age-btn--ok:hover { background: #047857; }
   @media (prefers-reduced-motion: reduce) { .brbr-age-backdrop, .brbr-age-box { transition: none; } }
 </style>
 
@@ -105,6 +130,25 @@
         <span>{{ section.settings.id_note | escape }}</span>
       </div>
     </div>
+    <div data-age-step="mismatch" class="brbr-age-warn" hidden>
+      <span class="brbr-age-badge" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 8v5M12 16.5v.5"/><path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></span>
+      <h2>Date of birth doesn't match</h2>
+      <p class="brbr-age-alert" data-age-mm-msg>The date you entered doesn't match the date of birth on your 705 BRBR account. Please check it and try again.</p>
+      <button type="button" class="brbr-age-btn brbr-age-btn--primary" data-age-retry>Try again</button>
+      <button type="button" class="brbr-age-btn brbr-age-btn--ghost" data-age-cancel>Not now</button>
+    </div>
+    <div data-age-step="locked" class="brbr-age-under" hidden>
+      <span class="brbr-age-badge" aria-hidden="true">21+</span>
+      <h2>We couldn't verify your age</h2>
+      <p>The date of birth didn't match your account after 3 tries, so we've taken the 21+ items out of your cart for now. Everything else is still there. If your date of birth on file is wrong, please contact us and we'll fix it.</p>
+      <button type="button" class="brbr-age-btn brbr-age-btn--primary" data-age-close>Keep shopping</button>
+    </div>
+    <div data-age-step="ok" class="brbr-age-ok" hidden>
+      <span class="brbr-age-badge" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+      <h2>Age verified</h2>
+      <p class="brbr-age-alert" data-age-ok-msg>You're confirmed as 21 or older.</p>
+      <button type="button" class="brbr-age-btn brbr-age-btn--ok" data-age-continue>Continue shopping</button>
+    </div>
     <div data-age-step="under" class="brbr-age-under" hidden>
       <span class="brbr-age-badge" aria-hidden="true">21+</span>
       <h2>Sorry, you must be 21 or older</h2>
@@ -121,7 +165,17 @@
     var PRODUCT_RESTRICTED = {{ product_restricted | json }};
     var MIN_AGE = {{ section.settings.min_age | default: 21 }};
     var REMEMBER_DAYS = {{ section.settings.remember_days | default: 30 }};
-    var KEY = 'brbr-age-21';
+    // Date of birth saved on the signed-in customer's account at sign-up ('' for guests / not on file)
+    var ACCOUNT_DOB = {{ acct_dob | json }};
+    // Verified on the customer account page ("Age verified (21+)"): no age check on any device while signed in
+    var ACCOUNT_VERIFIED = {{ acct_verified | json }};
+    var CUSTOMER = {{ customer.id | default: '' | json }};
+    var FIRST = {{ customer.first_name | default: '' | json }};
+    var MAX_TRIES = 3;
+    // Signed-in customers with a date of birth on file get their own confirmation, so a guest confirmation
+    // on this browser never skips the account match.
+    var KEY = ACCOUNT_DOB ? 'brbr-age-21-c' + CUSTOMER : 'brbr-age-21';
+    var LOCK_KEY = 'brbr-age-lock-' + CUSTOMER;
     var ATTR = 'Age confirmed (21+)';
     var gate = document.getElementById('brbrAgeGate');
     if (!gate) return;
@@ -130,6 +184,11 @@
     var mSel = document.getElementById('brbrAgeMonth'), dSel = document.getElementById('brbrAgeDay'), ySel = document.getElementById('brbrAgeYear');
     var err = document.getElementById('brbrAgeErr');
     var askStep = gate.querySelector('[data-age-step="ask"]'), underStep = gate.querySelector('[data-age-step="under"]');
+    var mmStep = gate.querySelector('[data-age-step="mismatch"]'), lockStep = gate.querySelector('[data-age-step="locked"]'), okStep = gate.querySelector('[data-age-step="ok"]');
+    var steps = [askStep, underStep, mmStep, lockStep, okStep];
+    function showStep(el) { steps.forEach(function (s) { s.hidden = s !== el; }); }
+    var tries = 0;
+    function locked() { try { return sessionStorage.getItem(LOCK_KEY) === '1'; } catch (e) { return tries >= MAX_TRIES; } }
     var msgEl = gate.querySelector('[data-age-msg]');
     var DEFAULT_MSG = msgEl.textContent;
 
@@ -150,12 +209,15 @@
     function isConfirmed() {
       try {
         var s = JSON.parse(localStorage.getItem(KEY) || 'null');
+        // Signed-in customers whose date of birth matched their account stay verified on this device
+        // for as long as they use this account. Guests are remembered for REMEMBER_DAYS.
+        if (s && s.ok && s.account) return true;
         return !!(s && s.ok && Date.now() - s.at < REMEMBER_DAYS * 864e5);
       } catch (e) { return false; }
     }
-    function remember() { try { localStorage.setItem(KEY, JSON.stringify({ ok: true, at: Date.now() })); } catch (e) {} }
+    function remember() { try { localStorage.setItem(KEY, JSON.stringify({ ok: true, at: Date.now(), account: !!ACCOUNT_DOB })); } catch (e) {} }
     var sessionOk = false; // also works when browser storage is blocked
-    function confirmed() { return sessionOk || isConfirmed(); }
+    function confirmed() { return ACCOUNT_VERIFIED || sessionOk || isConfirmed(); }
 
     function restricted(item) {
       var t = String((item && item.product_type) || '').trim().toLowerCase();
@@ -163,10 +225,11 @@
     }
     var nativeFetch = window.fetch.bind(window);
     function getCart() { return nativeFetch('/cart.js', { headers: { Accept: 'application/json' }, credentials: 'same-origin' }).then(function (r) { return r.json(); }); }
-    function stamp() {
+    function stamp(matched) {
       var d = new Date();
       var when = d.toLocaleDateString('en-US', { timeZone: 'America/New_York' });
-      var attrs = {}; attrs[ATTR] = 'Yes - date of birth confirmed on website ' + when + '. Check photo ID at pickup/delivery.';
+      var how = ACCOUNT_VERIFIED ? 'customer account is age-verified (21+)' : (matched || ACCOUNT_DOB) ? 'date of birth matched the customer account' : 'date of birth confirmed';
+      var attrs = {}; attrs[ATTR] = 'Yes - ' + how + ' on website ' + when + '. Check photo ID at pickup/delivery.';
       return nativeFetch('/cart/update.js', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ attributes: attrs }) }).catch(function () {});
     }
     function removeRestricted() {
@@ -183,10 +246,16 @@
     function open(opts) {
       pending = opts || {};
       msgEl.textContent = pending.message || DEFAULT_MSG;
-      askStep.hidden = false; underStep.hidden = true; err.textContent = '';
+      showStep(askStep); err.textContent = '';
       lastFocus = document.activeElement;
       gate.classList.add('is-open'); gate.setAttribute('aria-hidden', 'false');
       document.documentElement.style.overflow = 'hidden';
+      if (ACCOUNT_DOB && locked()) {
+        showStep(lockStep); pending = { reload: true };
+        removeRestricted().catch(function () {});
+        setTimeout(function () { lockStep.querySelector('[data-age-close]').focus(); }, 60);
+        return;
+      }
       setTimeout(function () { mSel.focus(); }, 60);
     }
     function close() {
@@ -206,33 +275,63 @@
       var y = +ySel.value, m = +mSel.value, d = +dSel.value;
       if (!y || !m || !d) { err.textContent = 'Please choose your month, day and year of birth.'; return; }
       var p = pending || {};
+      var entered = y + '-' + (m < 10 ? '0' : '') + m + '-' + (d < 10 ? '0' : '') + d;
+      mSel.value = ''; dSel.value = ''; ySel.value = '';
+      if (ACCOUNT_DOB && entered !== ACCOUNT_DOB) {
+        tries++;
+        var left = MAX_TRIES - tries;
+        if (left <= 0) {
+          try { sessionStorage.setItem(LOCK_KEY, '1'); } catch (e2) {}
+          removeRestricted().then(function () {
+            showStep(lockStep); pending = { reload: true };
+            lockStep.querySelector('[data-age-close]').focus();
+          });
+          return;
+        }
+        mmStep.querySelector('[data-age-mm-msg]').textContent = "The date you entered doesn't match the date of birth on your 705 BRBR account. Please check it and try again. " +
+          (left === 1 ? '1 try left.' : left + ' tries left.');
+        showStep(mmStep);
+        mmStep.querySelector('[data-age-retry]').focus();
+        return;
+      }
       if (ageFrom(y, m, d) >= MIN_AGE) {
+        tries = 0;
         sessionOk = true; remember();
-        mSel.value = ''; dSel.value = ''; ySel.value = '';
         document.getElementById('brbrAgeConfirm').disabled = true;
-        stamp().then(function () {
+        stamp(!!ACCOUNT_DOB).then(function () {
           document.getElementById('brbrAgeConfirm').disabled = false;
-          close();
-          if (p.onOk) p.onOk();
+          var name = FIRST ? ', ' + FIRST : '';
+          okStep.querySelector('[data-age-ok-msg]').textContent = ACCOUNT_DOB
+            ? 'Thanks' + name + '! Your date of birth matches your account. You\'re confirmed as 21 or older.'
+            : 'Thanks' + name + "! You're confirmed as 21 or older.";
+          okStep.querySelector('[data-age-continue]').textContent = p.onOk ? 'Continue to checkout' : 'Continue shopping';
+          showStep(okStep);
+          okStep.querySelector('[data-age-continue]').focus();
         });
       } else {
-        mSel.value = ''; dSel.value = ''; ySel.value = '';
         removeRestricted().then(function () {
-          askStep.hidden = true; underStep.hidden = false;
+          showStep(underStep);
           pending = { reload: true };
           gate.querySelector('[data-age-close]').focus();
         });
       }
     });
-    gate.querySelector('[data-age-cancel]').addEventListener('click', function () {
-      var p = pending || {}; close(); if (p.onCancel) p.onCancel();
+    gate.querySelectorAll('[data-age-cancel]').forEach(function (b) {
+      b.addEventListener('click', function () { var p = pending || {}; close(); if (p.onCancel) p.onCancel(); });
     });
-    gate.querySelector('[data-age-close]').addEventListener('click', function () {
-      close(); if (pending && pending.reload) location.reload();
+    gate.querySelectorAll('[data-age-close]').forEach(function (b) {
+      b.addEventListener('click', function () { close(); if (pending && pending.reload) location.reload(); });
     });
+    gate.querySelector('[data-age-retry]').addEventListener('click', function () {
+      err.textContent = ''; showStep(askStep); setTimeout(function () { mSel.focus(); }, 30);
+    });
+    function finishOk() { var p = pending || {}; pending = null; close(); if (p.onOk) p.onOk(); }
+    gate.querySelector('[data-age-continue]').addEventListener('click', finishOk);
     gate.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && !underStep.hidden) { close(); if (pending && pending.reload) location.reload(); }
-      else if (e.key === 'Escape') { var p = pending || {}; close(); if (p.onCancel) p.onCancel(); }
+      if (e.key !== 'Escape') return;
+      if (!underStep.hidden || !lockStep.hidden) { close(); if (pending && pending.reload) location.reload(); }
+      else if (!okStep.hidden) finishOk();
+      else { var p = pending || {}; close(); if (p.onCancel) p.onCancel(); }
     });
 
     // 1) Adding a 21+ item to the cart from anywhere on the site (fetch-based add to cart)

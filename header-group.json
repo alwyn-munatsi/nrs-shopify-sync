@@ -1,0 +1,146 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "name": "t:sections.header.name",
+  "type": "header",
+  "sections": {
+    "header": {
+      "type": "header",
+      "disabled": true,
+      "settings": {
+        "logo_position": "middle-left",
+        "menu": "main-menu",
+        "menu_type_desktop": "dropdown",
+        "sticky_header_type": "on-scroll-up",
+        "show_line_separator": true,
+        "color_scheme": "background-1",
+        "menu_color_scheme": "background-1",
+        "enable_country_selector": true,
+        "enable_language_selector": true,
+        "mobile_logo_position": "center",
+        "margin_bottom": 0,
+        "padding_top": 20,
+        "padding_bottom": 20
+      }
+    },
+    "custom_top_bar_MJ8Pfa": {
+      "type": "custom-top-bar",
+      "name": "Custom Top Bar",
+      "settings": {}
+    },
+    "top_bar_delivery_Td705x": {
+      "type": "top-bar-delivery",
+      "name": "Top Bar Extras",
+      "settings": {}
+    },
+    "status_contact_popover_Gp705x": {
+      "type": "status-contact-popover",
+      "name": "Get in Touch Pop-up",
+      "settings": {}
+    },
+    "custom_header_kHAQDm": {
+      "type": "custom-header",
+      "name": "Custom Header",
+      "settings": {
+        "logo": "shopify://shop_images/5a125608-c873-4c97-b3bd-201412b8095f.jpg"
+      }
+    },
+    "header_nav_links_Hn705x": {
+      "type": "header-nav-links",
+      "name": "Header About & Contact",
+      "settings": {}
+    },
+    "header_spacer_Hs705x": {
+      "type": "header-spacer",
+      "name": "Header Spacer",
+      "settings": {}
+    },
+    "photo_placeholder_Ph705x": {
+      "type": "photo-placeholder",
+      "name": "Photo Coming Soon Tiles",
+      "settings": {}
+    },
+    "filter_bar_Fb705x": {
+      "type": "filter-bar",
+      "name": "Filter Bar Styles",
+      "settings": {}
+    },
+    "product_quick_view_Qv705x": {
+      "type": "product-quick-view",
+      "name": "Product Quick View",
+      "settings": {}
+    },
+    "cart_stepper_Cs705x": {
+      "type": "cart-stepper",
+      "name": "Cart Quantity Stepper",
+      "settings": {}
+    },
+    "murray_chat_Mc705x": {
+      "type": "murray-chat",
+      "name": "BRBR Chat Assistant",
+      "settings": {
+        "api_url": "https://brbr-murray.munatsialwyn26.workers.dev",
+        "bot_name": "BRBR",
+        "logo": "shopify://shop_images/5a125608-c873-4c97-b3bd-201412b8095f.jpg",
+        "launcher_text": "Ask BRBR"
+      }
+    },
+    "age_gate_Ag705x": {
+      "type": "age-gate",
+      "name": "Age Check (21+)",
+      "settings": {}
+    },
+    "brbr_reorder_Ro705x": {
+      "type": "brbr-reorder",
+      "name": "Order Again Links",
+      "settings": {}
+    },
+    "smart_recs_Sr705x": {
+      "type": "smart-recs",
+      "name": "Smart Search Picks",
+      "settings": {}
+    },
+    "welcome_auto_Wa705x": {
+      "type": "welcome-auto",
+      "name": "Welcome Auto-Apply",
+      "settings": {}
+    },
+    "mobile_sliders_Ms705x": {
+      "type": "mobile-sliders",
+      "name": "Phone Slideshows",
+      "settings": {}
+    },
+    "text_cleanup_Tc705x": {
+      "type": "text-cleanup",
+      "name": "Text Cleanup",
+      "settings": {}
+    }
+  },
+  "order": [
+    "header",
+    "custom_top_bar_MJ8Pfa",
+    "top_bar_delivery_Td705x",
+    "status_contact_popover_Gp705x",
+    "custom_header_kHAQDm",
+    "header_nav_links_Hn705x",
+    "header_spacer_Hs705x",
+    "photo_placeholder_Ph705x",
+    "filter_bar_Fb705x",
+    "product_quick_view_Qv705x",
+    "cart_stepper_Cs705x",
+    "murray_chat_Mc705x",
+    "age_gate_Ag705x",
+    "brbr_reorder_Ro705x",
+    "smart_recs_Sr705x",
+    "welcome_auto_Wa705x",
+    "mobile_sliders_Ms705x",
+    "text_cleanup_Tc705x"
+  ]
+}

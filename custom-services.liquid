@@ -1,7 +1,7 @@
 {% comment %}
   705 BRBR In-Store Amenities: auto-playing card slideshow.
   Advances one card every few seconds, loops back to the start, and pauses while a shopper hovers, taps or tabs into it.
-  Partner logos come from Shopify Files: luggagehero-logo.png, ny-lottery-logo.png, vintedgo-logo.png, amazon-hub-logo.png, keyzoo-logo.png (optional).
+  Partner logos come from Shopify Files: luggagehero-logo.png, ny-lottery-logo.png, vintedgo-logo.png, amazon-hub-logo.png, keyzoo-logo.png, c-power-logo.png (optional).
 {% endcomment %}
 
 <style>
@@ -355,6 +355,7 @@
   assign vg_logo = images['vintedgo-logo.png']
   assign ah_logo = images['amazon-hub-logo.png']
   assign kz_logo = images['keyzoo-logo.png']
+  assign cp_logo = images['c-power-logo.png']
 -%}
 
 <section id="amenities" class="services-section-wrapper" aria-labelledby="servicesHeading-{{ section.id }}" data-services-carousel data-interval="{{ section.settings.interval | default: 4 }}">
@@ -364,7 +365,7 @@
       <span class="services-pill">In-Store Amenities</span>
       <h2 id="servicesHeading-{{ section.id }}" class="services-title">More Than Just a Bodega</h2>
       <p class="services-subtitle">
-        Your neighborhood convenience stop on 2nd Ave offering certified luggage storage, lottery tickets, parcel drop-off and pickup, car key copying, and an on-site ATM.
+        Your neighborhood convenience stop on 2nd Ave offering certified luggage storage, lottery tickets, parcel drop-off and pickup, car key copying, phone charger rentals, and an on-site ATM.
       </p>
     </div>
 
@@ -540,6 +541,33 @@
                 <circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 9.3-9.3"/><path d="m16 7 3 3"/>
               </svg>
               <a class="service-link" href="https://keyzoo.com/" target="_blank" rel="noopener">Learn more or book at keyzoo.com &rarr;</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- 7. C-Power portable phone charger rental -->
+        <div class="service-card">
+          <div class="service-card-media" style="background:#E8F7FC;">
+            {%- if cp_logo != blank -%}
+              {{ cp_logo | image_url: width: 600 | image_tag: class: 'brand-logo brand-logo--wide', alt: 'C-Power', loading: 'lazy', widths: '300, 600' }}
+            {%- else -%}
+              <div class="brand-text">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>
+                C-POWER
+              </div>
+            {%- endif -%}
+            <span class="service-badge verified">Phone Charging</span>
+          </div>
+          <div class="service-content">
+            <div>
+              <h3 class="service-name">C-Power Phone Charger Rental</h3>
+              <p class="service-desc">
+                Phone running low? Rent a portable power bank from the C-Power station in the store and keep charging on the go. Tap your card, Apple Pay or Google Pay on the screen to start.
+              </p>
+            </div>
+            <div class="service-meta">
+              <svg class="service-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>
+              <span>$2.25 per 30 min (incl. tax) &middot; No unlock fee</span>
             </div>
           </div>
         </div>

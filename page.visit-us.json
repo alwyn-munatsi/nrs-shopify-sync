@@ -1,0 +1,13 @@
+{
+  "sections": {
+    "main": {
+      "type": "brbr-options",
+      "settings": {
+        "mode": "visit"
+      }
+    }
+  },
+  "order": [
+    "main"
+  ]
+}

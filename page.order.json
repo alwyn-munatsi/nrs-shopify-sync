@@ -1,0 +1,14 @@
+{
+  "sections": {
+    "main": {
+      "type": "brbr-options",
+      "settings": {
+        "mode": "order",
+        "logo": "shopify://shop_images/5a125608-c873-4c97-b3bd-201412b8095f.jpg"
+      }
+    }
+  },
+  "order": [
+    "main"
+  ]
+}

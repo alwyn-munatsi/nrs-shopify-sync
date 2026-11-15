@@ -60,27 +60,12 @@
 
 <div class="brbr-wstrip" id="brbrWelcomeStripWrap">
   <script>try { if (localStorage.getItem('brbr-welcome-done')) document.getElementById('brbrWelcomeStripWrap').style.display = 'none'; } catch (e) {}</script>
-  <a class="brbr-wstrip__bar" id="brbrWelcomeStrip" href="{{ routes.root_url }}#welcome-offer">
-    <span class="brbr-wstrip__text">🎁 <strong>New here?</strong> Take <strong>10% off</strong> your first order. Sign up in 30 seconds.</span>
-    <span class="brbr-wstrip__cta">Claim my 10% →</span>
+  <a class="brbr-wstrip__bar" id="brbrWelcomeStrip" href="/pages/sign-up">
+    <span class="brbr-wstrip__text">🎁 <strong>New here?</strong> Take <strong>10% off</strong> your first order.</span>
+    <span class="brbr-wstrip__cta">Sign Up Now</span>
   </a>
 </div>
 
-<script>
-  (function () {
-    var link = document.getElementById('brbrWelcomeStrip');
-    if (!link) return;
-    link.addEventListener('click', function (e) {
-      var target = document.getElementById('welcome-offer');
-      if (!target) return; // not on the homepage: follow the link
-      e.preventDefault();
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      if (history.replaceState) history.replaceState(null, '', '#welcome-offer');
-      var email = document.getElementById('BrbrWelcomeEmail');
-      if (email) setTimeout(function () { email.focus({ preventScroll: true }); }, 700);
-    });
-  })();
-</script>
 {%- endunless -%}
 
 {% schema %}
