@@ -187,9 +187,16 @@
   }
 
   .custom-top-bar-link, .store-status-badge { white-space: nowrap; }
-  @media (max-width: 1380px) {
+  /* Narrower screens: shorten the address, then show the map pin only, then hide the hours (still in the status pop-up) */
+  @media (max-width: 1439px) {
     .custom-top-bar-right { gap: 1.25rem; }
     .tb-addr-long { display: none; }
+  }
+  @media (max-width: 1180px) {
+    .tb-addr-text { display: none; }
+  }
+  @media (max-width: 1023px) {
+    .tb-extra { display: none; }
   }
 
   @media (max-width: 768px) {
@@ -224,9 +231,6 @@
     }
   }
 
-  @media (max-width: 860px) {
-    .tb-extra { display: none; }
-  }
   @media (max-width: 480px) {
     .custom-top-bar { padding: 0 0.6rem; }
   }
@@ -253,7 +257,7 @@
           <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
           <circle cx="12" cy="9" r="2.5"/>
         </svg>
-        705 2nd Ave<span class="tb-addr-long">, Midtown East</span>
+        <span class="tb-addr-text">705 2nd Ave<span class="tb-addr-long">, Midtown East</span></span>
       </a>
     </div>
 
