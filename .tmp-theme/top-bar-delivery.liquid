@@ -1,0 +1,249 @@
+{%- comment -%}
+  705 BRBR top bar extras (moved into the Custom Top Bar by the inline script below, so there is no flash):
+  1. Delivery menu, left of the social icons: a compact "Delivery" button that opens DoorDash, Uber Eats,
+     Grubhub and delivery.com (same store links as the homepage hero). Icon only on medium screens, hidden on phones.
+  2. Email address, just before the phone number.
+  3. Tap/click actions for the top bar contact links:
+     - Phones & tablets: email opens a new email to the store, the phone number asks to call, the address opens Google Maps.
+     - Computers (mouse): email and phone open a small menu with options (email app, Gmail, Outlook, copy / call, copy);
+       the address opens Google Maps directly.
+  Remove this section to take both out.
+{%- endcomment -%}
+
+<style>
+  .brbr-tdel {
+    order: -2;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    padding-right: 12px;
+    border-right: 1px solid rgba(203, 213, 225, 0.25);
+  }
+  .brbr-tdel > summary {
+    list-style: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 24px;
+    padding: 0 10px 0 8px;
+    border-radius: 9999px;
+    background: #7C3AED;
+    color: #FFFFFF;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.15s ease, transform 0.15s ease;
+  }
+  .brbr-tdel > summary::-webkit-details-marker { display: none; }
+  .brbr-tdel > summary:hover { background: #6D28D9; transform: translateY(-1px); }
+  .brbr-tdel > summary:focus-visible { outline: 2px solid #A78BFA; outline-offset: 2px; }
+  .brbr-tdel svg { width: 15px; height: 15px; flex: none; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .brbr-tdel .brbr-tdel__chev { width: 12px; height: 12px; transition: transform 0.2s ease; }
+  .brbr-tdel[open] .brbr-tdel__chev { transform: rotate(180deg); }
+
+  .brbr-tdel__menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 12px;
+    width: 230px;
+    padding: 8px;
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 14px;
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.22);
+    z-index: 1002;
+  }
+  .brbr-tdel__title {
+    margin: 2px 6px 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #64748B;
+  }
+  .brbr-tdel__item {
+    display: flex;
+    align-items: center;
+    padding: 9px 10px;
+    border-radius: 10px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    text-decoration: none;
+  }
+  .brbr-tdel__item:hover { background: #F5F3FF; }
+  .brbr-tdel__item::after {
+    content: "\2197";
+    margin-left: auto;
+    font-size: 13px;
+    font-weight: 700;
+    color: #94A3B8;
+  }
+  .brbr-tdel__item--doordash { color: #EB1700; }
+  .brbr-tdel__item--ubereats { color: #000000; }
+  .brbr-tdel__item--ubereats span { color: #06C167; margin-left: 3px; }
+  .brbr-tdel__item--grubhub { color: #FF8000; }
+  .brbr-tdel__item--deliverycom { color: #1A73E8; }
+
+  /* Email before the phone number (uses the top bar's own link + icon styles) */
+  .brbr-tmail:hover { color: #FFFFFF; }
+  @media (max-width: 1240px) {
+    .brbr-tmail .brbr-tmail__text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  }
+
+  /* Options menu for email / phone on computers (same look as the Open Now pop-up) */
+  .brbr-tbact {
+    position: fixed; z-index: 1003; width: 300px; max-width: calc(100vw - 24px); padding: 16px; box-sizing: border-box;
+    border-radius: 16px; border: 1px solid rgba(167, 139, 250, 0.25);
+    background: radial-gradient(120% 90% at 0% 0%, #3B1A78 0%, #1E1240 45%, #0B0B16 100%);
+    box-shadow: 0 18px 44px rgba(2, 6, 23, 0.55); color: #E2E8F0; text-align: left;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    opacity: 0; visibility: hidden; transform: translateY(-6px);
+    transition: opacity 0.18s ease, transform 0.18s ease, visibility 0s linear 0.18s;
+  }
+  .brbr-tbact.is-open { opacity: 1; visibility: visible; transform: none; transition: opacity 0.18s ease, transform 0.18s ease; }
+  .brbr-tbact__label { display: block; margin: 0 0 2px; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #A78BFA; }
+  .brbr-tbact__value { display: block; margin: 0 0 12px; font-size: 16px; font-weight: 800; color: #FFFFFF; word-break: break-all; }
+  .brbr-tbact__list { display: grid; gap: 6px; }
+  .brbr-tbact__opt {
+    display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; box-sizing: border-box; border: 0; border-radius: 10px;
+    background: rgba(255, 255, 255, 0.06); color: #F1F5F9; font: inherit; font-size: 14px; font-weight: 700; text-align: left; text-decoration: none; cursor: pointer;
+    transition: background-color 0.15s ease;
+  }
+  .brbr-tbact__opt:hover, .brbr-tbact__opt:focus-visible { background: rgba(124, 58, 237, 0.45); color: #FFFFFF; outline: none; }
+  .brbr-tbact__opt--main { background: linear-gradient(135deg, #7C3AED, #A855F7); }
+  .brbr-tbact__opt--main:hover { filter: brightness(1.08); background: linear-gradient(135deg, #7C3AED, #A855F7); }
+  .brbr-tbact__opt svg { flex: none; width: 16px; height: 16px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .brbr-tbact__hint { margin: 10px 0 0; font-size: 12px; line-height: 1.45; color: #94A3B8; }
+
+  @media (max-width: 1180px) {
+    .brbr-tdel__text { display: none; }
+    .brbr-tdel > summary { padding: 0 7px; gap: 3px; }
+  }
+  @media (max-width: 768px) {
+    .brbr-tdel { display: none; }
+  }
+</style>
+
+<details class="brbr-tdel" id="brbrTopDelivery">
+  <summary aria-label="Order delivery" title="Order delivery">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="17.5" r="2.5"/><circle cx="18.5" cy="17.5" r="2.5"/><path d="M8 17.5h7.5l-2-6H9.5"/><path d="M15 7h2.5l3 10.5"/><path d="M3 11.5h6"/></svg>
+    <span class="brbr-tdel__text">Delivery</span>
+    <svg class="brbr-tdel__chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+  </summary>
+  <div class="brbr-tdel__menu" role="menu">
+    <p class="brbr-tdel__title">Get 705 BRBR delivered with</p>
+    <a role="menuitem" href="https://www.doordash.com/store/705-brbr-new-york-26214688/" target="_blank" rel="noopener" class="brbr-tdel__item brbr-tdel__item--doordash">DoorDash</a>
+    <a role="menuitem" href="https://www.ubereats.com/store/705-brbr-705-2nd-avenue/8D1S_353X-G_0TRsvhGytw" target="_blank" rel="noopener" class="brbr-tdel__item brbr-tdel__item--ubereats">Uber<span>Eats</span></a>
+    <a role="menuitem" href="https://www.grubhub.com/restaurant/705-brbr-inc-705-2nd-ave-new-york/26214688" target="_blank" rel="noopener" class="brbr-tdel__item brbr-tdel__item--grubhub">grubhub</a>
+    <a role="menuitem" href="https://www.order.com/glue/705-BRBR-menu/4801" target="_blank" rel="noopener" class="brbr-tdel__item brbr-tdel__item--deliverycom">delivery.com</a>
+  </div>
+</details>
+
+<a href="mailto:705quickstop@gmail.com" class="custom-top-bar-link brbr-tmail" id="brbrTopMail" data-tb-action="email" aria-label="Email 705 BRBR at 705quickstop@gmail.com">
+  <svg class="top-bar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
+  <span class="brbr-tmail__text">705quickstop@gmail.com</span>
+</a>
+
+<script>
+  (function () {
+    var menu = document.getElementById('brbrTopDelivery');
+    var social = document.querySelector('.top-bar-social');
+    if (menu && social && social.parentNode) {
+      social.parentNode.insertBefore(menu, social);
+      // Close when clicking elsewhere or pressing Escape.
+      document.addEventListener('click', function (e) { if (menu.open && !menu.contains(e.target)) menu.open = false; });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') menu.open = false; });
+    }
+
+    var mail = document.getElementById('brbrTopMail');
+    var phone = document.querySelector('.custom-top-bar-right a[href^="tel:"]');
+    if (mail && phone && phone.parentNode) phone.parentNode.insertBefore(mail, phone);
+    else if (mail) mail.remove();
+
+    // ---- Direct actions / options for email & phone ----
+    var EMAIL = '705quickstop@gmail.com', SUBJECT = 'Question for 705 BRBR';
+    var PHONE = '+19172658063', PHONE_SHOWN = '(917) 265-8063';
+    var q = encodeURIComponent;
+    if (mail) mail.href = 'mailto:' + EMAIL + '?subject=' + q(SUBJECT);
+    // Phones/tablets (touch, no mouse): let the link do its job: compose email / call prompt / Maps.
+    var mouse = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    if (!mouse) return;
+
+    var ICON = {
+      mail: '<svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>',
+      web: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>',
+      copy: '<svg viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>',
+      phone: '<svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>'
+    };
+    var MENUS = {
+      email: { label: 'Email us', value: EMAIL, opts: [
+        { main: true, icon: 'mail', text: 'Open my email app', href: 'mailto:' + EMAIL + '?subject=' + q(SUBJECT) },
+        { icon: 'web', text: 'Write in Gmail', href: 'https://mail.google.com/mail/?view=cm&fs=1&to=' + q(EMAIL) + '&su=' + q(SUBJECT), blank: true },
+        { icon: 'web', text: 'Write in Outlook', href: 'https://outlook.live.com/mail/0/deeplink/compose?to=' + q(EMAIL) + '&subject=' + q(SUBJECT), blank: true },
+        { icon: 'copy', text: 'Copy email address', copy: EMAIL }
+      ], hint: 'We usually reply within a day.' },
+      phone: { label: 'Call us', value: PHONE_SHOWN, opts: [
+        { main: true, icon: 'phone', text: 'Call from this computer', href: 'tel:' + PHONE },
+        { icon: 'copy', text: 'Copy phone number', copy: PHONE_SHOWN }
+      ], hint: 'On a phone, tap the number to call straight away. Open daily, 6:00am - 12:00am.' }
+    };
+
+    var box = document.createElement('div');
+    box.className = 'brbr-tbact'; box.id = 'brbrTopActions'; box.setAttribute('role', 'dialog');
+    document.body.appendChild(box);
+    var current = null;
+    function close() { box.classList.remove('is-open'); if (current) current.setAttribute('aria-expanded', 'false'); current = null; }
+    function openFor(link, kind) {
+      var m = MENUS[kind];
+      box.setAttribute('aria-label', m.label);
+      box.innerHTML = '<span class="brbr-tbact__label">' + m.label + '</span><span class="brbr-tbact__value">' + m.value + '</span><div class="brbr-tbact__list">' +
+        m.opts.map(function (o, i) {
+          var cls = 'brbr-tbact__opt' + (o.main ? ' brbr-tbact__opt--main' : '');
+          return o.copy
+            ? '<button type="button" class="' + cls + '" data-copy="' + o.copy + '">' + ICON[o.icon] + '<span>' + o.text + '</span></button>'
+            : '<a class="' + cls + '" href="' + o.href + '"' + (o.blank ? ' target="_blank" rel="noopener"' : '') + '>' + ICON[o.icon] + '<span>' + o.text + '</span></a>';
+        }).join('') + '</div><p class="brbr-tbact__hint">' + m.hint + '</p>';
+      var r = link.getBoundingClientRect();
+      var left = Math.min(Math.max(12, r.left + r.width / 2 - 150), window.innerWidth - 312);
+      box.style.left = left + 'px'; box.style.top = (r.bottom + 10) + 'px';
+      if (current) current.setAttribute('aria-expanded', 'false');
+      current = link; link.setAttribute('aria-expanded', 'true');
+      box.classList.add('is-open');
+      var first = box.querySelector('.brbr-tbact__opt'); if (first) setTimeout(function () { first.focus({ preventScroll: true }); }, 30);
+    }
+    box.addEventListener('click', function (e) {
+      var c = e.target.closest('[data-copy]');
+      if (c) {
+        var text = c.getAttribute('data-copy'), span = c.querySelector('span');
+        var done = function () { span.textContent = 'Copied ✓'; setTimeout(close, 900); };
+        if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, function () { span.textContent = text; });
+        else { span.textContent = text; }
+        return;
+      }
+      if (e.target.closest('a')) setTimeout(close, 150);
+    });
+    document.querySelectorAll('.custom-top-bar [data-tb-action="email"], .custom-top-bar [data-tb-action="phone"]').forEach(function (link) {
+      link.setAttribute('aria-haspopup', 'dialog'); link.setAttribute('aria-expanded', 'false');
+      link.addEventListener('click', function (e) {
+        e.preventDefault();
+        var kind = link.getAttribute('data-tb-action');
+        if (current === link) close(); else openFor(link, kind);
+      });
+    });
+    document.addEventListener('click', function (e) { if (current && !box.contains(e.target) && !current.contains(e.target)) close(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && current) { var l = current; close(); l.focus(); } });
+    window.addEventListener('scroll', close, { passive: true });
+    window.addEventListener('resize', close);
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Top Bar Extras",
+  "settings": [],
+  "enabled_on": { "groups": ["header"] }
+}
+{% endschema %}
