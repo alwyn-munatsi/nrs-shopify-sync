@@ -1,0 +1,51 @@
+{%- comment -%}
+  Turns the NY Lottery "Latest results" and "Next draws" rows into automatic slideshows:
+  moves one card every few seconds, pauses while hovered/touched/focused, loops back to the start.
+{%- endcomment -%}
+<style>
+  [data-lt-next], [data-lt-results-list] { scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 48px), transparent); mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 48px), transparent); }
+  [data-lt-next]::-webkit-scrollbar, [data-lt-results-list]::-webkit-scrollbar { display: none; }
+  [data-lt-next].is-end, [data-lt-results-list].is-end { -webkit-mask-image: none; mask-image: none; }
+  [data-lt-next] .lt-chip, [data-lt-results-list] .lt-chip { scroll-snap-align: start; }
+</style>
+<script>
+  (function () {
+    var DELAY = {{ delay | default: 3500 }};
+    function setup(track) {
+      if (!track || track.dataset.auto) return;
+      track.dataset.auto = '1';
+      var paused = false, resumeTimer;
+      function pause() { paused = true; clearTimeout(resumeTimer); }
+      function resumeSoon(ms) { clearTimeout(resumeTimer); resumeTimer = setTimeout(function () { paused = false; }, ms || 0); }
+      track.addEventListener('mouseenter', pause);
+      track.addEventListener('mouseleave', function () { resumeSoon(400); });
+      track.addEventListener('focusin', pause);
+      track.addEventListener('focusout', function () { resumeSoon(400); });
+      track.addEventListener('touchstart', pause, { passive: true });
+      track.addEventListener('touchend', function () { resumeSoon(5000); }, { passive: true });
+      function edge() {
+        var max = track.scrollWidth - track.clientWidth;
+        track.classList.toggle('is-end', max <= 4 || track.scrollLeft >= max - 4);
+      }
+      track.addEventListener('scroll', edge, { passive: true });
+      setInterval(edge, 1000);
+      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      setInterval(function () {
+        if (paused || document.hidden) return;
+        var chip = track.querySelector('.lt-chip');
+        var max = track.scrollWidth - track.clientWidth;
+        if (!chip || max <= 4) return;
+        var gap = parseFloat(getComputedStyle(track).columnGap || getComputedStyle(track).gap) || 12;
+        var step = chip.getBoundingClientRect().width + gap;
+        var start = track.scrollLeft;
+        var target = start >= max - 4 ? 0 : Math.min(start + step, max);
+        track.scrollTo({ left: target, behavior: 'smooth' });
+        // If the browser can't animate the scroll, jump straight to the next card
+        setTimeout(function () { if (Math.abs(track.scrollLeft - start) < 2) track.scrollLeft = target; }, 900);
+      }, DELAY);
+    }
+    function boot() { document.querySelectorAll('[data-lt-next], [data-lt-results-list]').forEach(setup); }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+    document.addEventListener('shopify:section:load', boot);
+  })();
+</script>
