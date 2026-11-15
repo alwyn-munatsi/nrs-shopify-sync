@@ -36,7 +36,10 @@
         "heading": "Next draws",
         "limit": 8,
         "button": "Games & results"
-      }
+      },
+      "custom_css": [
+        "@media (min-width: 769px) { .lt-strip { padding-bottom: 18px; } }"
+      ]
     },
     "custom_best_sellers_Bs705x": {
       "type": "custom-best-sellers",
@@ -52,12 +55,19 @@
     "home_shop_filter_Hs705x": {
       "type": "home-shop-filter",
       "name": "Shop All Products",
-      "settings": {}
+      "settings": {},
+      "custom_css": [
+        "@media (min-width: 769px) { .hs { padding-bottom: 40px; } }",
+        "@media (max-width: 768px) { .hs { padding-bottom: 32px; } }"
+      ]
     },
     "custom_services_k8Qf6C": {
       "type": "custom-services",
       "name": "Store Services Hub",
-      "settings": {}
+      "settings": {},
+      "custom_css": [
+        "@media (min-width: 769px) { .services-section-wrapper { padding-top: 34px; } }"
+      ]
     },
     "multicolumn_HQQrhm": {
       "type": "multicolumn",
@@ -177,12 +187,19 @@
     "welcome_offer_Wo705x": {
       "type": "welcome-offer",
       "name": "Welcome Offer 10%",
-      "settings": {}
+      "settings": {},
+      "custom_css": [
+        "@media (min-width: 769px) { .brbr-wo { padding-top: 34px; padding-bottom: 34px; } }",
+        "@media (max-width: 768px) { .brbr-wo { padding-top: 28px; padding-bottom: 28px; } }"
+      ]
     },
     "custom_store_info_mj68C3": {
       "type": "custom-store-info",
       "name": "Custom Store Info",
-      "settings": {}
+      "settings": {},
+      "custom_css": [
+        "@media (min-width: 769px) { .custom-reviews-section { padding-top: 34px; padding-bottom: 34px; } }"
+      ]
     },
     "custom_about_Ab705x": {
       "type": "custom-about",
@@ -192,14 +209,20 @@
         "highlight_1_title": "6 AM – 12 AM (Next Day)",
         "highlight_3_text": "Right on the corner of 38th Street on 2nd Avenue",
         "badge_text": "6:00 AM – 12:00 AM (Next Day)"
-      }
+      },
+      "custom_css": [
+        "@media (min-width: 769px) { .custom-about-section { padding-top: 34px; padding-bottom: 40px; } }"
+      ]
     },
     "custom_contact_Ct705x": {
       "type": "custom-contact",
       "name": "Contact Us",
       "settings": {
         "hours": "Open daily, 6:00 AM – 12:00 AM (Next Day)"
-      }
+      },
+      "custom_css": [
+        "@media (min-width: 769px) { .custom-contact-section { padding-top: 34px; padding-bottom: 34px; } }"
+      ]
     }
   },
   "order": [
