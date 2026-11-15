@@ -9,6 +9,8 @@
   - Signed-in customers who gave a date of birth at sign-up must enter the SAME date here. A different date shows
     "doesn't match" with Try again; after 3 mismatches the 21+ items are taken out for this visit. A match (or a 21+
     date for guests) shows a success message with a Continue button.
+  - Customers whose account says "Age verified (21+)" (custom.age_verified, set on the account Profile page) are never
+    asked while signed in, on any device.
   - Once a signed-in customer's date of birth has matched, they're never asked again on that device while signed in
     to that account (guests: remembered for N days).
   - Photo ID is still checked in person at pickup and delivery.
@@ -20,6 +22,10 @@
   assign age_types = section.settings.types | downcase | newline_to_br | replace: '<br />', ',' | split: ','
   assign product_restricted = false
   assign acct_dob = ''
+  assign acct_verified = false
+  if customer and customer.metafields.custom.age_verified.value == true
+    assign acct_verified = true
+  endif
   if customer and customer.metafields.facts.birth_date.value != blank
     assign acct_dob = customer.metafields.facts.birth_date.value | date: '%Y-%m-%d'
   endif
@@ -161,6 +167,8 @@
     var REMEMBER_DAYS = {{ section.settings.remember_days | default: 30 }};
     // Date of birth saved on the signed-in customer's account at sign-up ('' for guests / not on file)
     var ACCOUNT_DOB = {{ acct_dob | json }};
+    // Verified on the customer account page ("Age verified (21+)"): no age check on any device while signed in
+    var ACCOUNT_VERIFIED = {{ acct_verified | json }};
     var CUSTOMER = {{ customer.id | default: '' | json }};
     var FIRST = {{ customer.first_name | default: '' | json }};
     var MAX_TRIES = 3;
@@ -209,7 +217,7 @@
     }
     function remember() { try { localStorage.setItem(KEY, JSON.stringify({ ok: true, at: Date.now(), account: !!ACCOUNT_DOB })); } catch (e) {} }
     var sessionOk = false; // also works when browser storage is blocked
-    function confirmed() { return sessionOk || isConfirmed(); }
+    function confirmed() { return ACCOUNT_VERIFIED || sessionOk || isConfirmed(); }
 
     function restricted(item) {
       var t = String((item && item.product_type) || '').trim().toLowerCase();
@@ -220,7 +228,7 @@
     function stamp(matched) {
       var d = new Date();
       var when = d.toLocaleDateString('en-US', { timeZone: 'America/New_York' });
-      var how = (matched || ACCOUNT_DOB) ? 'date of birth matched the customer account' : 'date of birth confirmed';
+      var how = ACCOUNT_VERIFIED ? 'customer account is age-verified (21+)' : (matched || ACCOUNT_DOB) ? 'date of birth matched the customer account' : 'date of birth confirmed';
       var attrs = {}; attrs[ATTR] = 'Yes - ' + how + ' on website ' + when + '. Check photo ID at pickup/delivery.';
       return nativeFetch('/cart/update.js', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ attributes: attrs }) }).catch(function () {});
     }
