@@ -17,7 +17,7 @@
   }
 
   .custom-about-container {
-    max-width: 900px;
+    max-width: 980px;
     margin: 0 auto;
   }
 
@@ -77,6 +77,7 @@
 
   .about-highlight strong {
     text-wrap: balance;
+    white-space: nowrap;
     display: block;
     font-size: 1.05rem;
     font-weight: 800;
@@ -191,6 +192,33 @@
     </div>
   </div>
 </section>
+
+<script>
+  // Card headings stay on one line: if any heading is wider than its card, all three shrink by the same amount
+  // (so they keep matching). Below 12px they wrap instead, so text never gets too small to read.
+  (function () {
+    var box = document.getElementById('about');
+    if (!box) return;
+    var heads = [].slice.call(box.querySelectorAll('.about-highlight strong'));
+    if (!heads.length) return;
+    var base = parseFloat(getComputedStyle(heads[0]).fontSize) || 17;
+    function fit() {
+      heads.forEach(function (h) { h.style.fontSize = ''; h.style.whiteSpace = 'nowrap'; });
+      base = parseFloat(getComputedStyle(heads[0]).fontSize) || base;
+      var scale = 1;
+      heads.forEach(function (h) {
+        var avail = h.clientWidth, need = h.scrollWidth;
+        if (need > avail && avail > 0) scale = Math.min(scale, avail / need);
+      });
+      var size = Math.floor(base * scale * 10) / 10;
+      if (size < 12) { heads.forEach(function (h) { h.style.whiteSpace = 'normal'; }); return; }
+      if (scale < 1) heads.forEach(function (h) { h.style.fontSize = size + 'px'; });
+    }
+    fit();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+    var t; window.addEventListener('resize', function () { clearTimeout(t); t = setTimeout(fit, 120); });
+  })();
+</script>
 
 {% schema %}
 {
