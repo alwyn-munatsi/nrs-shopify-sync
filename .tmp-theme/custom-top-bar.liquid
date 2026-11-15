@@ -1,4 +1,12 @@
 <style>
+  /* Whole site, every page: never scroll sideways on phones/tablets. Anything wider than the screen
+     (sliders mid-animation, off-screen menus, long words) is clipped at the page edge instead of letting the
+     page drift left/right. "clip" (unlike "hidden") doesn't create a scroll box, so sticky/fixed headers,
+     anchor links and pinch-zoom keep working. Older browsers fall back to "hidden". */
+  html, body { max-width: 100%; overflow-x: clip; }
+  @supports not (overflow-x: clip) { html, body { overflow-x: hidden; } }
+  img, video, iframe, embed, object { max-width: 100%; }
+
   #shopify-section-{{ section.id }} {
     position: fixed !important;
     top: 0 !important;
