@@ -1,0 +1,44 @@
+name: Catalog audit (price book vs Shopify)
+
+# Read-only: compares the NRS price book with the Shopify store and prints the result ENCRYPTED with the
+# public key given when starting the run (this repo's logs are public). Nothing in Shopify or NRS changes.
+on:
+  workflow_dispatch:
+    inputs:
+      pubkey:
+        description: 'Base64 of the PEM public key to encrypt the report with'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - name: Audit
+        env:
+          SHOPIFY_CLIENT_ID: ${{ secrets.SHOPIFY_CLIENT_ID }}
+          SHOPIFY_ADMIN_ACCESS_TOKEN: ${{ secrets.SHOPIFY_ADMIN_ACCESS_TOKEN }}
+          SHOPIFY_STORE_DOMAIN: ${{ secrets.SHOPIFY_STORE_DOMAIN }}
+          NRS_AUTH_PATH: ${{ secrets.NRS_AUTH_PATH }}
+          NRS_STORE_ID: ${{ secrets.NRS_STORE_ID }}
+          PRICE_MARKUP_PERCENT: ${{ vars.PRICE_MARKUP_PERCENT || '20' }}
+        run: python audit_catalog.py
+      - name: Print encrypted report
+        env:
+          PUBKEY: ${{ github.event.inputs.pubkey }}
+        run: |
+          printf '%s' "$PUBKEY" | base64 -d > pub.pem
+          openssl rand -out k.bin 32
+          openssl pkeyutl -encrypt -pubin -inkey pub.pem -pkeyopt rsa_padding_mode:oaep -in k.bin -out k.enc
+          openssl enc -aes-256-cbc -pbkdf2 -salt -pass file:k.bin -in report/audit.csv.gz -out a.enc
+          rm -f k.bin
+          echo "=====KEY BEGIN====="; base64 -w 76 k.enc; echo "=====KEY END====="
+          echo "=====DATA BEGIN====="; base64 -w 76 a.enc; echo "=====DATA END====="
