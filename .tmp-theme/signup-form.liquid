@@ -54,6 +54,10 @@
   .brbr-su__step.is-done .brbr-su__bar i, .brbr-su__step.is-on .brbr-su__bar i { width: 100%; }
   .brbr-su__step span { display: block; margin-top: 7px; font-size: 12px; font-weight: 700; color: #94A3B8; }
   .brbr-su__step.is-on span, .brbr-su__step.is-done span { color: #6D28D9; }
+  /* Banner title: sign-up message on Create account, ordering message on Sign in */
+  .brbr-su__h1-in { display: none; }
+  .brbr-su.is-signin .brbr-su__h1-up { display: none; }
+  .brbr-su.is-signin .brbr-su__h1-in { display: inline; }
   .brbr-su__title { margin: 0 0 4px; font-size: 24px; font-weight: 800; letter-spacing: -0.01em; color: #0F172A; }
   .brbr-su__sub { margin: 0 0 20px; font-size: 14.5px; color: #64748B; }
   .brbr-su__panel[hidden] { display: none; }
@@ -122,7 +126,7 @@
     <aside class="brbr-su__side">
       {%- if settings.logo != blank -%}<img class="brbr-su__logo" src="{{ settings.logo | image_url: width: 120 }}" alt="{{ shop.name | escape }}" width="56" height="56">{%- endif -%}
       <span class="brbr-su__badge">🎁 Welcome offer</span>
-      <h1 class="brbr-su__h1">Join 705 BRBR &amp; get <span>10% off</span> your first order</h1>
+      <h1 class="brbr-su__h1"><span class="brbr-su__h1-up">Join 705 BRBR &amp; get <span>10% off</span> your first order</span><span class="brbr-su__h1-in">LET&rsquo;S START YOUR NEW ORDER FOR <span>DELIVERY OR PICKUP</span> NOW!</span></h1>
       <p class="brbr-su__lead">One minute to sign up. Your discount is applied automatically when you shop signed in.</p>
       <ul class="brbr-su__perks" role="list">
         <li><i aria-hidden="true">🏷️</i><span><b>10% off your first order</b>Applied at checkout, nothing to copy.</span></li>
