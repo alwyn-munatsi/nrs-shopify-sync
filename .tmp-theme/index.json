@@ -20,6 +20,13 @@
         "deliverycom_url": "https://www.order.com/glue/705-BRBR-menu/4801"
       }
     },
+    "lottery_winners_Lw705x": {
+      "type": "lottery-winners-bar",
+      "name": "NY Lottery winners bar",
+      "settings": {
+        "live_feed_url": "https://brbr-lottery.munatsialwyn26.workers.dev"
+      }
+    },
     "custom_dept_strip_Dp705x": {
       "type": "custom-dept-strip",
       "name": "Department Strip",
@@ -233,6 +240,7 @@
   },
   "order": [
     "custom_hero_iqbQQ9",
+    "lottery_winners_Lw705x",
     "welcome_strip_Ws705x",
     "custom_dept_strip_Dp705x",
     "custom_best_sellers_Bs705x",

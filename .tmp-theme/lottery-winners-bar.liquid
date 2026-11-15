@@ -1,0 +1,27 @@
+{%- comment -%}
+  Homepage: the yellow "Recent Winners" NY Lottery ticker (same one as the Lottery page).
+  Uses the same live feed; falls back to the saved copy in Files if the feed is down.
+{%- endcomment -%}
+<div class="brbr-ltk-home">
+  {% render 'lottery-ticker', live: section.settings.live_feed_url %}
+</div>
+{%- comment -%} Game logos come from the lottery-games-json block the NY Lottery draws strip renders on this page. {%- endcomment -%}
+<style>
+  .brbr-ltk-home { width: 100%; }
+  .brbr-ltk-home .ltk { z-index: 2; border-top: 1px solid rgba(1,7,50,.12); }
+</style>
+
+{% schema %}
+{
+  "name": "NY Lottery winners bar",
+  "settings": [
+    {
+      "type": "text",
+      "id": "live_feed_url",
+      "label": "Live NY Lottery data URL",
+      "default": "https://brbr-lottery.munatsialwyn26.workers.dev"
+    }
+  ],
+  "presets": [{ "name": "NY Lottery winners bar" }]
+}
+{% endschema %}
