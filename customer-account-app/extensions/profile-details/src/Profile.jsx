@@ -46,6 +46,10 @@ function Details() {
 
   async function save() {
     setSaveMsg(null);
+    if (inEditor()) {
+      setSaveMsg({tone: 'info', text: 'Preview only: saving works for signed-in customers.'});
+      return;
+    }
     setPhoneError('');
     const body = {};
     const digits = phone.replace(/\D/g, '');
@@ -69,6 +73,10 @@ function Details() {
 
   async function verify() {
     setAgeMsg(null);
+    if (inEditor()) {
+      setAgeMsg({tone: 'info', text: 'Preview only: verifying works for signed-in customers.'});
+      return;
+    }
     setDobError('');
     if (!dob) {
       setDobError('Please enter your date of birth.');
