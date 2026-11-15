@@ -66,21 +66,6 @@
   </a>
 </div>
 
-<script>
-  (function () {
-    var link = document.getElementById('brbrWelcomeStrip');
-    if (!link) return;
-    link.addEventListener('click', function (e) {
-      var target = document.getElementById('welcome-offer');
-      if (!target) return; // not on the homepage: follow the link
-      e.preventDefault();
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      if (history.replaceState) history.replaceState(null, '', '#welcome-offer');
-      var email = document.getElementById('BrbrWelcomeEmail');
-      if (email) setTimeout(function () { email.focus({ preventScroll: true }); }, 700);
-    });
-  })();
-</script>
 {%- endunless -%}
 
 {% schema %}
