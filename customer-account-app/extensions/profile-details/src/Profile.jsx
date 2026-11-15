@@ -1,7 +1,7 @@
 import '@shopify/ui-extensions/preact';
 import {render} from 'preact';
 import {useEffect, useState} from 'preact/hooks';
-import {api, prettyPhone, prettyDate} from './api.js';
+import {api, prettyPhone, prettyDate, reason, inEditor} from './api.js';
 
 /*
   "Your 705 details" on the customer account Profile page.
@@ -41,7 +41,7 @@ function Details() {
   useEffect(() => {
     api('/account/me')
       .then(apply)
-      .catch((e) => setLoadError(e.status === 503 ? 'Your 705 details will appear here soon.' : "We couldn't load your details right now. Please refresh the page."));
+      .catch((e) => setLoadError({text: "We couldn't load your details right now. Please refresh the page.", why: reason(e)}));
   }, []);
 
   async function save() {
@@ -98,7 +98,10 @@ function Details() {
   if (loadError) {
     return (
       <s-section heading="Your 705 details">
-        <s-text color="subdued">{loadError}</s-text>
+        <s-stack direction="block" gap="small-200">
+          <s-text color="subdued">{loadError.text}</s-text>
+          {loadError.why && <s-text color="subdued" type="small">{loadError.why}</s-text>}
+        </s-stack>
       </s-section>
     );
   }
@@ -112,6 +115,7 @@ function Details() {
 
   return (
     <s-section heading="Your 705 details">
+      {inEditor() && <s-banner tone="info">Preview with example details. Customers see their own details here.</s-banner>}
       <s-query-container>
       <s-stack direction="block" gap="large-100">
         {/* Contact + about you */}

@@ -1,7 +1,7 @@
 import '@shopify/ui-extensions/preact';
 import {render} from 'preact';
 import {useEffect, useState} from 'preact/hooks';
-import {api, STORE, ACCOUNT, money, prettyDate, isOpenNow, reorderUrl} from './api.js';
+import {api, STORE, ACCOUNT, money, prettyDate, isOpenNow, reorderUrl, reason, inEditor} from './api.js';
 
 /*
   "My 705": a home page inside the customer account.
@@ -44,7 +44,7 @@ function My705() {
   useEffect(() => {
     api('/account/me')
       .then(setMe)
-      .catch((e) => setError(e.status === 503 ? 'Your 705 dashboard is almost ready. Please check back soon.' : "We couldn't load your account right now. Please refresh the page."));
+      .catch((e) => setError(`We couldn't load your account right now. Please refresh the page. (${reason(e)})`));
   }, []);
 
   const heading = me && me.firstName ? `Hi, ${me.firstName}!` : 'My 705';
@@ -60,6 +60,7 @@ function My705() {
       ) : (
         <s-query-container>
         <s-stack direction="block" gap="base">
+          {inEditor() && <s-banner tone="info">Preview with an example customer. Customers see their own offers and orders here.</s-banner>}
           {/* Store status */}
           <s-stack direction="inline" gap="small-200" alignItems="center">
             <s-badge tone={open ? 'auto' : 'neutral'} icon="clock">
