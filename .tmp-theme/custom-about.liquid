@@ -1,0 +1,227 @@
+{% comment %}
+  705 BRBR About Us Section: Story copy, highlight chips and buttons.
+  All text is editable in the theme editor (Customize > About Us).
+  The right-hand brand card was removed at the client's request; the image, logo and badge
+  settings below are kept so saved values stay valid, but they are no longer shown.
+{% endcomment %}
+
+<style>
+  .custom-about-section {
+    background: #FFFFFF;
+    padding: 4.5rem 1.5rem;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    box-sizing: border-box;
+    position: relative;
+    z-index: 10;
+    scroll-margin-top: 110px;
+  }
+
+  .custom-about-container {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .about-pill-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #EDE9FE;
+    color: #7C3AED;
+    border: 1px solid #DDD6FE;
+    padding: 0.35rem 0.9rem;
+    border-radius: 9999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 0.85rem;
+  }
+
+  .about-title {
+    font-size: 2.1rem;
+    font-weight: 800;
+    color: #0F172A;
+    line-height: 1.2;
+    margin: 0 0 1.1rem;
+    letter-spacing: -0.02em;
+  }
+
+  .about-body {
+    font-size: 1.02rem;
+    color: #475569;
+    line-height: 1.65;
+    margin-bottom: 1.75rem;
+  }
+
+  .about-body p {
+    margin: 0 0 0.9rem;
+  }
+
+  .about-body p:last-child {
+    margin-bottom: 0;
+  }
+
+  .about-highlights {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.85rem;
+    margin-bottom: 2rem;
+  }
+
+  .about-highlight {
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 1rem 0.9rem;
+  }
+
+  .about-highlight strong {
+    display: block;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #7C3AED;
+    margin-bottom: 0.2rem;
+    line-height: 1.25;
+  }
+
+  .about-highlight span {
+    font-size: 0.82rem;
+    color: #64748B;
+    line-height: 1.4;
+  }
+
+  .about-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .about-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.4rem;
+    border-radius: 9999px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+
+  .about-btn-primary {
+    background: #7C3AED;
+    color: #FFFFFF;
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.35);
+  }
+
+  .about-btn-primary:hover {
+    background: #6D28D9;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.45);
+  }
+
+  .about-btn-secondary {
+    background: #FFFFFF;
+    color: #0F172A;
+    border: 1px solid #E2E8F0;
+  }
+
+  .about-btn-secondary:hover {
+    border-color: #7C3AED;
+    color: #7C3AED;
+    transform: translateY(-1px);
+  }
+
+  /* Centered like the other homepage sections (Reviews, Contact) */
+  .about-content { text-align: center; }
+  .about-title { max-width: 720px; margin-left: auto; margin-right: auto; }
+  .about-body { max-width: 720px; margin-left: auto; margin-right: auto; }
+  .about-actions { justify-content: center; }
+
+  @media (max-width: 768px) {
+    .custom-about-section {
+      padding: 3rem 1rem;
+    }
+    .about-title {
+      font-size: 1.75rem;
+    }
+  }
+
+  @media (max-width: 520px) {
+    .about-highlights {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<section id="about" class="custom-about-section">
+  <div class="custom-about-container">
+    <div class="about-content">
+      {%- if section.settings.tag != blank -%}
+        <span class="about-pill-tag">{{ section.settings.tag }}</span>
+      {%- endif -%}
+      <h2 class="about-title">{{ section.settings.heading }}</h2>
+      <div class="about-body">{{ section.settings.text }}</div>
+
+      <div class="about-highlights">
+        <div class="about-highlight">
+          <strong>{{ section.settings.highlight_1_title }}</strong>
+          <span>{{ section.settings.highlight_1_text }}</span>
+        </div>
+        <div class="about-highlight">
+          <strong>{{ section.settings.highlight_2_title }}</strong>
+          <span>{{ section.settings.highlight_2_text }}</span>
+        </div>
+        <div class="about-highlight">
+          <strong>{{ section.settings.highlight_3_title }}</strong>
+          <span>{{ section.settings.highlight_3_text }}</span>
+        </div>
+      </div>
+
+      <div class="about-actions">
+        {%- if section.settings.button_1_label != blank -%}
+          <a href="{{ section.settings.button_1_link | default: '#contact' }}" class="about-btn about-btn-primary">{{ section.settings.button_1_label }}</a>
+        {%- endif -%}
+        {%- if section.settings.button_2_label != blank -%}
+          <a href="{{ section.settings.button_2_link | default: '#' }}" target="_blank" rel="noopener noreferrer" class="about-btn about-btn-secondary">{{ section.settings.button_2_label }}</a>
+        {%- endif -%}
+      </div>
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "About Us",
+  "settings": [
+    { "type": "text", "id": "tag", "label": "Small label", "default": "About Us" },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Your Neighborhood Market on 2nd Avenue" },
+    {
+      "type": "richtext",
+      "id": "text",
+      "label": "Story",
+      "default": "<p>705 BRBR is the corner stop for Murray Hill and Midtown East: cold beer, everyday groceries, snacks, and pet supplies, all under one roof at 705 2nd Ave between E 38th & E 39th St.</p><p>We open early and close late, seven days a week, so whether you need morning essentials or a six-pack before midnight, we have you covered. Stop by and say hi. Our team is always happy to help you find what you need.</p>"
+    },
+    { "type": "header", "content": "Highlights" },
+    { "type": "text", "id": "highlight_1_title", "label": "Highlight 1 title", "default": "6 AM – 12 AM" },
+    { "type": "text", "id": "highlight_1_text", "label": "Highlight 1 text", "default": "Open 7 days a week" },
+    { "type": "text", "id": "highlight_2_title", "label": "Highlight 2 title", "default": "One Stop" },
+    { "type": "text", "id": "highlight_2_text", "label": "Highlight 2 text", "default": "Beer, groceries, snacks & pet care" },
+    { "type": "text", "id": "highlight_3_title", "label": "Highlight 3 title", "default": "Murray Hill" },
+    { "type": "text", "id": "highlight_3_text", "label": "Highlight 3 text", "default": "Right on 2nd Ave, Midtown East" },
+    { "type": "header", "content": "Buttons" },
+    { "type": "text", "id": "button_1_label", "label": "Button 1 label", "default": "Contact Us" },
+    { "type": "text", "id": "button_1_link", "label": "Button 1 link", "default": "#contact", "info": "Use #contact to scroll to the Contact Us section" },
+    { "type": "text", "id": "button_2_label", "label": "Button 2 label", "default": "Get Directions" },
+    { "type": "text", "id": "button_2_link", "label": "Button 2 link", "default": "https://maps.app.goo.gl/Rn9GY1jnfXuEgcM48" },
+    { "type": "header", "content": "Not shown (brand card removed)" },
+    { "type": "image_picker", "id": "image", "label": "Store photo" },
+    { "type": "image_picker", "id": "logo", "label": "Logo for branded card" },
+    { "type": "text", "id": "badge_title", "label": "Floating badge title", "default": "Open Today" },
+    { "type": "text", "id": "badge_text", "label": "Floating badge text", "default": "6:00 AM – 12:00 AM" }
+  ],
+  "presets": [
+    { "name": "About Us" }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,222 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "sections": {
+    "custom_hero_iqbQQ9": {
+      "type": "custom-hero",
+      "name": "Custom Hero",
+      "settings": {
+        "image_beer": "shopify://shop_images/cold-beer-seltzer-card.jpg",
+        "image_drinks": "shopify://shop_images/chilled-drinks-card.jpg",
+        "image_pet": "shopify://shop_images/pet-treats-card.jpg",
+        "ubereats_url": "https://www.ubereats.com/store/705-brbr-705-2nd-avenue/8D1S_353X-G_0TRsvhGytw",
+        "deliverycom_url": "https://www.order.com/glue/705-BRBR-menu/4801"
+      }
+    },
+    "custom_dept_strip_Dp705x": {
+      "type": "custom-dept-strip",
+      "name": "Department Strip",
+      "settings": {
+        "heading": "Shop by Department",
+        "show_shop_all": true
+      }
+    },
+    "lottery_strip_Lt705x": {
+      "type": "lottery-strip",
+      "name": "NY Lottery Draws Strip",
+      "settings": {
+        "eyebrow": "NY Lottery sold here",
+        "heading": "Next draws",
+        "limit": 8,
+        "button": "Games & results"
+      }
+    },
+    "custom_best_sellers_Bs705x": {
+      "type": "custom-best-sellers",
+      "name": "Best Sellers Tabs",
+      "disabled": true,
+      "settings": {
+        "heading": "Best Sellers",
+        "subheading": "Our most popular picks from every aisle",
+        "products_per_tab": 8,
+        "show_rank": true
+      }
+    },
+    "home_shop_filter_Hs705x": {
+      "type": "home-shop-filter",
+      "name": "Shop All Products",
+      "settings": {}
+    },
+    "custom_services_k8Qf6C": {
+      "type": "custom-services",
+      "name": "Store Services Hub",
+      "settings": {}
+    },
+    "multicolumn_HQQrhm": {
+      "type": "multicolumn",
+      "blocks": {
+        "column_KB7PUU": {
+          "type": "column",
+          "settings": {
+            "image": "shopify://shop_images/7201-square.png",
+            "title": "",
+            "text": "",
+            "link_label": "7201 BRBR",
+            "link": "https://www.7201brbr.org/"
+          }
+        },
+        "column_8HVV7H": {
+          "type": "column",
+          "settings": {
+            "image": "shopify://shop_images/710-quick-stop-final-small.png",
+            "title": "",
+            "text": "",
+            "link_label": "710 Quick Stop",
+            "link": "https://www.710quickstop.org/"
+          }
+        },
+        "column_gtxWri": {
+          "type": "column",
+          "settings": {
+            "image": "shopify://shop_images/smokestax-final-small.png",
+            "title": "",
+            "text": "",
+            "link_label": "SmokeStax Inc.",
+            "link": "https://www.smokestax.org/"
+          }
+        }
+      },
+      "block_order": [
+        "column_KB7PUU",
+        "column_8HVV7H",
+        "column_gtxWri"
+      ],
+      "disabled": true,
+      "settings": {
+        "title": "<strong>Affiliates</strong>",
+        "heading_size": "h1",
+        "image_width": "half",
+        "image_ratio": "square",
+        "columns_desktop": 3,
+        "column_alignment": "center",
+        "background_style": "primary",
+        "button_label": "",
+        "button_link": "",
+        "color_scheme": "",
+        "columns_mobile": "2",
+        "swipe_on_mobile": true,
+        "padding_top": 0,
+        "padding_bottom": 36
+      }
+    },
+    "featured_collection": {
+      "type": "featured-collection",
+      "disabled": true,
+      "custom_css": [
+        ".card__inner,.card__media,.media{border-radius:14px!important;aspect-ratio:1/1!important;overflow:hidden!important;background:#f8fafc!important}",
+        ".card__media img,.media img{object-fit:contain!important;padding:14px!important}",
+        ".price-item{color:#7C3AED;font-weight:700}",
+        ".button{background:#7C3AED!important;color:#fff!important;border-radius:99px!important}",
+        ".button:before,.button:after{box-shadow:none!important;border-radius:99px!important}"
+      ],
+      "settings": {
+        "title": "<strong>Best-Selling Beer</strong>",
+        "heading_size": "h2",
+        "description": "",
+        "show_description": false,
+        "description_style": "body",
+        "collection": "all-beer",
+        "products_to_show": 8,
+        "columns_desktop": 4,
+        "full_width": false,
+        "show_view_all": true,
+        "view_all_style": "solid",
+        "enable_desktop_slider": false,
+        "color_scheme": "background-1",
+        "image_ratio": "adapt",
+        "image_shape": "default",
+        "show_secondary_image": true,
+        "show_vendor": false,
+        "show_rating": false,
+        "enable_quick_add": false,
+        "columns_mobile": "2",
+        "swipe_on_mobile": false,
+        "padding_top": 44,
+        "padding_bottom": 36
+      }
+    },
+    "custom_category_tabs_LawjaN": {
+      "type": "custom-category-tabs",
+      "disabled": true,
+      "name": "Category Tabs Products",
+      "settings": {
+        "title": "Featured Selections",
+        "subtitle": "Handpicked craft beers, cold refreshments, snacks, and market essentials.",
+        "menu": "main-menu",
+        "products_to_show": 8
+      }
+    },
+    "custom_offerings_Vip3MH": {
+      "type": "custom-offerings",
+      "disabled": true,
+      "name": "Custom Offerings",
+      "settings": {}
+    },
+    "welcome_strip_Ws705x": {
+      "type": "welcome-strip",
+      "name": "Welcome Offer Strip",
+      "settings": {}
+    },
+    "welcome_offer_Wo705x": {
+      "type": "welcome-offer",
+      "name": "Welcome Offer 10%",
+      "settings": {}
+    },
+    "custom_store_info_mj68C3": {
+      "type": "custom-store-info",
+      "name": "Custom Store Info",
+      "settings": {}
+    },
+    "custom_about_Ab705x": {
+      "type": "custom-about",
+      "name": "About Us",
+      "settings": {
+        "logo": "shopify://shop_images/5a125608-c873-4c97-b3bd-201412b8095f.jpg",
+        "highlight_1_title": "6 AM – 12 AM (Next Day)",
+        "highlight_3_text": "Right on the corner of 38th Street on 2nd Avenue",
+        "badge_text": "6:00 AM – 12:00 AM (Next Day)"
+      }
+    },
+    "custom_contact_Ct705x": {
+      "type": "custom-contact",
+      "name": "Contact Us",
+      "settings": {
+        "hours": "Open daily, 6:00 AM – 12:00 AM (Next Day)"
+      }
+    }
+  },
+  "order": [
+    "custom_hero_iqbQQ9",
+    "welcome_strip_Ws705x",
+    "custom_dept_strip_Dp705x",
+    "custom_best_sellers_Bs705x",
+    "home_shop_filter_Hs705x",
+    "welcome_offer_Wo705x",
+    "custom_services_k8Qf6C",
+    "lottery_strip_Lt705x",
+    "multicolumn_HQQrhm",
+    "featured_collection",
+    "custom_category_tabs_LawjaN",
+    "custom_offerings_Vip3MH",
+    "custom_store_info_mj68C3",
+    "custom_contact_Ct705x",
+    "custom_about_Ab705x"
+  ]
+}
