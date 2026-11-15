@@ -206,9 +206,13 @@
       "name": "About Us",
       "settings": {
         "logo": "shopify://shop_images/5a125608-c873-4c97-b3bd-201412b8095f.jpg",
-        "highlight_1_title": "6 AM – 12 AM (Next Day)",
-        "highlight_3_text": "Right on the corner of 38th Street on 2nd Avenue",
-        "badge_text": "6:00 AM – 12:00 AM (Next Day)"
+        "highlight_1_title": "Open 7 Days a Week",
+        "highlight_3_text": "2nd Avenue & 38th Street",
+        "badge_text": "6:00 AM – 12:00 AM (Next Day)",
+        "highlight_1_text": "6am - 12am (Next Day)",
+        "highlight_2_title": "Beer. Groceries. Snacks. Pet Care.",
+        "highlight_2_text": "1 Stop",
+        "highlight_3_title": "Murray Hill"
       },
       "custom_css": [
         "@media (min-width: 769px) { .custom-about-section { padding-top: 34px; padding-bottom: 40px; } }"
