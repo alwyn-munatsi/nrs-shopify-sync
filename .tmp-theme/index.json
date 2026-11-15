@@ -191,7 +191,8 @@
       "custom_css": [
         "@media (min-width: 769px) { .brbr-wo { padding-top: 34px; padding-bottom: 34px; } }",
         "@media (max-width: 768px) { .brbr-wo { padding-top: 28px; padding-bottom: 28px; } }"
-      ]
+      ],
+      "disabled": true
     },
     "custom_store_info_mj68C3": {
       "type": "custom-store-info",
