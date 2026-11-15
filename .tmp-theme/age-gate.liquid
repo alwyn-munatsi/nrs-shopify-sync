@@ -9,6 +9,8 @@
   - Signed-in customers who gave a date of birth at sign-up must enter the SAME date here. A different date shows
     "doesn't match" with Try again; after 3 mismatches the 21+ items are taken out for this visit. A match (or a 21+
     date for guests) shows a success message with a Continue button.
+  - Once a signed-in customer's date of birth has matched, they're never asked again on that device while signed in
+    to that account (guests: remembered for N days).
   - Photo ID is still checked in person at pickup and delivery.
   Sizes in px because this theme scales rem down.
 {%- endcomment -%}
@@ -199,10 +201,13 @@
     function isConfirmed() {
       try {
         var s = JSON.parse(localStorage.getItem(KEY) || 'null');
+        // Signed-in customers whose date of birth matched their account stay verified on this device
+        // for as long as they use this account. Guests are remembered for REMEMBER_DAYS.
+        if (s && s.ok && s.account) return true;
         return !!(s && s.ok && Date.now() - s.at < REMEMBER_DAYS * 864e5);
       } catch (e) { return false; }
     }
-    function remember() { try { localStorage.setItem(KEY, JSON.stringify({ ok: true, at: Date.now() })); } catch (e) {} }
+    function remember() { try { localStorage.setItem(KEY, JSON.stringify({ ok: true, at: Date.now(), account: !!ACCOUNT_DOB })); } catch (e) {} }
     var sessionOk = false; // also works when browser storage is blocked
     function confirmed() { return sessionOk || isConfirmed(); }
 
