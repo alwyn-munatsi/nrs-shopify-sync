@@ -39,13 +39,26 @@ Optional variables: `PRICE_MARKUP_PERCENT` (default 20), `SYNC_STOCK` (default `
 `MAX_NEW_PRODUCTS_PER_RUN` (default 25), `SYNC_PRICES` (`true`/`false`),
 `NOTIFY_ASSIGNEE` (GitHub username to notify; defaults to the repo owner).
 
+## Shopify access (store-approved app)
+
+The 705 BRBR store is owned by the merchant, not by the app's organization, so Shopify doesn't allow the client
+credentials grant there (`shop_not_permitted`). Instead the store approves the app once and the `murray-worker`
+Worker keeps the token (expiring offline token, refreshed automatically; see `murray-worker/src/nrs-auth.js`):
+
+1. Connect: open `https://brbr-murray.munatsialwyn26.workers.dev/nrs/install` while signed in to the 705 admin
+   (as the owner or a staff member allowed to approve apps) and approve.
+2. Check: `https://brbr-murray.munatsialwyn26.workers.dev/nrs/status` shows `connected: true` (no tokens are shown).
+3. Each run, the sync asks `/nrs/token` for a fresh token, signing the request with the app's client secret.
+
+If the status ever shows a refresh error (for example after the app was uninstalled), open `/nrs/install` again.
+
 ## Secrets
 
 | Secret | Value |
 |---|---|
 | `SHOPIFY_STORE_DOMAIN` | `7e36ef-2` (or the full `.myshopify.com` domain) |
-| `SHOPIFY_ADMIN_ACCESS_TOKEN` | Admin API token (`shpat_...`), or the app's client secret when `SHOPIFY_CLIENT_ID` is set |
-| `SHOPIFY_CLIENT_ID` | Optional. App client id, for the client credentials grant |
+| `SHOPIFY_ADMIN_ACCESS_TOKEN` | The NRS Inventory Sync app's **client secret** (Dev Dashboard → app → Settings). Also copied to the Worker by the deploy. An Admin API token (`shpat_...`) also works |
+| `SHOPIFY_CLIENT_ID` | The app's client ID |
 | `SHOPIFY_LOCATION_ID` | `gid://shopify/Location/...` (a bare number works too) |
 | `NRS_AUTH_PATH`, `NRS_STORE_ID`, `NRS_GROUP_ID` | NRS POS API values |
 

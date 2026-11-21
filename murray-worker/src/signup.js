@@ -9,9 +9,12 @@
 //    honeypot field and a minimum fill time keep bots out.
 //  - An email that already belongs to a customer is NEVER changed: the visitor is told to sign in instead,
 //    so nobody can overwrite someone else's name, phone or address.
-//  - The Admin token is the NRS Inventory Sync app's token (Worker secret SIGNUP_ADMIN_TOKEN). A client-credentials
-//    app (SIGNUP_CLIENT_ID + SIGNUP_CLIENT_SECRET) also works if the app and store are in the same organization.
+//  - The Admin token is the NRS Inventory Sync app's token, kept by nrs-auth.js after the store approved the app.
+//    Fallbacks: a fixed token (SIGNUP_ADMIN_TOKEN), or a client-credentials app (SIGNUP_CLIENT_ID + SIGNUP_CLIENT_SECRET)
+//    when the app and store are in the same organization.
 //    Nothing is sent back to the browser except a short status.
+
+import { nrsAccessToken, nrsReady } from './nrs-auth.js';
 
 const API_VERSION = '2026-10';
 const GENDERS = ['Female', 'Male', 'Non-binary', 'Prefer not to say'];
@@ -78,6 +81,8 @@ export function validateSignup(body, today = new Date()) {
 
 let tokenCache = null; // { token, exp }
 async function adminToken(env, f) {
+  const connected = await nrsAccessToken(env).catch(() => null);
+  if (connected) return connected;
   if (env.SIGNUP_ADMIN_TOKEN) return env.SIGNUP_ADMIN_TOKEN; // optional: a fixed shpat_ token instead
   if (tokenCache && tokenCache.exp > Date.now() + 60e3) return tokenCache.token;
   const r = await f(`https://${env.SHOPIFY_STORE_DOMAIN}/admin/oauth/access_token`, {
@@ -109,7 +114,7 @@ const CREATE = `mutation($input: CustomerInput!) { customerCreate(input: $input)
 const ADDRESS = `mutation($id: ID!, $address: MailingAddressInput!) { customerAddressCreate(customerId: $id, address: $address, setAsDefault: true) { address { id } userErrors { field message } } }`;
 
 export function signupReady(env) {
-  return Boolean(env.SHOPIFY_STORE_DOMAIN && (env.SIGNUP_ADMIN_TOKEN || (env.SIGNUP_CLIENT_ID && env.SIGNUP_CLIENT_SECRET)));
+  return Boolean(env.SHOPIFY_STORE_DOMAIN && (nrsReady(env) || env.SIGNUP_ADMIN_TOKEN || (env.SIGNUP_CLIENT_ID && env.SIGNUP_CLIENT_SECRET)));
 }
 
 // Returns { status, json }

@@ -354,3 +354,30 @@ def test_zero_stock_product_keeps_selling():
     assert "nrs-zero-stock" in zero["tags"] and zero["variants"][0]["inventoryPolicy"] == "CONTINUE"
     assert zero["variants"][0]["inventoryQuantities"][0]["quantity"] == 0
     assert "nrs-zero-stock" not in stocked["tags"] and stocked["variants"][0]["inventoryPolicy"] == "DENY"
+
+
+def test_token_from_worker_when_client_credentials_not_allowed(monkeypatch):
+    monkeypatch.setattr(s, "token_works", lambda d, t: False)
+    monkeypatch.setenv("NRS_TOKEN_URL", "https://worker.example/nrs/token")
+    seen = {}
+
+    def fake_get(url, headers=None, timeout=None):
+        seen.update(url=url, headers=headers)
+        return FakeResponse({"access_token": "from-worker"})
+
+    monkeypatch.setattr(s.requests, "get", fake_get)
+    monkeypatch.setattr(s.requests, "post", lambda *a, **k: (_ for _ in ()).throw(AssertionError("no client credentials")))
+    assert s.get_shopify_token("x.myshopify.com", "the-secret", "client") == "from-worker"
+    import hashlib as h, hmac as hm
+    ts = seen["headers"]["X-NRS-Timestamp"]
+    assert seen["headers"]["X-NRS-Signature"] == hm.new(b"the-secret", f"nrs-token:{ts}".encode(), h.sha256).hexdigest()
+
+
+def test_worker_failure_is_reported(monkeypatch):
+    monkeypatch.setattr(s, "token_works", lambda d, t: False)
+    monkeypatch.setenv("NRS_TOKEN_URL", "https://worker.example/nrs/token")
+    monkeypatch.setattr(s.requests, "get", lambda *a, **k: FakeResponse({"error": "not_connected", "message": "Open /nrs/install."}, status=409))
+    monkeypatch.setattr(s.requests, "post", lambda *a, **k: FakeResponse({"error": "shop_not_permitted"}, status=400))
+    with pytest.raises(s.ShopifyError) as e:
+        s.get_shopify_token("x.myshopify.com", "the-secret", "client")
+    assert "not_connected" in str(e.value) and "shop_not_permitted" in str(e.value)

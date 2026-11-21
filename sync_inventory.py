@@ -17,6 +17,8 @@ Environment:
   SHOPIFY_ADMIN_ACCESS_TOKEN  shpat_ token, or the app's client secret when SHOPIFY_CLIENT_ID is set
   SHOPIFY_CLIENT_ID           optional: app client id, used with the client credentials grant
   SHOPIFY_LOCATION_ID         gid://shopify/Location/... (a bare number also works)
+  NRS_TOKEN_URL               optional: the Worker endpoint (/nrs/token) that keeps the store-approved app token;
+                              used when the client credentials grant isn't allowed (store outside the app's org)
   NRS_AUTH_PATH, NRS_STORE_ID, NRS_GROUP_ID
   SYNC_MODE                   "dry-run" (default) or "live"
   SYNC_PRICES                 "true" (default) / "false"
@@ -30,6 +32,7 @@ Environment:
 
 import csv
 import hashlib
+import hmac
 import json
 import os
 import re
@@ -317,6 +320,28 @@ def token_works(domain: str, token: str) -> bool:
     return res.status_code == 200 and not res.json().get("errors")
 
 
+def token_from_worker(url: str, client_secret: str):
+    """
+    Asks the Worker that holds the store-approved app token (murray-worker /nrs/token) for a fresh access token.
+    The request is signed with the app's client secret (HMAC-SHA256 of "nrs-token:<unix time>"), so only holders
+    of the secret get a token. Returns (token, "") or (None, reason).
+    """
+    ts = str(int(time.time()))
+    sig = hmac.new(client_secret.encode(), f"nrs-token:{ts}".encode(), hashlib.sha256).hexdigest()
+    try:
+        res = requests.get(url, headers={"X-NRS-Timestamp": ts, "X-NRS-Signature": sig}, timeout=30)
+    except requests.RequestException as e:
+        return None, f"could not reach the Worker ({type(e).__name__})"
+    try:
+        body = res.json()
+    except ValueError:
+        body = {}
+    if res.status_code == 200 and body.get("access_token"):
+        print("Using the store-approved app token from the Worker.")
+        return body["access_token"], ""
+    return None, f"HTTP {res.status_code} {body.get('error') or ''} {body.get('message') or ''}".strip()
+
+
 def get_shopify_token(domain: str, token: str, client_id: str) -> str:
     """
     Uses the secret directly when it works as an access token. Otherwise, when a client id is set,
@@ -324,6 +349,13 @@ def get_shopify_token(domain: str, token: str, client_id: str) -> str:
     """
     if not client_id or token_works(domain, token):
         return token
+    worker_note = ""
+    worker_url = (os.environ.get("NRS_TOKEN_URL") or "").strip()
+    if worker_url:
+        access, worker_note = token_from_worker(worker_url, token)
+        if access:
+            return access
+        print(f"The Worker could not provide a token: {worker_note}. Trying the client credentials grant...")
     print("Requesting a Shopify access token with the client credentials grant...")
     res = requests.post(
         f"https://{domain}/admin/oauth/access_token",
@@ -342,6 +374,8 @@ def get_shopify_token(domain: str, token: str, client_id: str) -> str:
         if client_secret_hint := (token.startswith("shpat_") or token.startswith("shpca_")):
             reason += (" (SHOPIFY_ADMIN_ACCESS_TOKEN looks like an access token, not a client secret, and Shopify"
                        " rejected it as a token too: check it belongs to this store)")
+        if worker_note:
+            reason += f" | Worker: {worker_note}"
         raise ShopifyError(f"Shopify refused the client credentials grant (HTTP {res.status_code}): {reason or 'no reason given'}")
     access = res.json().get("access_token")
     if not access:

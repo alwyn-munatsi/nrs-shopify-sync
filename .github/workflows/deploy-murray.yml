@@ -8,7 +8,9 @@ name: Deploy Murray (chat assistant)
 #   CLOUDFLARE_ACCOUNT_ID  Cloudflare dashboard > Workers & Pages (right-hand side: Account ID)
 #   GROQ_API_KEY           console.groq.com > API Keys (used when present)
 #   ANTHROPIC_API_KEY      console.anthropic.com > API Keys (used if there is no Groq key)
-#   SHOPIFY_ADMIN_ACCESS_TOKEN  (already set for the NRS sync) used by the website sign-up (/signup)
+#   SHOPIFY_ADMIN_ACCESS_TOKEN  (already set for the NRS sync) the NRS Inventory Sync app's CLIENT SECRET. Copied to the
+#                               Worker as NRS_APP_CLIENT_SECRET for the store-approved app connection (/nrs/*), whose
+#                               token the website sign-up, the account blocks and the hourly sync all use.
 #   ACCOUNT_APP_CLIENT_SECRET   Dev Dashboard > 705 BRBR Account Extras > Settings > Client secret (customer account blocks)
 # At least one of GROQ_API_KEY / ANTHROPIC_API_KEY is needed.
 on:
@@ -76,10 +78,10 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          SIGNUP_ADMIN_TOKEN: ${{ secrets.SHOPIFY_ADMIN_ACCESS_TOKEN }}
+          NRS_APP_CLIENT_SECRET: ${{ secrets.SHOPIFY_ADMIN_ACCESS_TOKEN }}
           ACCOUNT_APP_CLIENT_SECRET: ${{ secrets.ACCOUNT_APP_CLIENT_SECRET }}
         run: |
-          for name in GROQ_API_KEY ANTHROPIC_API_KEY SIGNUP_ADMIN_TOKEN ACCOUNT_APP_CLIENT_SECRET; do
+          for name in GROQ_API_KEY ANTHROPIC_API_KEY NRS_APP_CLIENT_SECRET ACCOUNT_APP_CLIENT_SECRET; do
             value="${!name}"
             if [ -n "$value" ]; then
               printf '%s' "$value" | npx --yes wrangler@4 secret put "$name"

@@ -9,9 +9,11 @@
 // with the Account Extras app's client secret (Worker secret ACCOUNT_APP_CLIENT_SECRET). The token's `sub` is the
 // signed-in customer, so a customer can only ever read or change their own account. Nothing is trusted from the
 // browser except the values being saved, which are validated here.
-// Shopify Admin calls use the same token as the website sign-up (SIGNUP_ADMIN_TOKEN).
+// Shopify Admin calls use the same token as the website sign-up: the connected NRS app token (nrs-auth.js),
+// or the fixed SIGNUP_ADMIN_TOKEN as a fallback.
 
 import { ageOn } from './signup.js';
+import { nrsAccessToken, nrsReady } from './nrs-auth.js';
 
 const API_VERSION = '2026-10';
 const GENDERS = ['Female', 'Male', 'Non-binary', 'Prefer not to say'];
@@ -72,14 +74,15 @@ export async function verifySessionToken(token, env, now = Date.now()) {
 }
 
 export function accountReady(env) {
-  return Boolean(env.ACCOUNT_APP_CLIENT_SECRET && env.SHOPIFY_STORE_DOMAIN && env.SIGNUP_ADMIN_TOKEN);
+  return Boolean(env.ACCOUNT_APP_CLIENT_SECRET && env.SHOPIFY_STORE_DOMAIN && (nrsReady(env) || env.SIGNUP_ADMIN_TOKEN));
 }
 
 // ---------- Admin API ----------
 async function admin(env, f, query, variables) {
+  const token = (await nrsAccessToken(env).catch(() => null)) || env.SIGNUP_ADMIN_TOKEN;
   const r = await f(`https://${env.SHOPIFY_STORE_DOMAIN}/admin/api/${API_VERSION}/graphql.json`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': env.SIGNUP_ADMIN_TOKEN },
+    headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': token },
     body: JSON.stringify({ query, variables }),
   });
   const j = await r.json().catch(() => ({}));

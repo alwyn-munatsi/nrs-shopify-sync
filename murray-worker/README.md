@@ -6,6 +6,8 @@ and NY Lottery results (the brbr-lottery Worker). It only talks about 705 BRBR.
 
 - `POST /chat` `{ messages: [{role, content}], page }` returns `{ reply, products }`
 - `GET /health` shows whether a model key is set and which provider is in use
+- `GET /nrs/install`, `/nrs/callback`, `/nrs/status`, `/nrs/token`: the store-approved connection for the NRS Inventory Sync
+  app (`src/nrs-auth.js`). Its token is used by the website sign-up, the customer account blocks and the hourly sync.
 
 ## Deploy
 `.github/workflows/deploy-murray.yml` deploys on every change to this folder (or run it from the Actions tab).

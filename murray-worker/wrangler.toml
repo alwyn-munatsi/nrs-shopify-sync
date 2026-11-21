@@ -14,6 +14,10 @@ GROQ_MODEL = "openai/gpt-oss-120b"
 # Website sign-up (POST /signup): creates customers with the "NRS Inventory Sync" app's Admin token
 # (Worker secret SIGNUP_ADMIN_TOKEN, copied from the GitHub secret SHOPIFY_ADMIN_ACCESS_TOKEN by the deploy).
 SHOPIFY_STORE_DOMAIN = "7e36ef-2.myshopify.com"
+# NRS Inventory Sync app (store-approved, see src/nrs-auth.js): client secret = Worker secret NRS_APP_CLIENT_SECRET,
+# copied from the GitHub secret SHOPIFY_ADMIN_ACCESS_TOKEN by the deploy. Scopes must match the app's active version.
+NRS_APP_CLIENT_ID = "66b5f34ecc5b5db4dcc66759f817f892"
+NRS_APP_SCOPES = "read_products,write_products,read_inventory,write_inventory,read_locations,read_customers,write_customers,read_orders"
 # Customer account blocks (/account/*): session tokens are checked against the "705 BRBR Account Extras" app
 # (client id below; client secret = Worker secret ACCOUNT_APP_CLIENT_SECRET, from the GitHub secret of the same name).
 ACCOUNT_APP_CLIENT_ID = "1ffd4218b4ef1986b7f6f4a3cf74b89a"
@@ -28,3 +32,16 @@ service = "brbr-lottery"
 # and Cloudflare (AS13335) requests must come from a US location.
 [placement]
 region = "aws:us-east-1"
+
+# Keeps the NRS app's tokens (access + rotating refresh token) in one Durable Object.
+[[durable_objects.bindings]]
+name = "NRS_TOKENS"
+class_name = "NrsTokenStore"
+
+[[migrations]]
+tag = "v1-nrs-tokens"
+new_sqlite_classes = ["NrsTokenStore"]
+
+# Refresh the NRS token every 6 hours so the 90-day refresh token never lapses, even if the sync stops.
+[triggers]
+crons = ["23 */6 * * *"]

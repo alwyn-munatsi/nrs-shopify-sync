@@ -58,6 +58,8 @@ jobs:
           # New products include register items with 0 or negative stock (set to 'false' to skip them).
           INCLUDE_ZERO_STOCK: ${{ vars.INCLUDE_ZERO_STOCK || 'true' }}
           SHOPIFY_CLIENT_ID: ${{ secrets.SHOPIFY_CLIENT_ID }}
+          # The store approved the app through the Worker (/nrs/install); the Worker keeps and refreshes the token.
+          NRS_TOKEN_URL: ${{ vars.NRS_TOKEN_URL || 'https://brbr-murray.munatsialwyn26.workers.dev/nrs/token' }}
           SHOPIFY_ADMIN_ACCESS_TOKEN: ${{ secrets.SHOPIFY_ADMIN_ACCESS_TOKEN }}
           SHOPIFY_STORE_DOMAIN: ${{ secrets.SHOPIFY_STORE_DOMAIN }}
           SHOPIFY_LOCATION_ID: ${{ secrets.SHOPIFY_LOCATION_ID }}
