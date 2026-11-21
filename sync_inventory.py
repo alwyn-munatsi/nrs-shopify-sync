@@ -7,7 +7,7 @@ What one run does:
   3. Matches them by barcode and works out:
        - stock changes   (Shopify on-hand = NRS on-hand minus a 1-unit walk-in buffer)
        - price changes   (NRS always wins)
-       - new products    (in NRS with stock, not in Shopify yet) -> created as DRAFT products
+       - new products    (in NRS, not in Shopify yet, including zero-stock items) -> created as DRAFT products
   4. In live mode it writes those changes to Shopify. In dry-run mode it writes nothing.
   5. Writes a report (job summary + CSV files) and, when new products were created or are
      waiting to be created, posts a notification on a GitHub issue.
@@ -22,6 +22,7 @@ Environment:
   SYNC_PRICES                 "true" (default) / "false"
   PRICE_MARKUP_PERCENT        online price = register price + this percent (default 0)
   SYNC_STOCK                  "true" / "false" (default): write stock levels to Shopify
+  INCLUDE_ZERO_STOCK          "true" (default) / "false": also create register items with 0 or negative stock
   MAX_NEW_PRODUCTS_PER_RUN    default 25
   REPORT_DIR                  default "report"
   GITHUB_TOKEN, GITHUB_REPOSITORY, NOTIFY_ASSIGNEE   for the issue notification (set by the workflow)
@@ -424,7 +425,8 @@ class Plan:
 
 
 def build_plan(nrs: dict, shopify: dict, sync_prices: bool = True, max_new: int = 25,
-               markup_pct: Decimal = Decimal("0"), sync_stock: bool = True) -> Plan:
+               markup_pct: Decimal = Decimal("0"), sync_stock: bool = True,
+               include_zero_stock: bool = True) -> Plan:
     plan = Plan()
 
     for b, variants in shopify.items():
@@ -459,7 +461,7 @@ def build_plan(nrs: dict, shopify: dict, sync_prices: bool = True, max_new: int 
     candidates = [
         {"barcode": item["raw_upc"], **item}
         for b, item in nrs.items()
-        if b not in shopify and item["onhand"] > 0
+        if b not in shopify and (include_zero_stock or item["onhand"] > 0)
     ]
     candidates.sort(key=lambda x: x["name"].lower())
     for item in candidates:
@@ -572,19 +574,27 @@ mutation CreateProduct($input: ProductSetInput!) {
 
 
 def create_product(shop: Shopify, item: dict, location_id: str):
-    """Creates one DRAFT product with price, barcode, tracked inventory and on-hand stock."""
+    """
+    Creates one DRAFT product with price, barcode, tracked inventory and on-hand stock.
+    Items that start with 0 online (register stock 1 or less, including 0 and negative) are tagged
+    nrs-zero-stock and keep selling when out of stock (inventory policy CONTINUE): stock sync is off,
+    so a 0 would never be raised and the product could never be bought.
+    """
+    zero = item["target_qty"] <= 0
+    tags = ["nrs-sync", "needs-review"] + (["nrs-zero-stock"] if zero else [])
     data = shop.graphql(CREATE_MUTATION, {
         "input": {
             "title": item["name"],
             "productType": item["department"],
             "status": "DRAFT",
-            "tags": ["nrs-sync", "needs-review"],
+            "tags": tags,
             "productOptions": [{"name": "Title", "values": [{"name": "Default Title"}]}],
             "variants": [{
                 "optionValues": [{"optionName": "Title", "name": "Default Title"}],
                 "price": str(item.get("online_price") or item["price"]),
                 "barcodes": [{"value": item["raw_upc"]}],
                 "inventoryItem": {"tracked": True},
+                "inventoryPolicy": "CONTINUE" if zero else "DENY",
                 "inventoryQuantities": [{"locationId": location_id, "name": "on_hand", "quantity": item["target_qty"]}],
             }],
         }
@@ -715,6 +725,7 @@ def main() -> int:
     live = mode == "live"
     sync_prices = env_flag("SYNC_PRICES", True)
     sync_stock = env_flag("SYNC_STOCK", False)
+    include_zero = env_flag("INCLUDE_ZERO_STOCK", True)
     markup_pct = to_price(os.environ.get("PRICE_MARKUP_PERCENT") or "0") or Decimal("0")
     max_new = int(os.environ.get("MAX_NEW_PRODUCTS_PER_RUN") or 25)
     report_dir = os.environ.get("REPORT_DIR") or "report"
@@ -722,7 +733,7 @@ def main() -> int:
 
     domain = normalize_store_domain(os.environ["SHOPIFY_STORE_DOMAIN"])
     location_id = normalize_location_id(os.environ["SHOPIFY_LOCATION_ID"])
-    print(f"Mode: {'LIVE (writes to Shopify)' if live else 'DRY RUN (no changes)'} | store {domain} | prices {'on (+' + str(markup_pct) + '% online)' if sync_prices else 'off'} | stock {'on' if sync_stock else 'off'}")
+    print(f"Mode: {'LIVE (writes to Shopify)' if live else 'DRY RUN (no changes)'} | store {domain} | prices {'on (+' + str(markup_pct) + '% online)' if sync_prices else 'off'} | stock {'on' if sync_stock else 'off'} | zero-stock new items {'included' if include_zero else 'skipped'}")
 
     token = get_shopify_token(domain, os.environ["SHOPIFY_ADMIN_ACCESS_TOKEN"], os.environ.get("SHOPIFY_CLIENT_ID"))
     shop = Shopify(domain, token)
@@ -733,7 +744,8 @@ def main() -> int:
         print("Error: NRS returned no items; stopping so Shopify is not zeroed out.")
         return 1
 
-    plan = build_plan(nrs, shopify, sync_prices=sync_prices, max_new=max_new, markup_pct=markup_pct, sync_stock=sync_stock)
+    plan = build_plan(nrs, shopify, sync_prices=sync_prices, max_new=max_new, markup_pct=markup_pct,
+                      sync_stock=sync_stock, include_zero_stock=include_zero)
     print(
         f"Matched {plan.matched} variants by barcode ({plan.shopify_only} Shopify variants not in NRS). "
         f"Planned: {len(plan.stock)} stock changes, {len(plan.activate)} first-time stockings, "

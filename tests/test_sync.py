@@ -78,7 +78,7 @@ def test_build_plan_stock_prices_and_new():
         {"upc": "0005", "name": "Unstocked", "cents": 500, "onhand": 3},     # not stocked -> activate with 2
         {"upc": "0009", "name": "B new", "cents": 300, "onhand": 4},         # new
         {"upc": "0010", "name": "A new", "cents": 300, "onhand": 1},         # new (in stock at register)
-        {"upc": "0011", "name": "C new", "cents": 300, "onhand": 0},         # no stock -> skipped
+        {"upc": "0011", "name": "C new", "cents": 300, "onhand": 0},         # no stock -> still new (queued)
         {"upc": "0012", "name": "D new", "cents": None, "onhand": 9},        # no price -> warning
     ])
     shop = shopify_map(
@@ -95,7 +95,7 @@ def test_build_plan_stock_prices_and_new():
     assert [(r["barcode"], r["to"]) for r in plan.activate] == [("0005", 2)]
     assert [(r["barcode"], r["from"], r["to"]) for r in plan.prices] == [("0003", Decimal("5.00"), Decimal("7.99"))]
     assert [p["name"] for p in plan.new_products] == ["A new"]
-    assert [p["name"] for p in plan.queued] == ["B new"]
+    assert [p["name"] for p in plan.queued] == ["B new", "C new"]
     assert plan.matched == 5 and plan.shopify_only == 1
     assert any("Zero price" in w or "0004" in w for w in plan.warnings)
     assert any("D new" in w for w in plan.warnings)
@@ -324,3 +324,33 @@ def test_live_run_with_markup_and_no_stock(env, monkeypatch):
     assert sorted(v[0]["price"] for k, v in prices.items() if k.startswith("v")) == ["6.00", "9.59"]
     create = next(m for m in muts if "productSet" in m["query"])["variables"]["input"]
     assert create["variants"][0]["price"] == "3.60"
+
+
+def test_zero_stock_items_can_be_skipped():
+    nrs = s.parse_nrs_items([
+        {"upc": "0011", "name": "Zero", "cents": 300, "onhand": 0},
+        {"upc": "0012", "name": "Negative", "cents": 300, "onhand": -4},
+        {"upc": "0013", "name": "In stock", "cents": 300, "onhand": 2},
+    ])
+    assert [p["name"] for p in s.build_plan(nrs, {}).new_products] == ["In stock", "Negative", "Zero"]
+    assert [p["name"] for p in s.build_plan(nrs, {}, include_zero_stock=False).new_products] == ["In stock"]
+
+
+def test_zero_stock_product_keeps_selling():
+    calls = []
+
+    class FakeShop:
+        def graphql(self, query, variables=None):
+            calls.append(variables)
+            return {"productSet": {"product": {"id": "gid://shopify/Product/1"}, "userErrors": []}}
+
+    nrs = s.parse_nrs_items([
+        {"upc": "0011", "name": "Zero", "cents": 300, "onhand": 0},
+        {"upc": "0013", "name": "In stock", "cents": 300, "onhand": 5},
+    ])
+    for item in sorted(nrs.values(), key=lambda x: x["raw_upc"]):
+        s.create_product(FakeShop(), {"barcode": item["raw_upc"], **item}, "gid://shopify/Location/1")
+    zero, stocked = calls[0]["input"], calls[1]["input"]
+    assert "nrs-zero-stock" in zero["tags"] and zero["variants"][0]["inventoryPolicy"] == "CONTINUE"
+    assert zero["variants"][0]["inventoryQuantities"][0]["quantity"] == 0
+    assert "nrs-zero-stock" not in stocked["tags"] and stocked["variants"][0]["inventoryPolicy"] == "DENY"

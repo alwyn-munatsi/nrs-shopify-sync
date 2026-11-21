@@ -12,9 +12,13 @@ Keeps the 705 BRBR Shopify store in step with the NRS register. Runs every hour 
 4. **Stock (off for now):** with `SYNC_STOCK=true`, sets Shopify on-hand to the register count minus 1,
    held back for walk-in customers (0 or 1 in the register means 0 online). It stays off until the
    store's NRS counts are reliable (most are currently 0 or negative).
-5. **New products:** register items that are in stock but not on Shopify are created as **draft**
-   products (title, department as the product type, price, barcode, stock), tagged
-   `nrs-sync` and `needs-review`. At most 25 per run; the rest wait for the next runs.
+5. **New products:** register items that are not on Shopify are created as **draft** products
+   (title, department as the product type, price, barcode, stock), tagged `nrs-sync` and
+   `needs-review`. This includes items with 0 or negative stock at the register
+   (`INCLUDE_ZERO_STOCK`, on by default). Any new product that starts with 0 online stock
+   (register count 1 or less) is also tagged `nrs-zero-stock` and set to keep selling when out of
+   stock, because stock sync is off and its count would otherwise never go above 0.
+   Items without a register price are still skipped. At most 25 per run; the rest wait for the next runs.
 6. **Notification:** when products are created or are waiting to be created, the run comments on the
    open GitHub issue labelled `new-products` (it opens one the first time) and mentions the repo
    owner, so GitHub sends an email. The same list is not sent twice.
@@ -31,6 +35,7 @@ Scheduled runs use the repository variable `SYNC_MODE` (Settings → Secrets and
 Variables). They stay in dry run until `SYNC_MODE` is set to `live`.
 
 Optional variables: `PRICE_MARKUP_PERCENT` (default 20), `SYNC_STOCK` (default `false`),
+`INCLUDE_ZERO_STOCK` (default `true`),
 `MAX_NEW_PRODUCTS_PER_RUN` (default 25), `SYNC_PRICES` (`true`/`false`),
 `NOTIFY_ASSIGNEE` (GitHub username to notify; defaults to the repo owner).
 
