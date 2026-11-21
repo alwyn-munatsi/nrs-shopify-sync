@@ -26,7 +26,7 @@ Environment:
   SYNC_STOCK                  "true" / "false" (default): write stock levels to Shopify
   INCLUDE_ZERO_STOCK          "true" (default) / "false": also create register items with 0 or negative stock
   NEW_PRODUCT_STATUS          "DRAFT" (default) or "ACTIVE": ACTIVE products are also published to the Online Store
-                              (needs the write_publications scope; falls back to DRAFT without it)
+                              (needs the write_publications scope; without it no products are created and they wait)
   MAX_NEW_PRODUCTS_PER_RUN    default 25
   REPORT_DIR                  default "report"
   GITHUB_TOKEN, GITHUB_REPOSITORY, NOTIFY_ASSIGNEE   for the issue notification (set by the workflow)
@@ -849,9 +849,11 @@ def main() -> int:
         if plan.new_products and new_status == "ACTIVE":
             publication_id, why = online_store_publication(shop)
             if not publication_id:
-                plan.warnings.append(f"New products were created as DRAFT instead of ACTIVE: could not find the Online Store publication ({why}). "
-                                     "Add the write_publications scope to the app and approve it again.")
-                new_status = "DRAFT"
+                # Don't create them as drafts: later runs would never make them active. Keep them waiting instead.
+                plan.warnings.append(f"No new products created: they should go live, but the Online Store publication can't be read ({why}). "
+                                     "Add the write_publications scope to the app, approve it again (/nrs/install), and the next run creates them.")
+                plan.queued = plan.new_products + plan.queued
+                plan.new_products = []
         for item in plan.new_products:
             product, err = create_product(shop, item, location_id, status=new_status, publication_id=publication_id)
             if err:

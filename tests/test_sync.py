@@ -417,3 +417,20 @@ def test_active_products_are_published_to_the_online_store():
 def test_missing_publication_scope_is_reported():
     pub, why = s.online_store_publication(FakeShopRecorder(fail_publications=True))
     assert pub is None and "Access denied" in why
+
+
+def test_live_run_waits_when_it_cannot_publish(env, monkeypatch):
+    monkeypatch.setenv("SYNC_MODE", "live")
+    monkeypatch.setenv("NEW_PRODUCT_STATUS", "ACTIVE")
+    monkeypatch.setattr(s, "online_store_publication", lambda shop: (None, "Access denied"))
+    created = []
+    monkeypatch.setattr(s, "create_product", lambda *a, **k: created.append(a) or ({"id": "x"}, None))
+    monkeypatch.setattr(s, "apply_stock", lambda *a, **k: [])
+    monkeypatch.setattr(s, "apply_activations", lambda *a, **k: [])
+    monkeypatch.setattr(s, "apply_prices", lambda *a, **k: [])
+    monkeypatch.setattr(s, "notify_github", lambda *a, **k: None)
+    session = FakeSession([variant("0002", "5.00", 0, n=2), variant("0003", "5.00", 0, n=3)])
+    run_main(monkeypatch, session)
+    assert created == []
+    assert "Brand new" in (env / "report" / "new_products.csv").read_text()
+    assert "write_publications" in (env / "report" / "warnings.txt").read_text()
