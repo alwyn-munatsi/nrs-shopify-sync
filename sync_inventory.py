@@ -336,7 +336,9 @@ def get_shopify_token(domain: str, token: str, client_id: str) -> str:
             body = res.json()
             reason = " - ".join(str(body.get(k)) for k in ("error", "error_description", "errors") if body.get(k))
         except ValueError:
-            reason = res.text[:300]
+            text = re.sub(r"(?s)<(script|style).*?</\1>", " ", res.text)
+            text = re.sub(r"<[^>]+>", " ", text)
+            reason = re.sub(r"\s+", " ", text).strip()[:400]
         if client_secret_hint := (token.startswith("shpat_") or token.startswith("shpca_")):
             reason += (" (SHOPIFY_ADMIN_ACCESS_TOKEN looks like an access token, not a client secret, and Shopify"
                        " rejected it as a token too: check it belongs to this store)")
