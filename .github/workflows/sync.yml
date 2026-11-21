@@ -12,8 +12,8 @@ on:
         options: [dry-run, live]
         default: dry-run
       max_new_products:
-        description: 'Most new draft products to create in this run'
-        default: '25'
+        description: 'Most new products to create in this run'
+        default: '500'
 
 # Never run two syncs at the same time.
 concurrency:
@@ -27,7 +27,7 @@ permissions:
 jobs:
   run-sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 50
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v5
@@ -49,7 +49,9 @@ jobs:
           # variable SYNC_MODE (Settings > Secrets and variables > Actions > Variables) and
           # stay in dry-run until that variable is set to "live".
           SYNC_MODE: ${{ github.event.inputs.mode || vars.SYNC_MODE || 'dry-run' }}
-          MAX_NEW_PRODUCTS_PER_RUN: ${{ github.event.inputs.max_new_products || vars.MAX_NEW_PRODUCTS_PER_RUN || '25' }}
+          MAX_NEW_PRODUCTS_PER_RUN: ${{ github.event.inputs.max_new_products || vars.MAX_NEW_PRODUCTS_PER_RUN || '500' }}
+          # New products go live (ACTIVE, published to the Online Store). Set the variable to DRAFT to review them first.
+          NEW_PRODUCT_STATUS: ${{ vars.NEW_PRODUCT_STATUS || 'ACTIVE' }}
           SYNC_PRICES: ${{ vars.SYNC_PRICES || 'true' }}
           # Online price = register price + this percent.
           PRICE_MARKUP_PERCENT: ${{ vars.PRICE_MARKUP_PERCENT || '20' }}

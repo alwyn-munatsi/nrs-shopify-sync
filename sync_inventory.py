@@ -25,6 +25,8 @@ Environment:
   PRICE_MARKUP_PERCENT        online price = register price + this percent (default 0)
   SYNC_STOCK                  "true" / "false" (default): write stock levels to Shopify
   INCLUDE_ZERO_STOCK          "true" (default) / "false": also create register items with 0 or negative stock
+  NEW_PRODUCT_STATUS          "DRAFT" (default) or "ACTIVE": ACTIVE products are also published to the Online Store
+                              (needs the write_publications scope; falls back to DRAFT without it)
   MAX_NEW_PRODUCTS_PER_RUN    default 25
   REPORT_DIR                  default "report"
   GITHUB_TOKEN, GITHUB_REPOSITORY, NOTIFY_ASSIGNEE   for the issue notification (set by the workflow)
@@ -619,9 +621,33 @@ mutation CreateProduct($input: ProductSetInput!) {
 """
 
 
-def create_product(shop: Shopify, item: dict, location_id: str):
+PUBLICATIONS_QUERY = """
+query { publications(first: 50) { nodes { id channels(first: 5) { nodes { handle } } } } }
+"""
+
+PUBLISH_MUTATION = """
+mutation Publish($id: ID!, $input: [PublicationInput!]!) {
+  publishablePublish(id: $id, input: $input) { userErrors { field message } }
+}
+"""
+
+
+def online_store_publication(shop: Shopify):
+    """The Online Store publication id, or (None, reason) when it can't be read (e.g. missing read_publications)."""
+    try:
+        data = shop.graphql(PUBLICATIONS_QUERY)
+    except ShopifyError as e:
+        return None, str(e)[:200]
+    for pub in (data.get("publications") or {}).get("nodes") or []:
+        if any(c.get("handle") == "online_store" for c in (pub.get("channels") or {}).get("nodes") or []):
+            return pub["id"], ""
+    return None, "no Online Store publication found"
+
+
+def create_product(shop: Shopify, item: dict, location_id: str, status: str = "DRAFT", publication_id: str = None):
     """
-    Creates one DRAFT product with price, barcode, tracked inventory and on-hand stock.
+    Creates one product (DRAFT by default; ACTIVE + published to the Online Store when asked) with price,
+    barcode, tracked inventory and on-hand stock.
     Items that start with 0 online (register stock 1 or less, including 0 and negative) are tagged
     nrs-zero-stock and keep selling when out of stock (inventory policy CONTINUE): stock sync is off,
     so a 0 would never be raised and the product could never be bought.
@@ -632,7 +658,7 @@ def create_product(shop: Shopify, item: dict, location_id: str):
         "input": {
             "title": item["name"],
             "productType": item["department"],
-            "status": "DRAFT",
+            "status": status,
             "tags": tags,
             "productOptions": [{"name": "Title", "values": [{"name": "Default Title"}]}],
             "variants": [{
@@ -649,7 +675,13 @@ def create_product(shop: Shopify, item: dict, location_id: str):
     user_errors = payload.get("userErrors") or []
     if user_errors:
         return None, f"Create '{item['name']}' ({item['raw_upc']}): {user_errors}"
-    return payload.get("product"), None
+    product = payload.get("product")
+    if status == "ACTIVE" and publication_id and product:
+        pub = shop.graphql(PUBLISH_MUTATION, {"id": product["id"], "input": [{"publicationId": publication_id}]})
+        errs = (pub.get("publishablePublish") or {}).get("userErrors") or []
+        if errs:
+            return product, f"Created '{item['name']}' ({item['raw_upc']}) but could not publish it to the Online Store: {errs}"
+    return product, None
 
 
 # ==========================================
@@ -672,12 +704,14 @@ def admin_product_url(domain: str, product_id: str) -> str:
 def new_products_markdown(created: list, pending: list, failed: list, live: bool, domain: str) -> str:
     lines = []
     if created:
-        lines.append(f"### Created as draft products ({len(created)})")
+        lines.append(f"### New products created ({len(created)})")
         lines.append("| Product | Barcode | Department | Price | Online stock |")
         lines.append("|---|---|---|---|---|")
-        for c in created:
+        for c in created[:200]:
             name = f"[{c['name']}]({admin_product_url(domain, c['product_id'])})" if c.get("product_id") else c["name"]
             lines.append(f"| {name} | {c['raw_upc']} | {c['department']} | ${c.get('online_price') or c['price']} | {c['target_qty']} |")
+        if len(created) > 200:
+            lines.append(f"| ...and {len(created) - 200} more (see the CSV in the run's report) | | | | |")
         lines.append("")
     if pending:
         heading = "Would be created (dry run)" if not live else "Waiting to be created on the next runs (over this run's limit)"
@@ -736,8 +770,9 @@ def notify_github(markdown: str, title: str, signature: str = ""):
         else:
             res = requests.post(f"{api}/issues", headers=headers, json={
                 "title": "New register products for Shopify",
-                "body": "The NRS sync posts here whenever it creates new draft products, or finds register items "
-                        "that are waiting to be created. Review the drafts in Shopify, add images and publish them.\n\n" + body
+                "body": "The NRS sync posts here whenever it creates new products, or finds register items "
+                        "that are waiting to be created. New products are tagged nrs-sync: add images in Shopify "
+                        "(drafts also need publishing).\n\n" + body
                         + "\n\n" + marker,
                 "labels": [NOTIFY_LABEL],
                 "assignees": [assignee],
@@ -772,6 +807,9 @@ def main() -> int:
     sync_prices = env_flag("SYNC_PRICES", True)
     sync_stock = env_flag("SYNC_STOCK", False)
     include_zero = env_flag("INCLUDE_ZERO_STOCK", True)
+    new_status = (os.environ.get("NEW_PRODUCT_STATUS") or "DRAFT").strip().upper()
+    if new_status not in ("DRAFT", "ACTIVE"):
+        new_status = "DRAFT"
     markup_pct = to_price(os.environ.get("PRICE_MARKUP_PERCENT") or "0") or Decimal("0")
     max_new = int(os.environ.get("MAX_NEW_PRODUCTS_PER_RUN") or 25)
     report_dir = os.environ.get("REPORT_DIR") or "report"
@@ -807,13 +845,20 @@ def main() -> int:
             errors += apply_activations(shop, plan.activate, location_id)
         if plan.prices:
             errors += apply_prices(shop, plan.prices)
+        publication_id = None
+        if plan.new_products and new_status == "ACTIVE":
+            publication_id, why = online_store_publication(shop)
+            if not publication_id:
+                plan.warnings.append(f"New products were created as DRAFT instead of ACTIVE: could not find the Online Store publication ({why}). "
+                                     "Add the write_publications scope to the app and approve it again.")
+                new_status = "DRAFT"
         for item in plan.new_products:
-            product, err = create_product(shop, item, location_id)
+            product, err = create_product(shop, item, location_id, status=new_status, publication_id=publication_id)
             if err:
                 failed.append(err)
-            else:
+            if product:
                 created.append({**item, "product_id": product["id"]})
-                print(f"Created draft: {item['name']} ({item['raw_upc']})")
+                print(f"Created {new_status.lower()}: {item['name']} ({item['raw_upc']})")
         pending = plan.queued
     else:
         pending = plan.new_products + plan.queued
@@ -841,7 +886,7 @@ def main() -> int:
         f"| Shopify variants not found in NRS | {plan.shopify_only} |",
         f"| Stock levels {verb}changed | {len(plan.stock) + len(plan.activate)} |",
         f"| Prices {verb}changed | {len(plan.prices)} |",
-        f"| New draft products {'created' if live else 'that would be created'} | {len(created) if live else len(pending)} |",
+        f"| New products {'created' if live else 'that would be created'} | {len(created) if live else len(pending)} |",
         f"| Warnings | {len(plan.warnings)} |",
         f"| Errors | {len(errors) + len(failed)} |",
         "",
@@ -872,7 +917,7 @@ def main() -> int:
     summary("\n".join(md))
 
     if created or pending or failed:
-        title = (f"{len(created)} new draft product(s) created" if live else "Dry run") + \
+        title = (f"{len(created)} new product(s) created" if live else "Dry run") + \
                 (f", {len(pending)} {'waiting' if live else 'would be created'}" if pending else "") + f" · {stamp}"
         signature = hashlib.sha1(json.dumps({
             "mode": mode,

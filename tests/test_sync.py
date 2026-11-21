@@ -381,3 +381,39 @@ def test_worker_failure_is_reported(monkeypatch):
     with pytest.raises(s.ShopifyError) as e:
         s.get_shopify_token("x.myshopify.com", "the-secret", "client")
     assert "not_connected" in str(e.value) and "shop_not_permitted" in str(e.value)
+
+
+class FakeShopRecorder:
+    def __init__(self, publications=None, fail_publications=False):
+        self.calls, self.publications, self.fail = [], publications, fail_publications
+
+    def graphql(self, query, variables=None):
+        self.calls.append((query, variables))
+        if "publications(" in query:
+            if self.fail:
+                raise s.ShopifyError("Access denied for publications field")
+            return {"publications": {"nodes": self.publications or []}}
+        if "publishablePublish" in query:
+            return {"publishablePublish": {"userErrors": []}}
+        return {"productSet": {"product": {"id": "gid://shopify/Product/9"}, "userErrors": []}}
+
+
+def test_active_products_are_published_to_the_online_store():
+    shop = FakeShopRecorder(publications=[
+        {"id": "gid://shopify/Publication/2", "channels": {"nodes": [{"handle": "pos"}]}},
+        {"id": "gid://shopify/Publication/1", "channels": {"nodes": [{"handle": "online_store"}]}},
+    ])
+    pub, why = s.online_store_publication(shop)
+    assert pub == "gid://shopify/Publication/1" and why == ""
+    item = {"barcode": "13", **s.parse_nrs_items([{"upc": "13", "name": "New", "cents": 300, "onhand": 4}])["13"]}
+    product, err = s.create_product(shop, item, "gid://shopify/Location/1", status="ACTIVE", publication_id=pub)
+    assert err is None and product["id"] == "gid://shopify/Product/9"
+    create = next(v for q, v in shop.calls if "productSet" in q)
+    assert create["input"]["status"] == "ACTIVE"
+    publish = next(v for q, v in shop.calls if "publishablePublish" in q)
+    assert publish == {"id": "gid://shopify/Product/9", "input": [{"publicationId": pub}]}
+
+
+def test_missing_publication_scope_is_reported():
+    pub, why = s.online_store_publication(FakeShopRecorder(fail_publications=True))
+    assert pub is None and "Access denied" in why
