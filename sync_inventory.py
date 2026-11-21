@@ -330,7 +330,17 @@ def get_shopify_token(domain: str, token: str, client_id: str) -> str:
         json={"client_id": client_id, "client_secret": token, "grant_type": "client_credentials"},
         timeout=30,
     )
-    res.raise_for_status()
+    if res.status_code >= 400:
+        # Shopify's reason (e.g. invalid_client, app not installed). Secrets are never printed.
+        try:
+            body = res.json()
+            reason = " - ".join(str(body.get(k)) for k in ("error", "error_description", "errors") if body.get(k))
+        except ValueError:
+            reason = res.text[:300]
+        if client_secret_hint := (token.startswith("shpat_") or token.startswith("shpca_")):
+            reason += (" (SHOPIFY_ADMIN_ACCESS_TOKEN looks like an access token, not a client secret, and Shopify"
+                       " rejected it as a token too: check it belongs to this store)")
+        raise ShopifyError(f"Shopify refused the client credentials grant (HTTP {res.status_code}): {reason or 'no reason given'}")
     access = res.json().get("access_token")
     if not access:
         raise ShopifyError("Shopify did not return an access_token.")
