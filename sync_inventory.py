@@ -188,12 +188,22 @@ def parse_pricebook_items(items) -> dict:
     return parse_nrs_items(rows)
 
 
+def nrs_check(res):
+    """Clear message when NRS refuses the saved access code (it expires or is reset by signing out of NRS)."""
+    if res.status_code in (401, 403):
+        raise RuntimeError(
+            f"NRS refused access (HTTP {res.status_code}). The NRS access code in the GitHub secret NRS_AUTH_PATH has "
+            "probably expired: sign in at mystore.nrsplus.com, copy the new code from a pos-papi.nrsplus.com request "
+            "(the part right after the domain) and update the secret.")
+    res.raise_for_status()
+
+
 def fetch_nrs_pricebook(auth: str, store: str, page_size: int = 2000) -> list:
     url = NRS_PRICEBOOK_URL.format(auth=auth, store=store)
     items, start = [], 0
     while True:
         res = requests.get(url, headers=NRS_HEADERS, params={"draw": 1, "start": start, "length": page_size}, timeout=90)
-        res.raise_for_status()
+        nrs_check(res)
         body = res.json()
         rc = (body.get("res") or {}).get("rc", 0)
         if rc != 0:
@@ -220,7 +230,7 @@ def fetch_nrs_catalog(auth: str, store: str, group: str) -> dict:
 
     print("Fetching live inventory from NRS POS API...")
     res = requests.get(NRS_URL.format(auth=auth, store=store, group=group), headers=NRS_HEADERS, timeout=60)
-    res.raise_for_status()
+    nrs_check(res)
     items = res.json().get("upcs", [])
     print(f"Retrieved {len(items)} inventory items from NRS.")
     describe_nrs(items)

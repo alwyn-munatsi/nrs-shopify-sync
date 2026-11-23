@@ -541,3 +541,10 @@ def test_proxy_requests_are_signed_over_the_body():
     body = js.dumps({"query": "query { productVariants(first: 1) { nodes { id } } }", "variables": {}}).encode()
     expect = hm.new(b"sec", f"nrs-graphql:{hdr['X-NRS-Timestamp']}:{h.sha256(body).hexdigest()}".encode(), h.sha256).hexdigest()
     assert hdr["X-NRS-Signature"] == expect
+
+
+def test_expired_nrs_code_gives_a_clear_message(monkeypatch):
+    monkeypatch.setattr(s.requests, "get", lambda *a, **k: FakeResponse({}, status=403))
+    with pytest.raises(RuntimeError) as e:
+        s.fetch_nrs_pricebook("auth", "store")
+    assert "NRS_AUTH_PATH" in str(e.value)
