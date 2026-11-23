@@ -19,7 +19,10 @@ Keeps the 705 BRBR Shopify store in step with the NRS register. Runs every hour 
    (`INCLUDE_ZERO_STOCK`, on by default). Any new product that starts with 0 online stock
    (register count 1 or less) is also tagged `nrs-zero-stock` and set to keep selling when out of
    stock, because stock sync is off and its count would otherwise never go above 0.
-   Items without a register price are still skipped. At most 500 per run (`MAX_NEW_PRODUCTS_PER_RUN`); the rest wait for the next runs.
+   Items without a register price are still skipped.
+   **Nicotine products are never synced:** the `Vaporizers` and `Tobacco` departments (`EXCLUDE_DEPARTMENTS`)
+   and nicotine brands filed elsewhere (Zyn, JUUL, Puff, Geek Bar, Dutch Masters... see `EXCLUDE_NAME_PATTERN`).
+   Any of their products already on Shopify are **archived** (off the website, restorable from the admin). At most 500 per run (`MAX_NEW_PRODUCTS_PER_RUN`); the rest wait for the next runs.
 6. **Notification:** when products are created or are waiting to be created, the run comments on the
    open GitHub issue labelled `new-products` (it opens one the first time) and mentions the repo
    owner, so GitHub sends an email. The same list is not sent twice.

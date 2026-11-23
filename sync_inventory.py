@@ -25,6 +25,9 @@ Environment:
   PRICE_MARKUP_PERCENT        online price = register price + this percent (default 0)
   SYNC_STOCK                  "true" / "false" (default): write stock levels to Shopify
   INCLUDE_ZERO_STOCK          "true" (default) / "false": also create register items with 0 or negative stock
+  EXCLUDE_DEPARTMENTS         register departments never synced (default: Vaporizers,Tobacco). Their products already
+                              on Shopify are ARCHIVED (taken off the website, still restorable)
+  EXCLUDE_NAME_PATTERN        regex on the register item name for misfiled items (default: nicotine products, see below)
   NEW_PRODUCT_STATUS          "DRAFT" (default) or "ACTIVE": ACTIVE products are also published to the Online Store
                               (needs the write_publications scope; without it no products are created and they wait)
   MAX_NEW_PRODUCTS_PER_RUN    default 25
@@ -403,6 +406,67 @@ query Catalog($cursor: String, $loc: ID!) {
   }
 }
 """
+
+
+# Nicotine products are not sold online. Whole departments, plus nicotine brands filed under other departments.
+DEFAULT_EXCLUDE_DEPARTMENTS = "Vaporizers,Tobacco"
+DEFAULT_EXCLUDE_NAME_PATTERN = (
+    r"\b(zyn|juul|nicotine|nicorette|vapes?|e-?liquid|salt ?nic|cigarillos?|swisher|dutch masters|"
+    r"puff ?(bar|plus|clear|xxl|flow)|elf ?bar|geek ?bar|lost ?mary|hqd|breeze ?(pro|plus)|velo|rogue ?(pouch|gum|lozenge)|"
+    r"on! ?(nicotine|pouch)|marlboro|newport (box|100|menthol|kings?)|camel (crush|blue|filters?)|black ?& ?mild|game ?leaf|"
+    r"white ?owl|backwoods (cigar|honey|sweet|russian|grape|banana|5 ?pk|pack))\b"
+)
+
+
+def exclusion_rules(env=os.environ):
+    depts = {d.strip().lower() for d in (env.get("EXCLUDE_DEPARTMENTS") if env.get("EXCLUDE_DEPARTMENTS") is not None
+                                          else DEFAULT_EXCLUDE_DEPARTMENTS).split(",") if d.strip()}
+    pattern = env.get("EXCLUDE_NAME_PATTERN")
+    if pattern is None:
+        pattern = DEFAULT_EXCLUDE_NAME_PATTERN
+    return depts, (re.compile(pattern, re.I) if pattern.strip() else None)
+
+
+def split_excluded(nrs: dict, depts: set, name_re) -> tuple:
+    """Splits the NRS catalog into (kept, excluded) by department and item name."""
+    kept, excluded = {}, {}
+    for b, item in nrs.items():
+        if item["department"].lower() in depts or (name_re is not None and name_re.search(item["name"])):
+            excluded[b] = item
+        else:
+            kept[b] = item
+    return kept, excluded
+
+
+def plan_archive(excluded: dict, shopify: dict) -> list:
+    """Shopify products for excluded register items that are still on the store (not archived yet), one per product."""
+    rows, seen = [], set()
+    for b, item in excluded.items():
+        for v in shopify.get(b, []):
+            pid = v.get("product_id")
+            if pid and pid not in seen and v.get("status") != "ARCHIVED":
+                seen.add(pid)
+                rows.append({"title": v["title"], "barcode": item["raw_upc"], "department": item["department"], "product_id": pid})
+    return rows
+
+
+def apply_archive(shop: "Shopify", rows: list, per_request: int = 20) -> list:
+    """Sets products to ARCHIVED (off every sales channel, restorable in the admin), several per request."""
+    errors = []
+    groups = list(chunks(rows, per_request))
+    for gi, group in enumerate(groups, 1):
+        params = ", ".join(f"$p{i}: ProductUpdateInput!" for i in range(len(group)))
+        fields = " ".join(f"a{i}: productUpdate(product: $p{i}) {{ userErrors {{ field message }} }}" for i in range(len(group)))
+        data = shop.graphql(f"mutation Archive({params}) {{ {fields} }}",
+                            {f"p{i}": {"id": r["product_id"], "status": "ARCHIVED"} for i, r in enumerate(group)})
+        bad = 0
+        for i, r in enumerate(group):
+            ue = (data.get(f"a{i}") or {}).get("userErrors") or []
+            if ue:
+                bad += 1
+                errors.append(f"Archive '{r['title']}' ({r['barcode']}): {ue}")
+        print(f"Archive batch {gi}/{len(groups)}: {len(group)} products, {bad} errors")
+    return errors
 
 
 def parse_variant(node: dict) -> list:
@@ -828,6 +892,11 @@ def main() -> int:
         print("Error: NRS returned no items; stopping so Shopify is not zeroed out.")
         return 1
 
+    depts, name_re = exclusion_rules()
+    nrs, excluded = split_excluded(nrs, depts, name_re)
+    archive = plan_archive(excluded, shopify)
+    print(f"Excluded {len(excluded)} register items (departments: {', '.join(sorted(depts)) or 'none'}; name pattern "
+          f"{'on' if name_re else 'off'}); {len(archive)} of their products are still on Shopify and {'will be' if live else 'would be'} archived.")
     plan = build_plan(nrs, shopify, sync_prices=sync_prices, max_new=max_new, markup_pct=markup_pct,
                       sync_stock=sync_stock, include_zero_stock=include_zero)
     print(
@@ -839,6 +908,8 @@ def main() -> int:
 
     errors, created, failed = [], [], []
     if live:
+        if archive:
+            errors += apply_archive(shop, archive)
         if plan.stock:
             errors += apply_stock(shop, plan.stock, location_id)
         if plan.activate:
@@ -873,6 +944,7 @@ def main() -> int:
     write_csv(os.path.join(report_dir, "new_products.csv"),
               [{**c, "status": "created"} for c in created] + [{**p, "status": "pending"} for p in pending],
               ["status", "name", "raw_upc", "department", "price", "online_price", "onhand", "target_qty", "product_id"])
+    write_csv(os.path.join(report_dir, "excluded_archived.csv"), archive, ["title", "barcode", "department", "product_id"])
     with open(os.path.join(report_dir, "warnings.txt"), "w", encoding="utf-8") as f:
         f.write("\n".join(plan.warnings + errors + failed))
 
@@ -883,7 +955,9 @@ def main() -> int:
         "",
         "| | Count |",
         "|---|---|",
-        f"| NRS items with a barcode | {len(nrs)} |",
+        f"| NRS items with a barcode (after exclusions) | {len(nrs)} |",
+        f"| Excluded register items (nicotine) | {len(excluded)} |",
+        f"| Excluded products {verb}archived on Shopify | {len(archive)} |",
         f"| Shopify variants matched by barcode | {plan.matched} |",
         f"| Shopify variants not found in NRS | {plan.shopify_only} |",
         f"| Stock levels {verb}changed | {len(plan.stock) + len(plan.activate)} |",
@@ -932,7 +1006,8 @@ def main() -> int:
     print(
         f"\nRun complete ({'live' if live else 'dry run'}): "
         f"{len(plan.stock) + len(plan.activate)} stock changes, {len(plan.prices)} price changes, "
-        f"{len(created)} products created, {len(pending)} pending, {len(errors) + len(failed)} errors."
+        f"{len(created)} products created, {len(pending)} pending, "
+        f"{len(archive)} excluded products {'archived' if live else 'to archive'}, {len(errors) + len(failed)} errors."
     )
     return 1 if (errors or failed) else 0
 

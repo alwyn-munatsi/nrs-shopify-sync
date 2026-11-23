@@ -52,6 +52,9 @@ jobs:
           MAX_NEW_PRODUCTS_PER_RUN: ${{ github.event.inputs.max_new_products || vars.MAX_NEW_PRODUCTS_PER_RUN || '500' }}
           # New products go live (ACTIVE, published to the Online Store). Set the variable to DRAFT to review them first.
           NEW_PRODUCT_STATUS: ${{ vars.NEW_PRODUCT_STATUS || 'ACTIVE' }}
+          # Nicotine products are never synced; ones already on Shopify are archived. Misfiled nicotine items are
+          # caught by name (EXCLUDE_NAME_PATTERN in sync_inventory.py).
+          EXCLUDE_DEPARTMENTS: ${{ vars.EXCLUDE_DEPARTMENTS || 'Vaporizers,Tobacco' }}
           SYNC_PRICES: ${{ vars.SYNC_PRICES || 'true' }}
           # Online price = register price + this percent.
           PRICE_MARKUP_PERCENT: ${{ vars.PRICE_MARKUP_PERCENT || '20' }}

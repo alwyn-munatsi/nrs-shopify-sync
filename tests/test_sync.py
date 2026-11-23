@@ -434,3 +434,60 @@ def test_live_run_waits_when_it_cannot_publish(env, monkeypatch):
     assert created == []
     assert "Brand new" in (env / "report" / "new_products.csv").read_text()
     assert "write_publications" in (env / "report" / "warnings.txt").read_text()
+
+
+NICOTINE = ["Zyn Cool Citrus 3mg", "JUUL PODS VA TOBACCO 3% 2PK", "Puff bar watermelon dsp", "PUFF PLUS COOL MINT",
+            "PUFF PLUS WATERMELON SS", "Puff clear", "Dutch Masters Palma Cigar", "Geek Bar Pulse Blue Razz", "Elf Bar BC5000"]
+NOT_NICOTINE = ["Founders Brewing Backwoods Bastard Bottles (12 oz x 4 ct)", "Cigar City Brewing Jai Alai IPA Can (12 oz)",
+                "Cigar paloma gose", "Newport Craft Brewing Co. Rhode Trip IPA Can (16 oz)", "Rogue Chocolate Stout",
+                "Hi-Chew Banana Candy (1.76 oz)", "Tide pods", "RED BULL BEACH BREEZE", "Cheetos Puffs (2 oz)",
+                "REESES PUFFS", "Big Bambu Cigarette Paper", "Ben & Jerry's Cherry Garcia Ice Cream (1 pt)"]
+
+
+def test_nicotine_name_pattern():
+    depts, name_re = s.exclusion_rules({})
+    assert depts == {"vaporizers", "tobacco"}
+    for n in NICOTINE:
+        assert name_re.search(n), n
+    for n in NOT_NICOTINE:
+        assert not name_re.search(n), n
+
+
+def test_excluded_items_are_not_synced_and_get_archived():
+    nrs = s.parse_nrs_items([
+        {"upc": "0101", "name": "Zyn Cool Citrus 3mg", "cents": 599, "onhand": 3, "department": "General Food"},
+        {"upc": "0102", "name": "Some vape", "cents": 1999, "onhand": 0, "department": "Vaporizers"},
+        {"upc": "0103", "name": "Cigar City Jai Alai", "cents": 299, "onhand": 5, "department": "Beers"},
+        {"upc": "0104", "name": "New pouch thing", "cents": 599, "onhand": 1, "department": "Tobacco"},
+    ])
+    depts, name_re = s.exclusion_rules({})
+    kept, excluded = s.split_excluded(nrs, depts, name_re)
+    assert sorted(i["name"] for i in kept.values()) == ["Cigar City Jai Alai"]
+    assert len(excluded) == 3
+    shopify = {
+        "101": [{"product_id": "P1", "variant_id": "V1", "title": "Zyn", "status": "ACTIVE"}],
+        "102": [{"product_id": "P2", "variant_id": "V2", "title": "Vape", "status": "ARCHIVED"}],
+    }
+    rows = s.plan_archive(excluded, shopify)
+    assert [r["product_id"] for r in rows] == ["P1"]          # already archived ones are left alone
+    plan = s.build_plan(kept, shopify)
+    assert [p["name"] for p in plan.new_products] == ["Cigar City Jai Alai"]   # excluded items never created
+
+
+def test_exclusions_can_be_turned_off():
+    depts, name_re = s.exclusion_rules({"EXCLUDE_DEPARTMENTS": "", "EXCLUDE_NAME_PATTERN": ""})
+    assert depts == set() and name_re is None
+
+
+def test_archive_batches_products():
+    calls = []
+
+    class Shop:
+        def graphql(self, q, v=None):
+            calls.append((q, v))
+            return {f"a{i}": {"userErrors": []} for i in range(len(v))}
+
+    rows = [{"title": f"T{i}", "barcode": str(i), "product_id": f"P{i}"} for i in range(45)]
+    assert s.apply_archive(Shop(), rows) == []
+    assert len(calls) == 3
+    assert calls[0][1]["p0"] == {"id": "P0", "status": "ARCHIVED"}
