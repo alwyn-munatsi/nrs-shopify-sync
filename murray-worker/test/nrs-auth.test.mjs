@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 import worker from '../src/index.js';
-import { NrsTokenStore, verifyShopifyQuery, missingScopes, signTokenRequest, verifyTokenRequest } from '../src/nrs-auth.js';
+import { NrsTokenStore, verifyShopifyQuery, missingScopes, signTokenRequest, verifyTokenRequest, signGraphqlRequest } from '../src/nrs-auth.js';
 
 const SECRET = 'client-secret-x';
 const SHOP = 'shop-1.myshopify.com';
@@ -136,4 +136,34 @@ test('not connected yet: token endpoint says so', async () => {
   const ts = Math.floor(Date.now() / 1000);
   const r = await worker.fetch(get('/nrs/token', { 'X-NRS-Timestamp': String(ts), 'X-NRS-Signature': await signTokenRequest(SECRET, ts) }), env);
   assert.equal(r.status, 409);
+});
+
+
+test('graphql proxy: signed body is forwarded to Shopify with the stored token', async () => {
+  const { env } = makeEnv();
+  const seen = [];
+  globalThis.fetch = async (url, init = {}) => {
+    seen.push({ url: String(url), init });
+    if (String(url).endsWith('/admin/oauth/access_token')) {
+      return new Response(JSON.stringify({ access_token: 'at-1', refresh_token: 'rt-1', scope: 'write_products,read_orders', expires_in: 3600 }), { status: 200 });
+    }
+    return new Response(JSON.stringify({ data: { ok: true } }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  };
+  await connect(env);
+  const body = new TextEncoder().encode(JSON.stringify({ query: '{ shop { name } }', variables: {} }));
+  const ts = Math.floor(Date.now() / 1000);
+  const sig = await signGraphqlRequest(SECRET, ts, body);
+  const req = (s, b = body) => new Request('https://w.example/nrs/graphql', { method: 'POST', body: b,
+    headers: { 'X-NRS-Timestamp': String(ts), 'X-NRS-Signature': s, 'X-NRS-Api-Version': '2026-10' } });
+  const ok = await worker.fetch(req(sig), env);
+  assert.equal(ok.status, 200);
+  assert.deepEqual(await ok.json(), { data: { ok: true } });
+  const fwd = seen[seen.length - 1];
+  assert.equal(fwd.url, `https://${SHOP}/admin/api/2026-10/graphql.json`);
+  assert.equal(fwd.init.headers['X-Shopify-Access-Token'], 'at-1');
+  // a changed body or a bad signature is refused
+  const tampered = new TextEncoder().encode(JSON.stringify({ query: 'mutation { productDelete }' }));
+  assert.equal((await worker.fetch(req(sig, tampered), env)).status, 401);
+  assert.equal((await worker.fetch(req('nope'), env)).status, 401);
+  assert.equal((await worker.fetch(new Request('https://w.example/nrs/graphql'), env)).status, 405);
 });

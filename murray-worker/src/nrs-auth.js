@@ -10,6 +10,9 @@
 //   GET /nrs/status     connected or not, scopes, expiry times (no tokens)
 //   GET /nrs/token      a fresh access token for the hourly NRS sync on GitHub Actions. Signed request:
 //                       X-NRS-Timestamp: unix seconds, X-NRS-Signature: hex HMAC-SHA256(client secret, "nrs-token:<ts>")
+//   POST /nrs/graphql   Admin GraphQL proxy for the sync: the app's IP allowlist accepts Cloudflare's (US) network but
+//                       not GitHub's runners, so the sync sends its calls here. Signed over the exact body:
+//                       HMAC-SHA256(client secret, "nrs-graphql:<ts>:<hex sha256 of body>"); X-NRS-Api-Version picks the version.
 //
 // Tokens live in one Durable Object (NrsTokenStore). Refreshing happens inside it, so two callers never use the
 // same refresh token at once. A cron (see wrangler.toml) refreshes a few times a day so the 90-day refresh token
@@ -52,6 +55,22 @@ export async function verifyShopifyQuery(searchParams, secret) {
   const pairs = [...searchParams.entries()].filter(([k]) => k !== 'hmac' && k !== 'signature').sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
   const message = pairs.map(([k, v]) => `${k}=${v}`).join('&');
   return safeEqual(await hmacHex(secret, message), given);
+}
+
+async function sha256Hex(bytes) {
+  const d = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
+  return [...d].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+export async function signGraphqlRequest(secret, ts, bodyBytes) {
+  return hmacHex(secret, `nrs-graphql:${ts}:${await sha256Hex(bodyBytes)}`);
+}
+
+export async function verifyGraphqlRequest(request, bodyBytes, secret, nowS = Math.floor(Date.now() / 1000)) {
+  const ts = Number(request.headers.get('X-NRS-Timestamp'));
+  const sig = request.headers.get('X-NRS-Signature') || '';
+  if (!Number.isFinite(ts) || Math.abs(nowS - ts) > SIGNATURE_WINDOW_S) return false;
+  return safeEqual(await signGraphqlRequest(secret, ts, bodyBytes), sig);
 }
 
 export async function signTokenRequest(secret, ts) {
@@ -170,6 +189,26 @@ export async function handleNrs(request, env, url) {
     }
     const out = await callStore(env, '/token');
     return new Response(JSON.stringify(out.json), { status: out.status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
+  }
+
+  if (url.pathname === '/nrs/graphql') {
+    const json = (data, status) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
+    if (request.method !== 'POST') return json({ error: 'POST only' }, 405);
+    const body = await request.arrayBuffer();
+    if (body.byteLength > 1_000_000) return json({ error: 'too large' }, 413);
+    if (!(await verifyGraphqlRequest(request, body, env.NRS_APP_CLIENT_SECRET))) return json({ error: 'unauthorized' }, 401);
+    const ver = request.headers.get('X-NRS-Api-Version') || '';
+    const version = /^\d{4}-\d{2}$/.test(ver) ? ver : '2026-10';
+    const tok = await callStore(env, '/token');
+    if (tok.status !== 200) return json(tok.json, tok.status);
+    const r = await fetch(`https://${shop}/admin/api/${version}/graphql.json`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-Shopify-Access-Token': tok.json.access_token },
+      body,
+    });
+    const headers = { 'Content-Type': r.headers.get('Content-Type') || 'application/json', 'Cache-Control': 'no-store' };
+    if (r.headers.get('Retry-After')) headers['Retry-After'] = r.headers.get('Retry-After');
+    return new Response(r.body, { status: r.status, headers });
   }
 
   return new Response(JSON.stringify({ error: 'Not found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });

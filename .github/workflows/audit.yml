@@ -25,6 +25,8 @@ jobs:
       - name: Audit
         env:
           SHOPIFY_CLIENT_ID: ${{ secrets.SHOPIFY_CLIENT_ID }}
+          # Shopify calls go through the Worker: the app's IP allowlist accepts Cloudflare, not GitHub's runners.
+          NRS_PROXY_URL: ${{ vars.NRS_PROXY_URL || 'https://brbr-murray.munatsialwyn26.workers.dev/nrs/graphql' }}
           NRS_TOKEN_URL: ${{ vars.NRS_TOKEN_URL || 'https://brbr-murray.munatsialwyn26.workers.dev/nrs/token' }}
           SHOPIFY_ADMIN_ACCESS_TOKEN: ${{ secrets.SHOPIFY_ADMIN_ACCESS_TOKEN }}
           SHOPIFY_STORE_DOMAIN: ${{ secrets.SHOPIFY_STORE_DOMAIN }}

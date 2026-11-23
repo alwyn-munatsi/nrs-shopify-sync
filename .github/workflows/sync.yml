@@ -14,6 +14,11 @@ on:
       max_new_products:
         description: 'Most new products to create in this run'
         default: '500'
+      excluded_action:
+        description: 'Nicotine/restricted products still on Shopify: archive (restorable) or delete (PERMANENT)'
+        type: choice
+        options: [archive, delete]
+        default: archive
 
 # Never run two syncs at the same time.
 concurrency:
@@ -55,6 +60,10 @@ jobs:
           # Nicotine products are never synced; ones already on Shopify are archived. Misfiled nicotine items are
           # caught by name (EXCLUDE_NAME_PATTERN in sync_inventory.py).
           EXCLUDE_DEPARTMENTS: ${{ vars.EXCLUDE_DEPARTMENTS || 'Vaporizers,Tobacco' }}
+          # Scheduled runs only archive. Permanent deletion needs a manual run with excluded_action = delete.
+          EXCLUDED_ACTION: ${{ github.event.inputs.excluded_action || 'archive' }}
+          # Shopify calls go through the Worker: the app's IP allowlist accepts Cloudflare, not GitHub's runners.
+          NRS_PROXY_URL: ${{ vars.NRS_PROXY_URL || 'https://brbr-murray.munatsialwyn26.workers.dev/nrs/graphql' }}
           SYNC_PRICES: ${{ vars.SYNC_PRICES || 'true' }}
           # Online price = register price + this percent.
           PRICE_MARKUP_PERCENT: ${{ vars.PRICE_MARKUP_PERCENT || '20' }}

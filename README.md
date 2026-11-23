@@ -22,7 +22,9 @@ Keeps the 705 BRBR Shopify store in step with the NRS register. Runs every hour 
    Items without a register price are still skipped.
    **Nicotine products are never synced:** the `Vaporizers` and `Tobacco` departments (`EXCLUDE_DEPARTMENTS`)
    and nicotine brands filed elsewhere (Zyn, JUUL, Puff, Geek Bar, Dutch Masters... see `EXCLUDE_NAME_PATTERN`).
-   Any of their products already on Shopify are **archived** (off the website, restorable from the admin). At most 500 per run (`MAX_NEW_PRODUCTS_PER_RUN`); the rest wait for the next runs.
+   Restricted products are excluded the same way: kratom, THC/CBD/delta-8/9 and rolling papers.
+   Any of their products already on Shopify are **archived** (off the website, restorable from the admin).
+   A manual run with `excluded_action = delete` deletes them permanently instead; scheduled runs only archive. At most 500 per run (`MAX_NEW_PRODUCTS_PER_RUN`); the rest wait for the next runs.
 6. **Notification:** when products are created or are waiting to be created, the run comments on the
    open GitHub issue labelled `new-products` (it opens one the first time) and mentions the repo
    owner, so GitHub sends an email. The same list is not sent twice.
@@ -52,7 +54,9 @@ Worker keeps the token (expiring offline token, refreshed automatically; see `mu
 1. Connect: open `https://brbr-murray.munatsialwyn26.workers.dev/nrs/install` while signed in to the 705 admin
    (as the owner or a staff member allowed to approve apps) and approve.
 2. Check: `https://brbr-murray.munatsialwyn26.workers.dev/nrs/status` shows `connected: true` (no tokens are shown).
-3. Each run, the sync asks `/nrs/token` for a fresh token, signing the request with the app's client secret.
+3. Each run, the sync sends its Shopify calls to the Worker's `/nrs/graphql`, signed with the app's client secret.
+   The Worker adds the token and calls Shopify from Cloudflare, which the app's IP allowlist accepts (GitHub's
+   runner addresses change and are often refused).
 
 If the status ever shows a refresh error (for example after the app was uninstalled), open `/nrs/install` again.
 

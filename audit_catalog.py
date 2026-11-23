@@ -15,7 +15,7 @@ import os
 from decimal import Decimal
 
 from sync_inventory import (
-    Shopify, clean_barcode, fetch_nrs_pricebook, get_shopify_token, normalize_store_domain,
+    Shopify, clean_barcode, connect_shopify, fetch_nrs_pricebook, get_shopify_token, normalize_store_domain,
     online_price, to_price,
 )
 
@@ -36,8 +36,7 @@ query Catalog($cursor: String) {
 
 def main() -> int:
     domain = normalize_store_domain(os.environ["SHOPIFY_STORE_DOMAIN"])
-    token = get_shopify_token(domain, os.environ["SHOPIFY_ADMIN_ACCESS_TOKEN"], os.environ.get("SHOPIFY_CLIENT_ID"))
-    shop = Shopify(domain, token)
+    shop = connect_shopify(domain)
     markup = to_price(os.environ.get("PRICE_MARKUP_PERCENT") or "20") or Decimal("0")
 
     items = fetch_nrs_pricebook(os.environ["NRS_AUTH_PATH"], os.environ["NRS_STORE_ID"])

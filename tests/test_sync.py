@@ -136,7 +136,12 @@ class FakeSession:
         self.calls = []
         self.throttle_once = throttle_once
 
-    def post(self, url, json=None, timeout=None):
+    def post(self, url, json=None, data=None, headers=None, timeout=None):
+        if json is None:
+            import json as _json
+            json = _json.loads(data)
+        self.last_headers = headers or {}
+        self.last_url = url
         q = json["query"]
         self.calls.append(json)
         if self.throttle_once:
@@ -224,10 +229,10 @@ def test_graphql_errors_fail_loudly(env, monkeypatch):
     monkeypatch.setenv("SYNC_MODE", "live")
 
     class Broken(FakeSession):
-        def post(self, url, json=None, timeout=None):
-            if "inventorySetQuantities" in json["query"]:
+        def post(self, url, json=None, data=None, headers=None, timeout=None):
+            if "inventorySetQuantities" in (data or b"").decode():
                 return FakeResponse({"errors": [{"message": "Field 'x' doesn't exist"}]})
-            return super().post(url, json, timeout)
+            return super().post(url, json, data, headers, timeout)
 
     with pytest.raises(s.ShopifyError):
         run_main(monkeypatch, Broken([variant("0002", "5.00", 0, n=2)]))
@@ -441,13 +446,19 @@ NICOTINE = ["Zyn Cool Citrus 3mg", "JUUL PODS VA TOBACCO 3% 2PK", "Puff bar wate
 NOT_NICOTINE = ["Founders Brewing Backwoods Bastard Bottles (12 oz x 4 ct)", "Cigar City Brewing Jai Alai IPA Can (12 oz)",
                 "Cigar paloma gose", "Newport Craft Brewing Co. Rhode Trip IPA Can (16 oz)", "Rogue Chocolate Stout",
                 "Hi-Chew Banana Candy (1.76 oz)", "Tide pods", "RED BULL BEACH BREEZE", "Cheetos Puffs (2 oz)",
-                "REESES PUFFS", "Big Bambu Cigarette Paper", "Ben & Jerry's Cherry Garcia Ice Cream (1 pt)"]
+                "REESES PUFFS", "Ben & Jerry's Cherry Garcia Ice Cream (1 pt)", "Plenty Paper Towel", "Raw almonds",
+                "Crush fruit punch", "Haagen-Dazs Caramel Cone Ice Cream Bar (3 oz)", "Hemp 2o Watermelon & strawberry",
+                "Reynolds Wrap Aluminum Foil:Heavy Duty", "Wick wax jar candle", "Yogi Tea Kava Stress Relief"]
+RESTRICTED = ["Royal kratom thai 75 capsules", "OPMS Liquid Kratom", "Earth Kramton White Maeng da Powder (8.82 oz)",
+              "Earth kratom Trainwreck", "Maeng da 72", "VIETNAM 3 OZ POWDER", "THC Delta 9 orange mango", "cake delta 8",
+              "Just cbd gummy gummy bear", "sprig cbd citrus soda", "Big Bambu Cigarette Paper", "E-Z Wider Cig Papers 1.5",
+              "Raw cone Classic", "Raw", "RAW HEMP WICK", "BOB MARLEY HRMP ROLLING PAPERS", "Elements Ultra Thin Rice Paper"]
 
 
 def test_nicotine_name_pattern():
     depts, name_re = s.exclusion_rules({})
     assert depts == {"vaporizers", "tobacco"}
-    for n in NICOTINE:
+    for n in NICOTINE + RESTRICTED:
         assert name_re.search(n), n
     for n in NOT_NICOTINE:
         assert not name_re.search(n), n
@@ -491,3 +502,42 @@ def test_archive_batches_products():
     assert s.apply_archive(Shop(), rows) == []
     assert len(calls) == 3
     assert calls[0][1]["p0"] == {"id": "P0", "status": "ARCHIVED"}
+
+
+def test_delete_mode_includes_archived_and_title_matches():
+    depts, name_re = s.exclusion_rules({})
+    nrs = s.parse_nrs_items([{"upc": "0201", "name": "Some vape", "cents": 999, "onhand": 0, "department": "Vaporizers"}])
+    kept, excluded = s.split_excluded(nrs, depts, name_re)
+    shopify = {
+        "201": [{"product_id": "P1", "variant_id": "V1", "title": "Some vape", "status": "ARCHIVED"}],
+        "999": [{"product_id": "P2", "variant_id": "V2", "title": "Earth Kramton White Maeng da Powder (8.82 oz)", "status": "ACTIVE"}],
+        "998": [{"product_id": "P3", "variant_id": "V3", "title": "Cheetos Puffs (2 oz)", "status": "ACTIVE"}],
+    }
+    assert [r["product_id"] for r in s.plan_archive(excluded, shopify, name_re)] == ["P2"]
+    assert sorted(r["product_id"] for r in s.plan_archive(excluded, shopify, name_re, include_archived=True)) == ["P1", "P2"]
+
+
+def test_apply_delete():
+    calls = []
+
+    class Shop:
+        def graphql(self, q, v=None):
+            calls.append((q, v))
+            return {f"d{i}": {"deletedProductId": v[f"p{i}"]["id"], "userErrors": []} for i in range(len(v))}
+
+    rows = [{"title": f"T{i}", "barcode": str(i), "product_id": f"P{i}"} for i in range(25)]
+    assert s.apply_delete(Shop(), rows) == []
+    assert len(calls) == 3 and "productDelete" in calls[0][0] and calls[0][1]["p0"] == {"id": "P0"}
+
+
+def test_proxy_requests_are_signed_over_the_body():
+    import hashlib as h, hmac as hm, json as js
+    session = FakeSession([])
+    shop = s.Shopify("x.myshopify.com", proxy_url="https://worker.example/nrs/graphql", proxy_secret="sec", session=session)
+    shop.graphql("query { productVariants(first: 1) { nodes { id } } }")
+    hdr = session.last_headers
+    assert session.last_url == "https://worker.example/nrs/graphql"
+    assert "X-Shopify-Access-Token" not in session.headers
+    body = js.dumps({"query": "query { productVariants(first: 1) { nodes { id } } }", "variables": {}}).encode()
+    expect = hm.new(b"sec", f"nrs-graphql:{hdr['X-NRS-Timestamp']}:{h.sha256(body).hexdigest()}".encode(), h.sha256).hexdigest()
+    assert hdr["X-NRS-Signature"] == expect

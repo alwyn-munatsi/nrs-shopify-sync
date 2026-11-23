@@ -27,7 +27,12 @@ Environment:
   INCLUDE_ZERO_STOCK          "true" (default) / "false": also create register items with 0 or negative stock
   EXCLUDE_DEPARTMENTS         register departments never synced (default: Vaporizers,Tobacco). Their products already
                               on Shopify are ARCHIVED (taken off the website, still restorable)
-  EXCLUDE_NAME_PATTERN        regex on the register item name for misfiled items (default: nicotine products, see below)
+  EXCLUDE_NAME_PATTERN        regex on the item name / Shopify title (default: nicotine brands + restricted products:
+                              kratom, THC/CBD/delta-8/9, rolling papers; see below)
+  EXCLUDED_ACTION             "archive" (default) or "delete": what happens to excluded products still on Shopify.
+                              Delete is permanent, so only use it in a run started on purpose.
+  NRS_PROXY_URL               optional: the Worker's /nrs/graphql. Shopify calls then go through the Worker (fixed,
+                              allow-listed network) with the store-approved token, instead of from the runner's IP
   NEW_PRODUCT_STATUS          "DRAFT" (default) or "ACTIVE": ACTIVE products are also published to the Online Store
                               (needs the write_publications scope; without it no products are created and they wait)
   MAX_NEW_PRODUCTS_PER_RUN    default 25
@@ -275,18 +280,34 @@ class ShopifyError(RuntimeError):
 
 
 class Shopify:
-    def __init__(self, domain: str, token: str, session=None):
-        self.url = f"https://{domain}/admin/api/{API_VERSION}/graphql.json"
+    def __init__(self, domain: str, token: str = None, session=None, proxy_url: str = None, proxy_secret: str = None):
+        """
+        Direct: calls Shopify with the access token. Proxy: calls the Worker's /nrs/graphql, which adds the
+        store-approved token and calls Shopify from Cloudflare (allow-listed). Proxy requests are signed with the
+        app's client secret over the timestamp and the body's SHA-256.
+        """
+        self.proxy_secret = proxy_secret if proxy_url else None
+        self.url = proxy_url or f"https://{domain}/admin/api/{API_VERSION}/graphql.json"
         self.session = session or requests.Session()
-        self.session.headers.update({
-            "Content-Type": "application/json",
-            "X-Shopify-Access-Token": token,
-        })
+        self.session.headers.update({"Content-Type": "application/json"})
+        if proxy_url:
+            self.session.headers.update({"X-NRS-Api-Version": API_VERSION})
+        else:
+            self.session.headers.update({"X-Shopify-Access-Token": token})
+
+    def _signed(self, body: bytes) -> dict:
+        if not self.proxy_secret:
+            return {}
+        ts = str(int(time.time()))
+        digest = hashlib.sha256(body).hexdigest()
+        sig = hmac.new(self.proxy_secret.encode(), f"nrs-graphql:{ts}:{digest}".encode(), hashlib.sha256).hexdigest()
+        return {"X-NRS-Timestamp": ts, "X-NRS-Signature": sig}
 
     def graphql(self, query: str, variables=None, retries: int = 6) -> dict:
         """Runs a GraphQL call. Raises on HTTP or GraphQL errors; waits and retries when throttled."""
         for attempt in range(retries):
-            resp = self.session.post(self.url, json={"query": query, "variables": variables or {}}, timeout=60)
+            body = json.dumps({"query": query, "variables": variables or {}}).encode()
+            resp = self.session.post(self.url, data=body, headers=self._signed(body), timeout=90)
             if resp.status_code in (429, 502, 503, 504):
                 time.sleep(min(2 ** attempt, 30))
                 continue
@@ -345,6 +366,16 @@ def token_from_worker(url: str, client_secret: str):
         print("Using the store-approved app token from the Worker.")
         return body["access_token"], ""
     return None, f"HTTP {res.status_code} {body.get('error') or ''} {body.get('message') or ''}".strip()
+
+
+def connect_shopify(domain: str) -> "Shopify":
+    """Through the Worker proxy when NRS_PROXY_URL is set (IP allowlist), otherwise directly with a token."""
+    proxy_url = (os.environ.get("NRS_PROXY_URL") or "").strip()
+    if proxy_url:
+        print("Calling Shopify through the Worker (allow-listed network, store-approved token).")
+        return Shopify(domain, proxy_url=proxy_url, proxy_secret=os.environ["SHOPIFY_ADMIN_ACCESS_TOKEN"])
+    token = get_shopify_token(domain, os.environ["SHOPIFY_ADMIN_ACCESS_TOKEN"], os.environ.get("SHOPIFY_CLIENT_ID"))
+    return Shopify(domain, token)
 
 
 def get_shopify_token(domain: str, token: str, client_id: str) -> str:
@@ -418,12 +449,21 @@ DEFAULT_EXCLUDE_NAME_PATTERN = (
 )
 
 
+# Products Shopify restricts or that the store doesn't sell online.
+DEFAULT_RESTRICTED_NAME_PATTERN = (
+    r"kratom|kartom|kramton|\bopms\b|maeng ?da|mitragyn|\b7-?oh\b|train ?wreck|trainweck|vietnam 3 ?oz powder|"
+    r"\bthc\b|delta[- ]?[89]\b|\bcbd\b|"
+    r"rolling papers?|cig(arette)? papers?|\bbambu\b|e-?z ?wider|zig-?zag|hemp wick|"
+    r"\braw (tips|cone|black|classic|organic|natural|hemp)\b|^raw$|marley h.mp|rice paper"
+)
+
+
 def exclusion_rules(env=os.environ):
     depts = {d.strip().lower() for d in (env.get("EXCLUDE_DEPARTMENTS") if env.get("EXCLUDE_DEPARTMENTS") is not None
                                           else DEFAULT_EXCLUDE_DEPARTMENTS).split(",") if d.strip()}
     pattern = env.get("EXCLUDE_NAME_PATTERN")
     if pattern is None:
-        pattern = DEFAULT_EXCLUDE_NAME_PATTERN
+        pattern = f"(?:{DEFAULT_EXCLUDE_NAME_PATTERN})|(?:{DEFAULT_RESTRICTED_NAME_PATTERN})"
     return depts, (re.compile(pattern, re.I) if pattern.strip() else None)
 
 
@@ -438,16 +478,48 @@ def split_excluded(nrs: dict, depts: set, name_re) -> tuple:
     return kept, excluded
 
 
-def plan_archive(excluded: dict, shopify: dict) -> list:
-    """Shopify products for excluded register items that are still on the store (not archived yet), one per product."""
+def plan_archive(excluded: dict, shopify: dict, name_re=None, include_archived: bool = False) -> list:
+    """
+    Shopify products to remove, one row per product: products of excluded register items, plus any Shopify product
+    whose title matches the exclusion pattern (catches products that weren't created by the sync).
+    Already-archived products are skipped unless include_archived (delete mode).
+    """
     rows, seen = [], set()
+
+    def add(v, barcode, department):
+        pid = v.get("product_id")
+        if pid and pid not in seen and (include_archived or v.get("status") != "ARCHIVED"):
+            seen.add(pid)
+            rows.append({"title": v["title"], "barcode": barcode, "department": department, "product_id": pid})
+
     for b, item in excluded.items():
         for v in shopify.get(b, []):
-            pid = v.get("product_id")
-            if pid and pid not in seen and v.get("status") != "ARCHIVED":
-                seen.add(pid)
-                rows.append({"title": v["title"], "barcode": item["raw_upc"], "department": item["department"], "product_id": pid})
+            add(v, item["raw_upc"], item["department"])
+    if name_re is not None:
+        for b, variants in shopify.items():
+            for v in variants:
+                if name_re.search(v.get("title") or ""):
+                    add(v, b, "(matched by title)")
     return rows
+
+
+def apply_delete(shop: "Shopify", rows: list, per_request: int = 10) -> list:
+    """PERMANENTLY deletes products (variants, media, inventory). Only runs when EXCLUDED_ACTION=delete."""
+    errors = []
+    groups = list(chunks(rows, per_request))
+    for gi, group in enumerate(groups, 1):
+        params = ", ".join(f"$p{i}: ProductDeleteInput!" for i in range(len(group)))
+        fields = " ".join(f"d{i}: productDelete(input: $p{i}) {{ deletedProductId userErrors {{ field message }} }}" for i in range(len(group)))
+        data = shop.graphql(f"mutation Delete({params}) {{ {fields} }}",
+                            {f"p{i}": {"id": r["product_id"]} for i, r in enumerate(group)})
+        bad = 0
+        for i, r in enumerate(group):
+            ue = (data.get(f"d{i}") or {}).get("userErrors") or []
+            if ue:
+                bad += 1
+                errors.append(f"Delete '{r['title']}' ({r['barcode']}): {ue}")
+        print(f"Delete batch {gi}/{len(groups)}: {len(group)} products, {bad} errors")
+    return errors
 
 
 def apply_archive(shop: "Shopify", rows: list, per_request: int = 20) -> list:
@@ -883,8 +955,7 @@ def main() -> int:
     location_id = normalize_location_id(os.environ["SHOPIFY_LOCATION_ID"])
     print(f"Mode: {'LIVE (writes to Shopify)' if live else 'DRY RUN (no changes)'} | store {domain} | prices {'on (+' + str(markup_pct) + '% online)' if sync_prices else 'off'} | stock {'on' if sync_stock else 'off'} | zero-stock new items {'included' if include_zero else 'skipped'}")
 
-    token = get_shopify_token(domain, os.environ["SHOPIFY_ADMIN_ACCESS_TOKEN"], os.environ.get("SHOPIFY_CLIENT_ID"))
-    shop = Shopify(domain, token)
+    shop = connect_shopify(domain)
 
     nrs = fetch_nrs_catalog(os.environ["NRS_AUTH_PATH"], os.environ["NRS_STORE_ID"], os.environ["NRS_GROUP_ID"])
     shopify = fetch_shopify_catalog(shop, location_id)
@@ -893,10 +964,15 @@ def main() -> int:
         return 1
 
     depts, name_re = exclusion_rules()
+    removal = (os.environ.get("EXCLUDED_ACTION") or "archive").strip().lower()
+    if removal not in ("archive", "delete"):
+        removal = "archive"
     nrs, excluded = split_excluded(nrs, depts, name_re)
-    archive = plan_archive(excluded, shopify)
+    archive = plan_archive(excluded, shopify, name_re, include_archived=(removal == "delete"))
+    removed_word = "deleted" if removal == "delete" else "archived"
     print(f"Excluded {len(excluded)} register items (departments: {', '.join(sorted(depts)) or 'none'}; name pattern "
-          f"{'on' if name_re else 'off'}); {len(archive)} of their products are still on Shopify and {'will be' if live else 'would be'} archived.")
+          f"{'on' if name_re else 'off'}); {len(archive)} excluded products on Shopify {'will be' if live else 'would be'} "
+          f"{'PERMANENTLY DELETED' if removal == 'delete' else 'archived'}.")
     plan = build_plan(nrs, shopify, sync_prices=sync_prices, max_new=max_new, markup_pct=markup_pct,
                       sync_stock=sync_stock, include_zero_stock=include_zero)
     print(
@@ -909,7 +985,7 @@ def main() -> int:
     errors, created, failed = [], [], []
     if live:
         if archive:
-            errors += apply_archive(shop, archive)
+            errors += (apply_delete if removal == "delete" else apply_archive)(shop, archive)
         if plan.stock:
             errors += apply_stock(shop, plan.stock, location_id)
         if plan.activate:
@@ -944,7 +1020,7 @@ def main() -> int:
     write_csv(os.path.join(report_dir, "new_products.csv"),
               [{**c, "status": "created"} for c in created] + [{**p, "status": "pending"} for p in pending],
               ["status", "name", "raw_upc", "department", "price", "online_price", "onhand", "target_qty", "product_id"])
-    write_csv(os.path.join(report_dir, "excluded_archived.csv"), archive, ["title", "barcode", "department", "product_id"])
+    write_csv(os.path.join(report_dir, f"excluded_{removed_word}.csv"), archive, ["title", "barcode", "department", "product_id"])
     with open(os.path.join(report_dir, "warnings.txt"), "w", encoding="utf-8") as f:
         f.write("\n".join(plan.warnings + errors + failed))
 
@@ -957,7 +1033,7 @@ def main() -> int:
         "|---|---|",
         f"| NRS items with a barcode (after exclusions) | {len(nrs)} |",
         f"| Excluded register items (nicotine) | {len(excluded)} |",
-        f"| Excluded products {verb}archived on Shopify | {len(archive)} |",
+        f"| Excluded products {verb}{removed_word} on Shopify | {len(archive)} |",
         f"| Shopify variants matched by barcode | {plan.matched} |",
         f"| Shopify variants not found in NRS | {plan.shopify_only} |",
         f"| Stock levels {verb}changed | {len(plan.stock) + len(plan.activate)} |",
@@ -1007,7 +1083,7 @@ def main() -> int:
         f"\nRun complete ({'live' if live else 'dry run'}): "
         f"{len(plan.stock) + len(plan.activate)} stock changes, {len(plan.prices)} price changes, "
         f"{len(created)} products created, {len(pending)} pending, "
-        f"{len(archive)} excluded products {'archived' if live else 'to archive'}, {len(errors) + len(failed)} errors."
+        f"{len(archive)} excluded products {removed_word if live else 'to be ' + removed_word}, {len(errors) + len(failed)} errors."
     )
     return 1 if (errors or failed) else 0
 
