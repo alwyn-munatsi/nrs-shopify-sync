@@ -1,0 +1,41 @@
+name: Stop Cloudflare workers
+
+# Manual, reversible pause of the Cloudflare workers (brbr-murray, brbr-lottery):
+#  - turns off each worker's workers.dev address (no public requests reach it)
+#  - removes its cron triggers
+# Nothing is deleted. To bring a worker back: Cloudflare dashboard > Workers & Pages > the worker > Settings >
+# Domains & Routes > enable workers.dev (and redeploy brbr-murray to restore its cron), or re-enable "Deploy Murray".
+
+on:
+  workflow_dispatch:
+
+jobs:
+  stop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Pause workers
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -u
+          api="https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT/workers"
+          auth=(-H "Authorization: Bearer $CF_TOKEN" -H "Content-Type: application/json")
+          fail=0
+          for s in brbr-murray brbr-lottery; do
+            echo "== $s"
+            r=$(curl -s -X POST "$api/scripts/$s/subdomain" "${auth[@]}" -d '{"enabled":false,"previews_enabled":false}')
+            echo "workers.dev off: $(echo "$r" | jq -r '.success') $(echo "$r" | jq -c '[.errors[]?.message]')"
+            [ "$(echo "$r" | jq -r '.success')" = "true" ] || fail=1
+            r=$(curl -s -X PUT "$api/scripts/$s/schedules" "${auth[@]}" -d '[]')
+            echo "crons removed: $(echo "$r" | jq -r '.success') $(echo "$r" | jq -c '[.errors[]?.message]')"
+            [ "$(echo "$r" | jq -r '.success')" = "true" ] || fail=1
+            r=$(curl -s "$api/scripts/$s/subdomain" "${auth[@]}")
+            echo "check workers.dev enabled now: $(echo "$r" | jq -r '.result.enabled')"
+            r=$(curl -s "$api/scripts/$s/schedules" "${auth[@]}")
+            echo "check crons now: $(echo "$r" | jq -c '[.result.schedules[]?.cron]')"
+            r=$(curl -s "$api/domains?service=$s" "${auth[@]}")
+            echo "custom domains attached: $(echo "$r" | jq -c '[.result[]?.hostname]')"
+          done
+          exit $fail
